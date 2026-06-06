@@ -5,12 +5,14 @@ import { calculateScore, PlayScore, BLIND_TARGETS } from './game/scoring';
 import { Hand } from './components/Hand';
 import { ScoreBoard } from './components/ScoreBoard';
 import { PlayArea } from './components/PlayArea';
+import { Celebration } from './components/Celebration';
 
 const MAX_HAND_SIZE = 8;
 const MAX_HANDS = 3;
 const MAX_DISCARDS = 3;
+const PLAY_ANIMATION_MS = 580;
 
-type Phase = 'selecting' | 'blind_cleared' | 'game_over';
+type Phase = 'selecting' | 'playing' | 'blind_cleared' | 'game_over';
 
 interface GameState {
   deck: Card[];
@@ -22,9 +24,10 @@ interface GameState {
   blindIndex: number;
   phase: Phase;
   lastPlay: PlayScore | null;
+  dealKey: number;
 }
 
-function dealInitialState(blindIndex: number): GameState {
+function dealInitialState(blindIndex: number, dealKey: number): GameState {
   const deck = shuffle(createDeck());
   const hand = deck.slice(0, MAX_HAND_SIZE);
   return {
@@ -37,11 +40,12 @@ function dealInitialState(blindIndex: number): GameState {
     blindIndex,
     phase: 'selecting',
     lastPlay: null,
+    dealKey,
   };
 }
 
 export function App() {
-  const [state, setState] = useState<GameState>(() => dealInitialState(0));
+  const [state, setState] = useState<GameState>(() => dealInitialState(0, 0));
 
   const blindTarget = BLIND_TARGETS[Math.min(state.blindIndex, BLIND_TARGETS.length - 1)];
 
@@ -54,41 +58,49 @@ export function App() {
 
   const playHand = useCallback(() => {
     setState(prev => {
-      const selected = prev.hand.filter(c => c.selected);
-      if (selected.length === 0) return prev;
-
-      const handResult = detectHand(selected);
-      const play = calculateScore(handResult);
-      const newScore = prev.currentScore + play.total;
-      const newHandsPlayed = prev.handsPlayed + 1;
-
-      const remaining = prev.hand.filter(c => !c.selected);
-      const needed = MAX_HAND_SIZE - remaining.length;
-      const drawn = prev.deck.slice(0, needed);
-      const newDeck = prev.deck.slice(needed);
-      const newHand = [...remaining.map(c => ({ ...c, selected: false })), ...drawn];
-
-      const target = BLIND_TARGETS[Math.min(prev.blindIndex, BLIND_TARGETS.length - 1)];
-      let phase: Phase = 'selecting';
-      if (newScore >= target) phase = 'blind_cleared';
-      else if (newHandsPlayed >= MAX_HANDS) phase = 'game_over';
-
-      return {
-        ...prev,
-        deck: newDeck,
-        hand: newHand,
-        discardPile: [...prev.discardPile, ...selected],
-        handsPlayed: newHandsPlayed,
-        currentScore: newScore,
-        lastPlay: play,
-        phase,
-      };
+      if (prev.phase !== 'selecting') return prev;
+      if (prev.hand.filter(c => c.selected).length === 0) return prev;
+      return { ...prev, phase: 'playing' };
     });
+
+    setTimeout(() => {
+      setState(prev => {
+        if (prev.phase !== 'playing') return prev;
+
+        const selected = prev.hand.filter(c => c.selected);
+        const handResult = detectHand(selected);
+        const play = calculateScore(handResult);
+        const newScore = prev.currentScore + play.total;
+        const newHandsPlayed = prev.handsPlayed + 1;
+
+        const remaining = prev.hand.filter(c => !c.selected);
+        const needed = MAX_HAND_SIZE - remaining.length;
+        const drawn = prev.deck.slice(0, needed);
+        const newDeck = prev.deck.slice(needed);
+        const newHand = [...remaining.map(c => ({ ...c, selected: false })), ...drawn];
+
+        const target = BLIND_TARGETS[Math.min(prev.blindIndex, BLIND_TARGETS.length - 1)];
+        let phase: Phase = 'selecting';
+        if (newScore >= target) phase = 'blind_cleared';
+        else if (newHandsPlayed >= MAX_HANDS) phase = 'game_over';
+
+        return {
+          ...prev,
+          deck: newDeck,
+          hand: newHand,
+          discardPile: [...prev.discardPile, ...selected],
+          handsPlayed: newHandsPlayed,
+          currentScore: newScore,
+          lastPlay: play,
+          phase,
+        };
+      });
+    }, PLAY_ANIMATION_MS);
   }, []);
 
   const discard = useCallback(() => {
     setState(prev => {
-      if (prev.discardsLeft === 0) return prev;
+      if (prev.discardsLeft === 0 || prev.phase !== 'selecting') return prev;
       const selected = prev.hand.filter(c => c.selected);
       if (selected.length === 0) return prev;
 
@@ -110,115 +122,133 @@ export function App() {
   }, []);
 
   const nextBlind = useCallback(() => {
-    setState(prev => dealInitialState(prev.blindIndex + 1));
+    setState(prev => dealInitialState(prev.blindIndex + 1, prev.dealKey + 1));
   }, []);
 
   const restart = useCallback(() => {
-    setState(dealInitialState(0));
+    setState(prev => dealInitialState(0, prev.dealKey + 1));
   }, []);
 
   const selectedCount = state.hand.filter(c => c.selected).length;
+  const isPlaying = state.phase === 'playing';
+  const isActive = state.phase === 'selecting' || isPlaying;
 
   return (
-    <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h1 style={{ fontSize: 32, letterSpacing: 3, marginBottom: 20, color: '#f1c40f', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-        BALATRO
-      </h1>
+    <>
+      {state.phase === 'blind_cleared' && <Celebration />}
 
-      <ScoreBoard
-        currentScore={state.currentScore}
-        blindTarget={blindTarget}
-        handsPlayed={state.handsPlayed}
-        maxHands={MAX_HANDS}
-        discardsLeft={state.discardsLeft}
-        lastPlay={state.lastPlay}
-        blindIndex={state.blindIndex}
-      />
+      <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <h1 style={{
+          fontSize: 36,
+          letterSpacing: 4,
+          marginBottom: 20,
+          color: '#f1c40f',
+          animation: 'titlePulse 3s ease-in-out infinite',
+        }}>
+          BALATRO
+        </h1>
 
-      <Hand
-        cards={state.hand}
-        onToggleSelect={toggleSelect}
-        maxSelected={5}
-      />
-
-      {state.phase === 'selecting' && (
-        <PlayArea
-          selectedCount={selectedCount}
+        <ScoreBoard
+          currentScore={state.currentScore}
+          blindTarget={blindTarget}
+          handsPlayed={state.handsPlayed}
+          maxHands={MAX_HANDS}
           discardsLeft={state.discardsLeft}
-          onPlayHand={playHand}
-          onDiscard={discard}
-          disabled={false}
+          lastPlay={state.lastPlay}
+          blindIndex={state.blindIndex}
         />
-      )}
 
-      {state.phase === 'blind_cleared' && (
-        <div style={{
-          marginTop: 24,
-          textAlign: 'center',
-          background: 'rgba(39, 174, 96, 0.2)',
-          border: '2px solid #27ae60',
-          borderRadius: 12,
-          padding: '20px 32px',
-        }}>
-          <div style={{ fontSize: 28, fontWeight: 'bold', color: '#2ecc71', marginBottom: 8 }}>
-            Blind Cleared!
+        <Hand
+          cards={state.hand}
+          onToggleSelect={toggleSelect}
+          maxSelected={5}
+          isPlaying={isPlaying}
+          dealKey={state.dealKey}
+        />
+
+        {isActive && (
+          <PlayArea
+            selectedCount={selectedCount}
+            discardsLeft={state.discardsLeft}
+            onPlayHand={playHand}
+            onDiscard={discard}
+            disabled={isPlaying}
+          />
+        )}
+
+        {state.phase === 'blind_cleared' && (
+          <div style={{
+            marginTop: 24,
+            textAlign: 'center',
+            background: 'rgba(39,174,96,0.2)',
+            border: '2px solid #27ae60',
+            borderRadius: 12,
+            padding: '24px 40px',
+            animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
+          }}>
+            <div style={{ fontSize: 32, fontWeight: 'bold', color: '#2ecc71', marginBottom: 6 }}>
+              Blind Cleared! 🎉
+            </div>
+            <div style={{ opacity: 0.8, marginBottom: 18 }}>
+              {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
+            </div>
+            <button
+              onClick={state.blindIndex + 1 < BLIND_TARGETS.length ? nextBlind : restart}
+              style={{
+                padding: '12px 36px',
+                fontSize: 16,
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #27ae60, #1e8449)',
+                color: '#fff',
+                borderRadius: 8,
+                boxShadow: '0 4px 14px rgba(39,174,96,0.5)',
+              }}
+            >
+              {state.blindIndex + 1 < BLIND_TARGETS.length ? 'Next Blind →' : 'Play Again'}
+            </button>
           </div>
-          <div style={{ opacity: 0.8, marginBottom: 16 }}>
-            Score: {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
+        )}
+
+        {state.phase === 'game_over' && (
+          <div style={{
+            marginTop: 24,
+            textAlign: 'center',
+            background: 'rgba(192,57,43,0.2)',
+            border: '2px solid #c0392b',
+            borderRadius: 12,
+            padding: '24px 40px',
+            animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
+          }}>
+            <div style={{ fontSize: 32, fontWeight: 'bold', color: '#e74c3c', marginBottom: 6 }}>
+              Game Over
+            </div>
+            <div style={{ opacity: 0.8, marginBottom: 4 }}>
+              {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
+            </div>
+            <div style={{ opacity: 0.45, fontSize: 13, marginBottom: 18 }}>
+              Reached Blind {state.blindIndex + 1}
+            </div>
+            <button
+              onClick={restart}
+              style={{
+                padding: '12px 36px',
+                fontSize: 16,
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                color: '#fff',
+                borderRadius: 8,
+                boxShadow: '0 4px 14px rgba(192,57,43,0.5)',
+              }}
+            >
+              Play Again
+            </button>
           </div>
-          <button
-            onClick={state.blindIndex + 1 < BLIND_TARGETS.length ? nextBlind : restart}
-            style={{
-              padding: '12px 32px',
-              fontSize: 16,
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #27ae60, #1e8449)',
-              color: '#fff',
-              borderRadius: 8,
-            }}
-          >
-            {state.blindIndex + 1 < BLIND_TARGETS.length ? 'Next Blind →' : 'Play Again'}
-          </button>
+        )}
+
+        <div style={{ marginTop: 16, fontSize: 12, opacity: 0.3 }}>
+          Select up to 5 cards · {state.deck.length} cards remaining
         </div>
-      )}
-
-      {state.phase === 'game_over' && (
-        <div style={{
-          marginTop: 24,
-          textAlign: 'center',
-          background: 'rgba(192, 57, 43, 0.2)',
-          border: '2px solid #c0392b',
-          borderRadius: 12,
-          padding: '20px 32px',
-        }}>
-          <div style={{ fontSize: 28, fontWeight: 'bold', color: '#e74c3c', marginBottom: 8 }}>
-            Game Over
-          </div>
-          <div style={{ opacity: 0.8, marginBottom: 4 }}>
-            Score: {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
-          </div>
-          <div style={{ opacity: 0.5, fontSize: 13, marginBottom: 16 }}>
-            Reached Blind {state.blindIndex + 1}
-          </div>
-          <button
-            onClick={restart}
-            style={{
-              padding: '12px 32px',
-              fontSize: 16,
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
-              color: '#fff',
-              borderRadius: 8,
-            }}
-          >
-            Play Again
-          </button>
-        </div>
-      )}
-
-      <div style={{ marginTop: 16, fontSize: 12, opacity: 0.35 }}>
-        Select up to 5 cards · {state.deck.length} cards remaining in deck
       </div>
-    </div>
+    </>
   );
 }

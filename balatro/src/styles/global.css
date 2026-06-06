@@ -40,3 +40,52 @@ button:not(:disabled):hover {
 button:not(:disabled):active {
   transform: translateY(1px);
 }
+
+/* ── Animation keyframes ── */
+
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(105vh) rotate(720deg) scale(0.4); opacity: 0; }
+}
+
+@keyframes goldenFlash {
+  0%   { background: rgba(241, 196, 15, 0.35); }
+  100% { background: rgba(241, 196, 15, 0); }
+}
+
+@keyframes dealIn {
+  from { transform: translateY(70px) scale(0.75); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+@keyframes flyOff {
+  0%   { transform: translateY(var(--lift, -14px)) scale(1)    rotate(0deg);  opacity: 1; }
+  100% { transform: translateY(-220px)             scale(0.25) rotate(22deg); opacity: 0; }
+}
+
+@keyframes selectedPulse {
+  0%, 100% { box-shadow: 0 8px 20px rgba(241,196,15,0.5); }
+  50%       { box-shadow: 0 8px 36px rgba(241,196,15,1), 0 0 24px rgba(241,196,15,0.45); }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.4); opacity: 0; }
+  65%  { transform: scale(1.15); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes cardShine {
+  from { left: -60%; }
+  to   { left: 130%; }
+}
+
+@keyframes titlePulse {
+  0%, 100% { text-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 0px rgba(241,196,15,0); }
+  50%       { text-shadow: 0 2px 12px rgba(0,0,0,0.7), 0 0 20px rgba(241,196,15,0.6); }
+}
