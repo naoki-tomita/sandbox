@@ -1,0 +1,76 @@
+.card {
+  width: 70px;
+  height: 100px;
+  background: #fff;
+  border-radius: 8px;
+  border: 2px solid #ccc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 6px;
+  user-select: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+}
+
+.selected {
+  border-color: #f1c40f;
+  border-width: 3px;
+  transform: translateY(-14px);
+  box-shadow: 0 8px 20px rgba(241, 196, 15, 0.5);
+}
+
+.selected:hover {
+  transform: translateY(-18px);
+}
+
+.red {
+  color: #d32f2f;
+}
+
+.black {
+  color: #1a1a2e;
+}
+
+.corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.cornerTop {
+  align-self: flex-start;
+}
+
+.cornerBottom {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.rank {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.suit {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.centerSuit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  opacity: 0.15;
+}
