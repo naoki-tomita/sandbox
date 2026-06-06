@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, createDeck, shuffle } from './game/cards';
 import { detectHand } from './game/hands';
 import { calculateScore, PlayScore, BLIND_TARGETS } from './game/scoring';
@@ -6,11 +6,12 @@ import { Hand } from './components/Hand';
 import { ScoreBoard } from './components/ScoreBoard';
 import { PlayArea } from './components/PlayArea';
 import { Celebration } from './components/Celebration';
+import { ScoreOverlay } from './components/ScoreOverlay';
 
 const MAX_HAND_SIZE = 8;
 const MAX_HANDS = 3;
 const MAX_DISCARDS = 3;
-const PLAY_ANIMATION_MS = 580;
+const FLY_DURATION_MS = 500;
 
 type Phase = 'selecting' | 'playing' | 'blind_cleared' | 'game_over';
 
@@ -46,8 +47,19 @@ function dealInitialState(blindIndex: number, dealKey: number): GameState {
 
 export function App() {
   const [state, setState] = useState<GameState>(() => dealInitialState(0, 0));
+  const [overlayPlay, setOverlayPlay] = useState<PlayScore | null>(null);
+  const overlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const blindTarget = BLIND_TARGETS[Math.min(state.blindIndex, BLIND_TARGETS.length - 1)];
+
+  // Show overlay for 1.6s after each hand played
+  useEffect(() => {
+    if (!state.lastPlay) return;
+    if (overlayTimer.current) clearTimeout(overlayTimer.current);
+    setOverlayPlay(state.lastPlay);
+    overlayTimer.current = setTimeout(() => setOverlayPlay(null), 1800);
+    return () => { if (overlayTimer.current) clearTimeout(overlayTimer.current); };
+  }, [state.lastPlay]);
 
   const toggleSelect = useCallback((id: string) => {
     setState(prev => ({
@@ -95,7 +107,7 @@ export function App() {
           phase,
         };
       });
-    }, PLAY_ANIMATION_MS);
+    }, FLY_DURATION_MS);
   }, []);
 
   const discard = useCallback(() => {
@@ -131,11 +143,11 @@ export function App() {
 
   const selectedCount = state.hand.filter(c => c.selected).length;
   const isPlaying = state.phase === 'playing';
-  const isActive = state.phase === 'selecting' || isPlaying;
 
   return (
     <>
       {state.phase === 'blind_cleared' && <Celebration />}
+      {overlayPlay && <ScoreOverlay key={overlayPlay.total + overlayPlay.handName} play={overlayPlay} />}
 
       <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <h1 style={{
@@ -166,7 +178,7 @@ export function App() {
           dealKey={state.dealKey}
         />
 
-        {isActive && (
+        {(state.phase === 'selecting' || isPlaying) && (
           <PlayArea
             selectedCount={selectedCount}
             discardsLeft={state.discardsLeft}
@@ -187,7 +199,7 @@ export function App() {
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
             <div style={{ fontSize: 32, fontWeight: 'bold', color: '#2ecc71', marginBottom: 6 }}>
-              Blind Cleared! 🎉
+              Blind Cleared!
             </div>
             <div style={{ opacity: 0.8, marginBottom: 18 }}>
               {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
