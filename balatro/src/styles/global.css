@@ -78,6 +78,13 @@ button:not(:disabled):active {
   100% { transform: scale(1.1) translateY(-20px); opacity: 0; }
 }
 
+@keyframes overlayBackdrop {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 @keyframes numberBounce {
   0%   { transform: scale(0); opacity: 0; }
   50%  { transform: scale(1.4); opacity: 1; }
