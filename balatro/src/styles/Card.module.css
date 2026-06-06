@@ -44,6 +44,10 @@
   user-select: none;
   overflow: hidden;
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Applied only on mount; removed after animationend to avoid re-triggering on class changes */
+.dealing {
   animation: dealIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
