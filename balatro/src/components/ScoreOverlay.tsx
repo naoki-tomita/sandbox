@@ -26,24 +26,42 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
       justifyContent: 'center',
       pointerEvents: 'none',
       zIndex: 150,
+      background: 'rgba(0,0,0,0.45)',
+      animation: 'overlayEnter 1.8s ease-out forwards',
     }}>
       <div style={{
         textAlign: 'center',
-        animation: 'overlayEnter 1.8s ease-out forwards',
+        background: 'rgba(15,20,30,0.92)',
+        border: `2px solid ${color}`,
+        borderRadius: 20,
+        padding: '28px 44px',
+        boxShadow: `0 0 40px ${color}55, 0 8px 32px rgba(0,0,0,0.7)`,
+        backdropFilter: 'blur(8px)',
+        minWidth: 300,
       }}>
         {/* Hand name */}
         <div style={{
-          fontSize: 42,
+          fontSize: 36,
           fontWeight: 'bold',
-          color,
-          textShadow: `0 0 30px ${color}, 0 4px 12px rgba(0,0,0,0.8)`,
+          color: '#fff',
           letterSpacing: 3,
-          marginBottom: 12,
-          animation: 'slideInUp 0.3s ease-out backwards',
+          marginBottom: 4,
+          animation: 'slideInUp 0.25s ease-out backwards',
           animationDelay: '0.05s',
         }}>
           {HAND_DISPLAY_NAMES[play.handName].toUpperCase()}
         </div>
+
+        {/* Color accent bar */}
+        <div style={{
+          height: 3,
+          background: color,
+          borderRadius: 2,
+          marginBottom: 20,
+          boxShadow: `0 0 10px ${color}`,
+          animation: 'slideInUp 0.25s ease-out backwards',
+          animationDelay: '0.1s',
+        }} />
 
         {/* Formula */}
         <div style={{
@@ -51,31 +69,29 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 10,
-          fontSize: 28,
+          fontSize: 26,
           fontWeight: 'bold',
-          background: 'rgba(0,0,0,0.7)',
-          borderRadius: 16,
-          padding: '12px 28px',
-          backdropFilter: 'blur(4px)',
-          border: `1px solid ${color}44`,
         }}>
-          <span style={{ color: '#7eb8f7', animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.2s' }}>
-            {play.chips}
-          </span>
-          <span style={{ opacity: 0.5, fontSize: 20 }}>chips ×</span>
-          <span style={{ color: '#f08080', animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.35s' }}>
-            {play.mult}
-          </span>
-          <span style={{ opacity: 0.5, fontSize: 20 }}>mult =</span>
-          <span style={{
-            color,
-            fontSize: 38,
-            textShadow: `0 0 20px ${color}`,
-            animation: 'numberBounce 0.4s ease-out backwards',
-            animationDelay: '0.5s',
-          }}>
-            {play.total.toLocaleString()}
-          </span>
+          <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.2s' }}>
+            <div style={{ color: '#7eb8f7', fontSize: 30 }}>{play.chips}</div>
+            <div style={{ color: '#fff', fontSize: 11, opacity: 0.6, fontWeight: 'normal', letterSpacing: 1 }}>CHIPS</div>
+          </div>
+
+          <span style={{ color: '#fff', opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.28s' }}>×</span>
+
+          <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.35s' }}>
+            <div style={{ color: '#f08080', fontSize: 30 }}>{play.mult}</div>
+            <div style={{ color: '#fff', fontSize: 11, opacity: 0.6, fontWeight: 'normal', letterSpacing: 1 }}>MULT</div>
+          </div>
+
+          <span style={{ color: '#fff', opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.43s' }}>=</span>
+
+          <div style={{ textAlign: 'center', animation: 'numberBounce 0.4s ease-out backwards', animationDelay: '0.5s' }}>
+            <div style={{ color, fontSize: 38, textShadow: `0 0 16px ${color}` }}>
+              {play.total.toLocaleString()}
+            </div>
+            <div style={{ color: '#fff', fontSize: 11, opacity: 0.6, fontWeight: 'normal', letterSpacing: 1 }}>SCORE</div>
+          </div>
         </div>
       </div>
     </div>
