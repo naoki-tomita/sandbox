@@ -27,7 +27,7 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
       pointerEvents: 'none',
       zIndex: 150,
       background: 'rgba(0,0,0,0.45)',
-      animation: 'overlayEnter 1.8s ease-out forwards',
+      animation: 'overlayBackdrop 1.8s ease-out forwards',
     }}>
       <div style={{
         textAlign: 'center',
@@ -38,6 +38,7 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
         boxShadow: `0 0 40px ${color}55, 0 8px 32px rgba(0,0,0,0.7)`,
         backdropFilter: 'blur(8px)',
         minWidth: 300,
+        animation: 'overlayEnter 1.8s ease-out forwards',
       }}>
         {/* Hand name */}
         <div style={{
