@@ -2,22 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Commands
-
-```bash
-# Install deps (run once after cloning)
-npm install
-
-# Start dev server
-npm run dev        # http://localhost:5173/sandbox/
-
-# Type-check + production build
-npm run build
-
-# Preview production build locally
-npm run preview
-```
-
 No test runner is configured. TypeScript strict mode serves as the primary correctness check (`tsc` runs as part of `npm run build`).
 
 ## Architecture
