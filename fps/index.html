@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPS Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- メニュー画面 -->
+  <div id="menu">
+    <h1>⚔ FPS ARENA</h1>
+    <p class="subtitle">~ 迷宮からの脱出 ~</p>
+    <button id="startBtn">ゲームスタート</button>
+    <div class="controls-info">
+      <h3>操作方法</h3>
+      <table>
+        <tr><td>W A S D</td><td>移動</td></tr>
+        <tr><td>マウス</td><td>視点操作</td></tr>
+        <tr><td>左クリック</td><td>射撃</td></tr>
+        <tr><td>R</td><td>リロード</td></tr>
+        <tr><td>ESC</td><td>ポーズ</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ゲームオーバー画面 -->
+  <div id="gameOver" class="overlay hidden">
+    <h1>GAME OVER</h1>
+    <div class="result-box">
+      <p>スコア: <span id="finalScore">0</span></p>
+      <p>倒した敵: <span id="finalKills">0</span></p>
+      <p>到達ウェーブ: <span id="finalWave">1</span></p>
+    </div>
+    <button id="restartBtn">もう一度</button>
+  </div>
+
+  <!-- ポーズ画面 -->
+  <div id="pauseScreen" class="overlay hidden">
+    <h1>PAUSED</h1>
+    <button id="resumeBtn">再開</button>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="crosshair"></div>
+    <div id="hitMarker" class="hidden"></div>
+
+    <div id="topLeft">
+      <div class="hud-label">SCORE</div>
+      <div id="scoreVal">0</div>
+    </div>
+
+    <div id="topRight">
+      <div class="hud-label">WAVE</div>
+      <div id="waveVal">1</div>
+      <div id="enemyCount"></div>
+    </div>
+
+    <div id="bottomLeft">
+      <div class="hud-label">HP</div>
+      <div id="healthBar"><div id="healthFill"></div></div>
+      <div id="healthVal">100</div>
+    </div>
+
+    <div id="bottomRight">
+      <div id="ammoVal"><span id="ammoCurrent">30</span><span class="ammo-sep">/</span><span id="ammoReserve">90</span></div>
+      <div id="weaponName">PISTOL</div>
+    </div>
+
+    <div id="reloadMsg" class="hidden">RELOADING...</div>
+    <div id="waveAnnounce" class="hidden"></div>
+    <div id="killMsg" class="hidden">ENEMY DOWN!</div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
