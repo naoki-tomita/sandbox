@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Portal</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: #0d0d1a;
+      color: #fff;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      letter-spacing: 0.2em;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(255,255,255,0.3);
+    }
+
+    h1 span { color: #6699ff; }
+
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: center;
+    }
+
+    a.card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      width: 240px;
+      padding: 36px 24px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+
+    a.card:hover {
+      background: rgba(255,255,255,0.09);
+      border-color: rgba(255,255,255,0.35);
+      transform: translateY(-4px);
+    }
+
+    a.card .icon { font-size: 3rem; line-height: 1; }
+
+    a.card .title {
+      font-size: 1.2rem;
+      letter-spacing: 0.15em;
+      font-weight: bold;
+    }
+
+    a.card .desc {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+
+    a.card.balatro { border-color: rgba(255, 180, 0, 0.3); }
+    a.card.balatro:hover { border-color: rgba(255, 180, 0, 0.7); }
+    a.card.balatro .title { color: #ffcc33; }
+
+    a.card.fps { border-color: rgba(255, 60, 60, 0.3); }
+    a.card.fps:hover { border-color: rgba(255, 60, 60, 0.7); }
+    a.card.fps .title { color: #ff5555; }
+
+    footer {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.15em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>GAME <span>PORTAL</span></h1>
+
+  <div class="cards">
+    <a class="card balatro" href="balatro/">
+      <div class="icon">🃏</div>
+      <div class="title">BALATRO</div>
+      <div class="desc">ポーカーベースの<br>ローグライクカードゲーム</div>
+    </a>
+    <a class="card fps" href="fps/">
+      <div class="icon">🎯</div>
+      <div class="title">FPS ARENA</div>
+      <div class="desc">迷宮を舞台にした<br>ファーストパーソンシューター</div>
+    </a>
+  </div>
+
+  <footer>naoki-tomita / sandbox</footer>
+
+</body>
+</html>

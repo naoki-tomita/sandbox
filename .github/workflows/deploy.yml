@@ -41,6 +41,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
+          cp index.html _site/index.html
           cp -r balatro/dist _site/balatro
           cp -r fps _site/fps
 
