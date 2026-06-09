@@ -1,0 +1,351 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #000;
+  overflow: hidden;
+  font-family: 'Courier New', Courier, monospace;
+  color: #fff;
+  user-select: none;
+}
+
+#gameCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ───── Overlays ───── */
+.overlay,
+#menu {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.88);
+  z-index: 200;
+  gap: 20px;
+}
+
+.hidden { display: none !important; }
+
+/* ───── Menu ───── */
+#menu h1 {
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  color: #ff3333;
+  text-shadow: 0 0 30px #ff0000, 0 0 60px #ff000066;
+  letter-spacing: 0.15em;
+}
+
+.subtitle {
+  color: #ff9933;
+  font-size: 1.1rem;
+  letter-spacing: 0.3em;
+}
+
+.controls-info {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,80,80,0.3);
+  padding: 20px 40px;
+  border-radius: 4px;
+}
+
+.controls-info h3 {
+  color: #ff4444;
+  text-align: center;
+  margin-bottom: 12px;
+  letter-spacing: 0.2em;
+}
+
+.controls-info table {
+  border-collapse: collapse;
+}
+
+.controls-info td {
+  padding: 4px 16px;
+  color: #cccccc;
+}
+
+.controls-info td:first-child {
+  color: #ffdd55;
+  font-weight: bold;
+  text-align: right;
+}
+
+/* ───── Buttons ───── */
+button {
+  padding: 14px 48px;
+  font-size: 1.1rem;
+  background: transparent;
+  border: 2px solid #ff3333;
+  color: #ff3333;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.15em;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+button:hover {
+  background: #ff3333;
+  color: #fff;
+  box-shadow: 0 0 20px #ff333388;
+}
+
+/* ───── Game Over ───── */
+#gameOver h1 {
+  font-size: clamp(3rem, 7vw, 5rem);
+  color: #ff2222;
+  text-shadow: 0 0 40px #ff0000;
+  letter-spacing: 0.2em;
+}
+
+.result-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,80,80,0.4);
+  padding: 24px 60px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.result-box p {
+  font-size: 1.2rem;
+  color: #ffcc55;
+  margin: 8px 0;
+  letter-spacing: 0.1em;
+}
+
+.result-box span {
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+/* ───── Pause ───── */
+#pauseScreen h1 {
+  font-size: 4rem;
+  color: #ffaa33;
+  letter-spacing: 0.3em;
+}
+
+/* ───── HUD ───── */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Crosshair */
+#crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+}
+
+#crosshair::before,
+#crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.9);
+}
+
+#crosshair::before {
+  width: 2px;
+  height: 14px;
+  top: 3px;
+  left: 9px;
+}
+
+#crosshair::after {
+  width: 14px;
+  height: 2px;
+  top: 9px;
+  left: 3px;
+}
+
+/* Hit marker */
+#hitMarker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+}
+
+#hitMarker::before,
+#hitMarker::after {
+  content: '';
+  position: absolute;
+  background: #ff4444;
+}
+
+#hitMarker::before {
+  width: 2px;
+  height: 10px;
+  top: 7px;
+  left: 11px;
+}
+
+#hitMarker::after {
+  width: 10px;
+  height: 2px;
+  top: 11px;
+  left: 7px;
+}
+
+/* Top Left - Score */
+#topLeft {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+}
+
+.hud-label {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.2em;
+  margin-bottom: 2px;
+}
+
+#scoreVal {
+  font-size: 1.8rem;
+  color: #ffdd44;
+  text-shadow: 0 0 8px #ffdd4488;
+  letter-spacing: 0.05em;
+}
+
+/* Top Right - Wave */
+#topRight {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  text-align: right;
+}
+
+#waveVal {
+  font-size: 1.8rem;
+  color: #ff6644;
+  text-shadow: 0 0 8px #ff664488;
+}
+
+#enemyCount {
+  font-size: 0.8rem;
+  color: rgba(255,150,100,0.7);
+  margin-top: 2px;
+}
+
+/* Bottom Left - Health */
+#bottomLeft {
+  position: absolute;
+  bottom: 28px;
+  left: 24px;
+}
+
+#healthBar {
+  width: 180px;
+  height: 12px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+#healthFill {
+  height: 100%;
+  width: 100%;
+  background: #22ee44;
+  transition: width 0.2s, background 0.3s;
+}
+
+#healthVal {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.7);
+}
+
+/* Bottom Right - Ammo */
+#bottomRight {
+  position: absolute;
+  bottom: 28px;
+  right: 24px;
+  text-align: right;
+}
+
+#ammoVal {
+  font-size: 2rem;
+  color: #ffdd44;
+  letter-spacing: 0.05em;
+}
+
+.ammo-sep {
+  font-size: 1.2rem;
+  color: rgba(255,255,255,0.4);
+  margin: 0 4px;
+}
+
+#ammoReserve {
+  font-size: 1.2rem;
+  color: rgba(255,221,68,0.6);
+}
+
+#weaponName {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.3em;
+  margin-top: 2px;
+}
+
+/* Reload message */
+#reloadMsg {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.1rem;
+  color: #ffaa33;
+  letter-spacing: 0.3em;
+  animation: pulse 0.6s infinite;
+}
+
+/* Wave announce */
+#waveAnnounce {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  color: #ff6644;
+  letter-spacing: 0.3em;
+  text-shadow: 0 0 20px #ff4400;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Kill message */
+#killMsg {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1rem;
+  color: #ff4444;
+  letter-spacing: 0.3em;
+  animation: fadeUp 0.8s forwards;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 1; transform: translate(-50%, -50%); }
+  to { opacity: 0; transform: translate(-50%, -80%); }
+}

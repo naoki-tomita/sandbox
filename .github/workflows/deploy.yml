@@ -1,10 +1,11 @@
-name: Deploy Balatro to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'balatro/**'
+      - 'fps/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -29,17 +30,23 @@ jobs:
           cache: npm
           cache-dependency-path: balatro/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Balatro dependencies
         run: npm ci
         working-directory: balatro
 
-      - name: Build
+      - name: Build Balatro
         run: npm run build
         working-directory: balatro
 
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp -r balatro/dist _site/balatro
+          cp -r fps _site/fps
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: balatro/dist
+          path: _site
 
   deploy:
     needs: build
