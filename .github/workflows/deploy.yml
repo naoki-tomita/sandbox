@@ -41,7 +41,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp -r balatro/dist/. _site/
+          cp -r balatro/dist _site/balatro
           cp -r fps _site/fps
 
       - uses: actions/upload-pages-artifact@v3

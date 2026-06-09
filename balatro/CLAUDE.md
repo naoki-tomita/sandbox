@@ -39,9 +39,9 @@ All game rules live here, completely decoupled from React.
 
 ## Deployment
 
-Merging to `main` with changes under `balatro/**` triggers `.github/workflows/deploy.yml`, which builds and deploys to GitHub Pages at `https://naoki-tomita.github.io/sandbox/`.
+Merging to `main` with changes under `balatro/**` triggers `.github/workflows/deploy.yml`, which builds and deploys to GitHub Pages at `https://naoki-tomita.github.io/sandbox/balatro/`.
 
-`vite.config.ts` sets `base: '/sandbox/'` to match this path.
+`vite.config.ts` sets `base: '/sandbox/balatro/'` to match this path.
 
 ## Branch workflow
 
