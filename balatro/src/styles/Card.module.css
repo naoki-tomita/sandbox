@@ -36,6 +36,7 @@
 .card {
   width: 70px;
   height: 100px;
+  flex-shrink: 0;
   background: linear-gradient(160deg, #faf3e3 0%, #f1e6cc 100%);
   border-radius: 6px;
   border: 1px solid #d9c9a4;
@@ -79,6 +80,7 @@
 .card:not(.flying):hover {
   transform: translateY(-10px) scale(1.06);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
+  z-index: 2;
 }
 
 .card:not(.flying):hover::after {
@@ -92,6 +94,7 @@
   border-color: #c8a24b;
   transform: translateY(-18px) scale(1.06);
   animation: giltPulse 1.4s ease-in-out infinite;
+  z-index: 3;
 }
 
 .selected:hover {
@@ -142,4 +145,15 @@
   font-size: 30px;
   opacity: 0.14;
   pointer-events: none;
+}
+
+/* Slightly smaller stock on narrow tables; the aspect ratio never changes */
+@media (max-width: 480px) {
+  .card {
+    width: 62px;
+    height: 90px;
+  }
+
+  .rank { font-size: 14px; }
+  .centerSuit { font-size: 26px; }
 }
