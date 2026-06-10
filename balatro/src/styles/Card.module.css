@@ -31,23 +31,41 @@
   to   { left: 140%; }
 }
 
-/* ── Card base: cream card stock ── */
+/* ── Slot: the stationary footprint of the card ──
+   Owns hover, click, and stacking. It never moves, so hovering near the
+   card's resting position can't flicker when the body lifts away. */
 
-.card {
+.slot {
   width: 70px;
   height: 100px;
   flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.slot:hover { z-index: 2; }
+.slotSelected { z-index: 3; }
+
+.slotFlying {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ── Card body: cream card stock (moves inside the slot) ── */
+
+.card {
+  width: 100%;
+  height: 100%;
   background: linear-gradient(160deg, #faf3e3 0%, #f1e6cc 100%);
   border-radius: 6px;
   border: 1px solid #d9c9a4;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-  cursor: pointer;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 4px 6px;
-  user-select: none;
   overflow: hidden;
   font-family: var(--font-body);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
@@ -77,13 +95,13 @@
   pointer-events: none;
 }
 
-.card:not(.flying):hover {
+/* Hover lifts higher than the selected resting height */
+.slot:not(.slotFlying):hover .card {
   transform: translateY(-26px) scale(1.06);
   box-shadow: 0 14px 24px rgba(0, 0, 0, 0.6);
-  z-index: 2;
 }
 
-.card:not(.flying):hover::after {
+.slot:not(.slotFlying):hover .card::after {
   opacity: 1;
   animation: shine 0.45s ease-out forwards;
 }
@@ -94,10 +112,9 @@
   border-color: #c8a24b;
   transform: translateY(-18px) scale(1.06);
   animation: giltPulse 1.4s ease-in-out infinite;
-  z-index: 3;
 }
 
-.selected:hover {
+.slot:not(.slotFlying):hover .selected {
   transform: translateY(-30px) scale(1.08);
 }
 
@@ -105,8 +122,6 @@
 
 .flying {
   animation: flyOff 0.5s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
-  pointer-events: none;
-  cursor: default;
 }
 
 /* ── Suit inks: lacquer red / ink black ── */
@@ -149,7 +164,7 @@
 
 /* Slightly smaller stock on narrow tables; the aspect ratio never changes */
 @media (max-width: 480px) {
-  .card {
+  .slot {
     width: 62px;
     height: 90px;
   }
