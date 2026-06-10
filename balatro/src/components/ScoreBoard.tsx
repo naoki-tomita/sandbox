@@ -34,7 +34,6 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
       boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
       padding: '16px 24px',
       width: '100%',
-      maxWidth: 560,
       marginBottom: 20,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>

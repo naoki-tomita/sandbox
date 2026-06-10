@@ -4,6 +4,7 @@
 .hand {
   display: flex;
   justify-content: center;
+  gap: 8px;
   padding: 20px 24px 36px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(200, 162, 75, 0.22);
@@ -14,8 +15,15 @@
   width: 100%;
 }
 
-.hand > :not(:first-child) {
-  margin-left: -18px;
+/* Narrower tables: fan the cards with a slight overlap instead of shrinking them */
+@media (max-width: 740px) {
+  .hand {
+    gap: 0;
+  }
+
+  .hand > :not(:first-child) {
+    margin-left: -24px;
+  }
 }
 
 @media (max-width: 480px) {

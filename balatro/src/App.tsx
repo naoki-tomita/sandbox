@@ -60,7 +60,7 @@ export function App() {
         <ScoreOverlay key={overlayPlay.handName + overlayPlay.total} play={overlayPlay} />
       )}
 
-      <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 720, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <header style={{ textAlign: 'center', marginBottom: 20 }}>
           <h1 style={{
             fontFamily: 'var(--font-display)',
