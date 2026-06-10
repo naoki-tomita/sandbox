@@ -61,15 +61,32 @@ export function App() {
       )}
 
       <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h1 style={{
-          fontSize: 36,
-          letterSpacing: 4,
-          marginBottom: 20,
-          color: '#f1c40f',
-          animation: 'titlePulse 3s ease-in-out infinite',
-        }}>
-          BALATRO
-        </h1>
+        <header style={{ textAlign: 'center', marginBottom: 20 }}>
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 40,
+            fontWeight: 'normal',
+            letterSpacing: 6,
+            color: 'var(--paper)',
+            lineHeight: 1,
+          }}>
+            BALATRO
+          </h1>
+          <div style={{
+            marginTop: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            color: 'var(--gilt)',
+            fontSize: 12,
+            letterSpacing: 4,
+          }}>
+            <span style={{ flex: 1, minWidth: 48, borderTop: '1px solid var(--gilt-soft)' }} />
+            <span aria-hidden="true">♠ ♥ ♦ ♣</span>
+            <span style={{ flex: 1, minWidth: 48, borderTop: '1px solid var(--gilt-soft)' }} />
+          </div>
+        </header>
 
         <ScoreBoard
           currentScore={state.currentScore}
@@ -102,27 +119,32 @@ export function App() {
           <div style={{
             marginTop: 24,
             textAlign: 'center',
-            background: 'rgba(39,174,96,0.2)',
-            border: '2px solid #27ae60',
-            borderRadius: 12,
-            padding: '24px 40px',
+            background: 'var(--paper)',
+            color: 'var(--ink)',
+            border: '1px solid var(--paper-shade)',
+            borderRadius: 10,
+            boxShadow: 'inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--gilt), 0 8px 24px rgba(0,0,0,0.5)',
+            padding: '28px 44px',
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
-            <div style={{ fontSize: 32, fontWeight: 'bold', color: '#2ecc71', marginBottom: 6 }}>
-              Blind Cleared!
+            <div style={{ fontSize: 11, letterSpacing: 3, color: 'var(--lacquer)', marginBottom: 6 }}>
+              BLIND {state.blindIndex + 1} SETTLED
             </div>
-            <div style={{ opacity: 0.8, marginBottom: 18 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, marginBottom: 6 }}>
+              Blind cleared
+            </div>
+            <div style={{ opacity: 0.7, marginBottom: 18 }}>
               {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
             </div>
             <button
               onClick={hasNextBlind ? nextBlind : restart}
               style={{
-                padding: '12px 36px', fontSize: 16, fontWeight: 'bold',
-                background: 'linear-gradient(135deg, #27ae60, #1e8449)',
-                color: '#fff', borderRadius: 8, boxShadow: '0 4px 14px rgba(39,174,96,0.5)',
+                padding: '12px 36px', fontSize: 17, fontWeight: 700,
+                background: 'var(--lacquer)', color: 'var(--paper)',
+                borderRadius: 8, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.25), 0 4px 14px rgba(168,50,58,0.4)',
               }}
             >
-              {hasNextBlind ? 'Next Blind →' : 'Play Again'}
+              {hasNextBlind ? 'Next blind →' : 'Play again'}
             </button>
           </div>
         )}
@@ -131,35 +153,37 @@ export function App() {
           <div style={{
             marginTop: 24,
             textAlign: 'center',
-            background: 'rgba(192,57,43,0.2)',
-            border: '2px solid #c0392b',
-            borderRadius: 12,
-            padding: '24px 40px',
+            background: 'var(--paper)',
+            color: 'var(--ink)',
+            border: '1px solid var(--paper-shade)',
+            borderRadius: 10,
+            boxShadow: 'inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--lacquer), 0 8px 24px rgba(0,0,0,0.5)',
+            padding: '28px 44px',
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
-            <div style={{ fontSize: 32, fontWeight: 'bold', color: '#e74c3c', marginBottom: 6 }}>
-              Game Over
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, color: 'var(--lacquer)', marginBottom: 6 }}>
+              Game over
             </div>
-            <div style={{ opacity: 0.8, marginBottom: 4 }}>
+            <div style={{ opacity: 0.7, marginBottom: 4 }}>
               {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
             </div>
-            <div style={{ opacity: 0.45, fontSize: 13, marginBottom: 18 }}>
-              Reached Blind {state.blindIndex + 1}
+            <div style={{ opacity: 0.5, fontSize: 14, marginBottom: 18 }}>
+              Reached blind {state.blindIndex + 1}
             </div>
             <button
               onClick={restart}
               style={{
-                padding: '12px 36px', fontSize: 16, fontWeight: 'bold',
-                background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
-                color: '#fff', borderRadius: 8, boxShadow: '0 4px 14px rgba(192,57,43,0.5)',
+                padding: '12px 36px', fontSize: 17, fontWeight: 700,
+                background: 'var(--ink)', color: 'var(--paper)',
+                borderRadius: 8, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.4), 0 4px 14px rgba(0,0,0,0.4)',
               }}
             >
-              Play Again
+              Play again
             </button>
           </div>
         )}
 
-        <div style={{ marginTop: 16, fontSize: 12, opacity: 0.3 }}>
+        <div style={{ marginTop: 16, fontSize: 13, letterSpacing: 1, color: 'var(--paper)', opacity: 0.35 }}>
           Select up to 5 cards · {state.deck.length} cards remaining
         </div>
       </div>

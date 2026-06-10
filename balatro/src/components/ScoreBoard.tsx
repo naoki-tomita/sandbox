@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { PlayScore } from '../game/scoring';
 import { HAND_DISPLAY_NAMES } from '../game/hands';
 import { useCounter } from '../hooks/useCounter';
@@ -12,14 +13,25 @@ interface Props {
   blindIndex: number;
 }
 
+const labelStyle: CSSProperties = {
+  fontSize: 11,
+  letterSpacing: 2,
+  textTransform: 'uppercase',
+  color: 'var(--ink)',
+  opacity: 0.55,
+};
+
 export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, discardsLeft, lastPlay, blindIndex }: Props) {
   const animatedScore = useCounter(currentScore, 700);
   const pct = Math.min((currentScore / blindTarget) * 100, 100);
 
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.5)',
-      borderRadius: 12,
+      background: 'var(--paper)',
+      color: 'var(--ink)',
+      border: '1px solid var(--paper-shade)',
+      borderRadius: 10,
+      boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
       padding: '16px 24px',
       width: '100%',
       maxWidth: 560,
@@ -27,31 +39,49 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
-          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.6 }}>
-            Blind {blindIndex + 1}
+          <div style={{ ...labelStyle, color: 'var(--lacquer)', opacity: 1 }}>
+            Blind No. {blindIndex + 1}
           </div>
-          <div style={{ fontSize: 30, fontWeight: 'bold', color: '#f1c40f' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 34, lineHeight: 1.2 }}>
             {animatedScore.toLocaleString()}
-            <span style={{ fontSize: 14, color: '#888', marginLeft: 8 }}>/ {blindTarget.toLocaleString()}</span>
+            <span style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 15,
+              color: 'var(--ink)',
+              opacity: 0.5,
+              marginLeft: 8,
+            }}>
+              of {blindTarget.toLocaleString()}
+            </span>
           </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: 13 }}>
-          <div style={{ opacity: 0.6 }}>Hands left</div>
-          <div style={{ fontSize: 22, fontWeight: 'bold' }}>{maxHands - handsPlayed}</div>
-          <div style={{ opacity: 0.6, marginTop: 4 }}>Discards</div>
-          <div style={{ fontSize: 18, fontWeight: 'bold' }}>{discardsLeft}</div>
+        <div style={{ display: 'flex', gap: 20, textAlign: 'center' }}>
+          <div>
+            <div style={labelStyle}>Hands</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{maxHands - handsPlayed}</div>
+          </div>
+          <div style={{ borderLeft: '1px solid var(--paper-shade)' }} />
+          <div>
+            <div style={labelStyle}>Discards</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{discardsLeft}</div>
+          </div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 4, height: 10, overflow: 'hidden' }}>
+      {/* Progress: gilt fill in a recessed groove */}
+      <div style={{
+        background: 'var(--paper-shade)',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
+        borderRadius: 4,
+        height: 10,
+        overflow: 'hidden',
+      }}>
         <div style={{
           width: `${pct}%`,
           height: '100%',
-          background: 'linear-gradient(90deg, #f1c40f, #e67e22)',
+          background: 'linear-gradient(90deg, #b08a35, var(--gilt))',
           borderRadius: 4,
           transition: 'width 0.7s cubic-bezier(0.34,1.56,0.64,1)',
-          boxShadow: '0 0 10px rgba(241,196,15,0.7)',
         }} />
       </div>
 
@@ -59,14 +89,13 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
       {lastPlay && (
         <div style={{
           marginTop: 10,
-          fontSize: 13,
-          opacity: 0.65,
+          fontSize: 14,
           display: 'flex',
           gap: 6,
-          alignItems: 'center',
+          alignItems: 'baseline',
         }}>
-          <span style={{ color: '#f1c40f' }}>{HAND_DISPLAY_NAMES[lastPlay.handName]}</span>
-          <span>→ +{lastPlay.total.toLocaleString()}</span>
+          <span style={{ color: 'var(--lacquer)', fontWeight: 600 }}>{HAND_DISPLAY_NAMES[lastPlay.handName]}</span>
+          <span style={{ opacity: 0.6 }}>scored +{lastPlay.total.toLocaleString()}</span>
         </div>
       )}
     </div>

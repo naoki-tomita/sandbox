@@ -27,7 +27,8 @@ All game rules live here, completely decoupled from React.
 
 ### CSS / Styling
 
-- Inline styles for layout, colours, and component-specific animations in `ScoreOverlay`, `Celebration`, etc.
+- Visual identity: "Maker's Mark" — a 19th-century playing-card maker's parlour. Design tokens live as CSS custom properties in `global.css` (`--mahogany`, `--paper`, `--ink`, `--lacquer`, `--cardback-blue`, `--gilt`). Chips are always card-back blue, mult is always lacquer red (the twin deck inks). Display face is Abril Fatface (`--font-display`), body is Crimson Pro (`--font-body`), both loaded from Google Fonts in `index.html`.
+- Inline styles for layout, colours, and component-specific animations in `ScoreOverlay`, `Celebration`, etc. Inline styles reference the tokens via `var(--*)`.
 - CSS Modules (`Card.module.css`, `Hand.module.css`) for the card visuals.
 - `src/styles/global.css` for keyframes referenced by inline styles (`overlayEnter`, `overlayBackdrop`, `popIn`, `slideInUp`, `confettiFall`, etc.) and base resets.
 
