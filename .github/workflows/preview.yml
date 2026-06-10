@@ -1,0 +1,97 @@
+# Cloudflare Pages への PR プレビューデプロイ。
+#
+# 必要なリポジトリシークレット (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN  — "Cloudflare Pages: Edit" 権限を持つ API トークン
+#                           (dash.cloudflare.com → My Profile → API Tokens → Create Token
+#                            → Custom Token → Account / Cloudflare Pages / Edit)
+#   CLOUDFLARE_ACCOUNT_ID — ダッシュボードの Workers & Pages 概要ページ右側に表示される ID
+#
+# Pages プロジェクトは初回実行時に自動作成されます。
+
+name: PR Preview
+
+on:
+  pull_request:
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: balatro/package-lock.json
+
+      - name: Install Balatro dependencies
+        run: npm ci
+        working-directory: balatro
+
+      # GitHub Pages 用の base (/sandbox/balatro/) を Pages.dev のルート配信用に上書きする
+      - name: Build Balatro
+        run: npm run build -- --base=/balatro/
+        working-directory: balatro
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp -r balatro/dist _site/balatro
+          cp -r fps _site/fps
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          preCommands: wrangler pages project create naoki-tomita-sandbox --production-branch=main || true
+          command: pages deploy _site --project-name=naoki-tomita-sandbox --branch=${{ github.head_ref }}
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.deployment-url }}';
+            const alias = '${{ steps.deploy.outputs.pages-deployment-alias-url }}';
+            const marker = '<!-- cloudflare-pages-preview -->';
+            const body = [
+              marker,
+              '### ☁️ Cloudflare Pages プレビュー',
+              '',
+              '| | URL |',
+              '| --- | --- |',
+              `| 最新コミット | ${url} |`,
+              `| ブランチ | ${alias} |`,
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
