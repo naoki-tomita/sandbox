@@ -42,9 +42,10 @@
   position: relative;
   cursor: pointer;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.slot:hover { z-index: 2; }
 .slotSelected { z-index: 3; }
 
 .slotFlying {
@@ -95,15 +96,25 @@
   pointer-events: none;
 }
 
-/* Hover lifts higher than the selected resting height */
-.slot:not(.slotFlying):hover .card {
-  transform: translateY(-26px) scale(1.06);
-  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.6);
-}
+/* Hover effects only on devices that can truly hover — touch browsers keep
+   a tapped element in :hover, which would leave cards floating after a tap */
+@media (hover: hover) {
+  .slot:hover { z-index: 2; }
 
-.slot:not(.slotFlying):hover .card::after {
-  opacity: 1;
-  animation: shine 0.45s ease-out forwards;
+  /* Hover lifts higher than the selected resting height */
+  .slot:not(.slotFlying):hover .card {
+    transform: translateY(-26px) scale(1.06);
+    box-shadow: 0 14px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  .slot:not(.slotFlying):hover .card::after {
+    opacity: 1;
+    animation: shine 0.45s ease-out forwards;
+  }
+
+  .slot:not(.slotFlying):hover .selected {
+    transform: translateY(-30px) scale(1.08);
+  }
 }
 
 /* ── Selected: gilt ring ── */
@@ -112,10 +123,6 @@
   border-color: #c8a24b;
   transform: translateY(-18px) scale(1.06);
   animation: giltPulse 1.4s ease-in-out infinite;
-}
-
-.slot:not(.slotFlying):hover .selected {
-  transform: translateY(-30px) scale(1.08);
 }
 
 /* ── Flying off ── */

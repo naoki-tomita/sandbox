@@ -47,6 +47,8 @@ button {
   border: none;
   border-radius: 6px;
   transition: transform 0.1s, opacity 0.1s, box-shadow 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 button:disabled {
