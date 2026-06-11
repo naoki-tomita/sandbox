@@ -77,8 +77,8 @@ let recoilT = 0;
 function init() {
   // Scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d0d1a);
-  scene.fog = new THREE.FogExp2(0x0d0d1a, 0.045);
+  scene.background = new THREE.Color(0x1a1a2e);
+  scene.fog = new THREE.Fog(0x1a1a2e, 30, 70);
 
   // Camera
   camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 80);
@@ -92,14 +92,17 @@ function init() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // Lighting
-  scene.add(new THREE.AmbientLight(0x223344, 0.8));
+  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+  scene.add(new THREE.HemisphereLight(0xaabbff, 0x554433, 0.6));
 
-  // Ceiling light grid
-  [[2,2],[6,6],[10,6],[6,10],[10,10],[14,14],[2,14],[14,2]].forEach(([c,r]) => {
-    const pl = new THREE.PointLight(0x8899ff, 1.2, 14);
-    pl.position.set(c * CELL, WALL_H - 0.3, r * CELL);
-    pl.castShadow = true;
-    pl.shadow.mapSize.set(256, 256);
+  // Ceiling light grid — brighter, warmer, wider reach
+  [
+    [2,2],[4,4],[6,2],[2,6],[8,8],
+    [10,6],[6,10],[10,10],[12,4],[4,12],
+    [14,2],[2,14],[14,14],[12,12],[8,4],[4,8],
+  ].forEach(([c, r]) => {
+    const pl = new THREE.PointLight(0xfff0cc, 2.5, 22);
+    pl.position.set(c * CELL, WALL_H - 0.2, r * CELL);
     scene.add(pl);
   });
 
@@ -142,7 +145,7 @@ function buildLevel() {
   openCells = [];
 
   const floorGeo = new THREE.PlaneGeometry(COLS * CELL, ROWS * CELL);
-  const floorMat = new THREE.MeshLambertMaterial({ color: 0x2a2a3a });
+  const floorMat = new THREE.MeshLambertMaterial({ color: 0x555566 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(COLS * CELL / 2, 0, ROWS * CELL / 2);
@@ -150,13 +153,13 @@ function buildLevel() {
   scene.add(floor);
 
   const ceilGeo = new THREE.PlaneGeometry(COLS * CELL, ROWS * CELL);
-  const ceilMat = new THREE.MeshLambertMaterial({ color: 0x1a1a28 });
+  const ceilMat = new THREE.MeshLambertMaterial({ color: 0x3a3a4a });
   const ceil = new THREE.Mesh(ceilGeo, ceilMat);
   ceil.rotation.x = Math.PI / 2;
   ceil.position.set(COLS * CELL / 2, WALL_H, ROWS * CELL / 2);
   scene.add(ceil);
 
-  const wallColors = [0x5a3a1a, 0x4a2e14, 0x6a4422, 0x3d2510];
+  const wallColors = [0x9a7050, 0x8a6040, 0xaa8060, 0x7a5535];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const cx = c * CELL + CELL / 2;
