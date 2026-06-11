@@ -93,21 +93,27 @@ button:not(:disabled):active {
   100% { transform: scale(1);   opacity: 1; }
 }
 
-/* The duty stamp: pressed onto the table, held while the tally runs,
-   then lifted away. Percentages assume the ~3s OVERLAY_DURATION_MS. */
-@keyframes overlayEnter {
+/* The duty stamp: pressed onto the table on entry, lifted away on exit.
+   The dwell between the two is driven by the ScoreOverlay script. */
+@keyframes stampIn {
   0%   { transform: scale(1.6) rotate(-4deg);   opacity: 0; }
-  8%   { transform: scale(0.97) rotate(0.6deg); opacity: 1; }
-  13%  { transform: scale(1) rotate(0deg);      opacity: 1; }
-  91%  { transform: scale(1) rotate(0deg);      opacity: 1; }
-  100% { transform: scale(1.04) translateY(-14px); opacity: 0; }
+  60%  { transform: scale(0.97) rotate(0.6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);      opacity: 1; }
 }
 
-@keyframes overlayBackdrop {
-  0%   { opacity: 0; }
-  9%   { opacity: 1; }
-  91%  { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes stampOut {
+  from { transform: scale(1) translateY(0);        opacity: 1; }
+  to   { transform: scale(1.04) translateY(-14px); opacity: 0; }
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes backdropOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 /* Chips counter pulse on each tally tick */

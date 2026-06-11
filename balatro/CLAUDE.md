@@ -15,7 +15,7 @@ All game rules live here, completely decoupled from React.
 - **`scoring.ts`** — `calculateScore(hand)` returns `PlayScore` using `(baseChips + sum of cardChips) × baseMult`. `PlayScore` also carries the breakdown (`baseChips`, `cardContributions`) so the UI can animate the tally. `BLIND_TARGETS` array drives progression.
 - **`GameEngine.ts`** — immutable class that owns `GameState`. Every method returns a **new** `GameEngine` instance (no mutation). React calls `setEngine(e => e.someMethod())`.
 
-`GameEngine` phases: `selecting → playing → blind_cleared | game_over`. The `playing` phase exists purely to give React time for the fly-off animation (500 ms); `startPlay()` sets it, `resolvePlay()` (called after the timeout) applies the score.
+`GameEngine` phases: `selecting → playing → scored → selecting | blind_cleared | game_over`. The presentation beats are phases: `playing` covers the fly-off animation (500 ms; `startPlay()` → `resolvePlay()`), and `scored` covers the score-tally overlay — `resolvePlay()` applies the score and draws cards but never decides the outcome; `advanceAfterScore()` (called by the UI when the overlay finishes) does. This guarantees the cleared/game-over popups can't appear behind the overlay.
 
 ### React — `src/`
 
@@ -23,7 +23,7 @@ All game rules live here, completely decoupled from React.
 
 `ScoreBoard` uses `useCounter` (RAF-based animation) to count up the score display.
 
-`ScoreOverlay` shows the hand result for `OVERLAY_DURATION_MS` (~3 s, exported from `ScoreOverlay.tsx` and derived by summing the tally timeline constants at `MAX_SELECTED` cards) via a `useEffect` on `state.lastPlay` with a `setTimeout`. Inside it, a timeline of `setTimeout`s ticks the CHIPS counter up as the base-chips tag and one tag per played card land in sequence; the mult/total reveal delays are computed from the card count. The `overlayEnter`/`overlayBackdrop` keyframe percentages in `global.css` assume this 3 s duration.
+`ScoreOverlay` renders while `phase === 'scored'`. Its presentation is a sequential script (`useScript` in `src/hooks/useScript.ts`): stamp in → BASE tag → one tag per card (the CHIPS counter is *derived* from how many tags have landed) → × mult → = total → hold → stamp out → `onComplete()`, which advances the engine. Order lives in the code; only the pauses between beats are durations. Unmounting the overlay silently stops the script.
 
 ### CSS / Styling
 

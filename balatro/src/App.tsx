@@ -1,33 +1,21 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { GameEngine } from './game/GameEngine';
-import { PlayScore } from './game/scoring';
 import { BLIND_TARGETS } from './game/scoring';
 import { Hand } from './components/Hand';
 import { ScoreBoard } from './components/ScoreBoard';
 import { PlayArea } from './components/PlayArea';
 import { Celebration } from './components/Celebration';
-import { ScoreOverlay, OVERLAY_DURATION_MS } from './components/ScoreOverlay';
+import { ScoreOverlay } from './components/ScoreOverlay';
 
 /** How long to wait for the card fly-off animation before resolving the play. */
 const FLY_DURATION_MS = 500;
 
 export function App() {
   const [engine, setEngine] = useState(() => new GameEngine());
-  const [overlayPlay, setOverlayPlay] = useState<PlayScore | null>(null);
-  const overlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { state } = engine;
   const isPlaying = state.phase === 'playing';
   const selectedCount = engine.selectedCards.length;
-
-  // Show score overlay briefly after each hand
-  useEffect(() => {
-    if (!state.lastPlay) return;
-    if (overlayTimer.current) clearTimeout(overlayTimer.current);
-    setOverlayPlay(state.lastPlay);
-    overlayTimer.current = setTimeout(() => setOverlayPlay(null), OVERLAY_DURATION_MS);
-    return () => { if (overlayTimer.current) clearTimeout(overlayTimer.current); };
-  }, [state.lastPlay]);
 
   const toggleSelect = useCallback((id: string) => {
     setEngine(e => e.toggleSelect(id));
@@ -36,6 +24,12 @@ export function App() {
   const playHand = useCallback(() => {
     setEngine(e => e.startPlay());
     setTimeout(() => setEngine(e => e.resolvePlay()), FLY_DURATION_MS);
+  }, []);
+
+  // The overlay calls this once its presentation has fully finished;
+  // only then does the game decide cleared / game over / keep playing.
+  const advanceAfterScore = useCallback(() => {
+    setEngine(e => e.advanceAfterScore());
   }, []);
 
   const discard = useCallback(() => {
@@ -56,8 +50,8 @@ export function App() {
   return (
     <>
       {state.phase === 'blind_cleared' && <Celebration />}
-      {overlayPlay && (
-        <ScoreOverlay key={overlayPlay.handName + overlayPlay.total} play={overlayPlay} />
+      {state.phase === 'scored' && state.lastPlay && (
+        <ScoreOverlay play={state.lastPlay} onComplete={advanceAfterScore} />
       )}
 
       <div style={{ width: '100%', maxWidth: 720, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -105,13 +99,13 @@ export function App() {
           dealKey={state.dealKey}
         />
 
-        {(state.phase === 'selecting' || isPlaying) && (
+        {(state.phase === 'selecting' || state.phase === 'playing' || state.phase === 'scored') && (
           <PlayArea
             selectedCount={selectedCount}
             discardsLeft={state.discardsLeft}
             onPlayHand={playHand}
             onDiscard={discard}
-            disabled={isPlaying}
+            disabled={state.phase !== 'selecting'}
           />
         )}
 

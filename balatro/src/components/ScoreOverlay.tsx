@@ -1,23 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { PlayScore } from '../game/scoring';
 import { HAND_DISPLAY_NAMES } from '../game/hands';
 import { RANK_LABELS, SUIT_SYMBOLS } from '../game/cards';
-import { MAX_SELECTED } from '../game/GameEngine';
+import { useScript } from '../hooks/useScript';
 
-/* Tally timeline (ms from mount) */
-const BASE_TAG_AT = 500;
-const CARD_TAGS_FROM = 700;
-const TAG_STEP = 150;
-const MULT_DELAY = 150;   // × MULT appears this long after the last card tag
-const TOTAL_DELAY = 250;  // = TOTAL appears this long after the mult
-const FINAL_HOLD = 1150;  // dwell after the slowest possible total reveal, incl. lift-off
-
-/** Total lifetime of the overlay; App unmounts it after this. Derived from
-    the timeline above at the maximum hand size, so retuning any step can
-    never outlive the overlay. */
-export const OVERLAY_DURATION_MS =
-  CARD_TAGS_FROM + MAX_SELECTED * TAG_STEP + MULT_DELAY + TOTAL_DELAY + FINAL_HOLD;
+/* Pauses between the beats of the tally (ms) */
+const STAMP_IN = 500;     // stamp pressed + the hand name gets a beat
+const TAG_STEP = 150;     // between each landing tag
+const MULT_PAUSE = 300;   // before × MULT
+const TOTAL_PAUSE = 250;  // before = TOTAL
+const HOLD = 900;         // dwell on the finished formula
+const STAMP_OUT = 300;    // lift-off animation length
 
 const RED_SUITS = new Set(['hearts', 'diamonds']);
 
@@ -30,7 +24,7 @@ const CORNER_PIPS: Array<{ symbol: string; style: CSSProperties; }> = [
 
 const tagLabelStyle: CSSProperties = { fontSize: 10, letterSpacing: 1, opacity: 0.55 };
 
-function Tag({ top, topColor, chips, delayMs }: { top: string; topColor?: string; chips: number; delayMs: number; }) {
+function Tag({ top, topColor, chips }: { top: string; topColor?: string; chips: number; }) {
   return (
     <div style={{
       display: 'flex',
@@ -44,7 +38,6 @@ function Tag({ top, topColor, chips, delayMs }: { top: string; topColor?: string
       borderRadius: 5,
       boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
       animation: 'popIn 0.3s ease-out backwards',
-      animationDelay: `${delayMs}ms`,
     }}>
       <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1, color: topColor }}>{top}</div>
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--cardback-blue)' }}>+{chips}</div>
@@ -52,30 +45,45 @@ function Tag({ top, topColor, chips, delayMs }: { top: string; topColor?: string
   );
 }
 
+interface Props {
+  play: PlayScore;
+  /** Called when the stamp has fully lifted away; the game may move on. */
+  onComplete: () => void;
+}
+
 /**
- * The maker's duty stamp, now a running tally: the hand's base chips and
- * each card's value land one by one, ticking the CHIPS counter up, before
- * the mult and total are pressed in.
+ * The maker's duty stamp as a running tally. The order of the beats is the
+ * code below: stamp lands → BASE tag → one tag per card (chips ticking up)
+ * → × mult → = total → hold → lift away → onComplete().
  */
-export function ScoreOverlay({ play }: { play: PlayScore; }) {
-  const [chipsShown, setChipsShown] = useState(0);
+export function ScoreOverlay({ play, onComplete }: Props) {
+  // 0 = no tags yet, 1 = BASE landed, 1+i = first i card tags landed
+  const [tagCount, setTagCount] = useState(0);
+  const [showMult, setShowMult] = useState(false);
+  const [showTotal, setShowTotal] = useState(false);
+  const [exiting, setExiting] = useState(false);
 
-  const cardCount = play.cardContributions.length;
-  const multAt = CARD_TAGS_FROM + cardCount * TAG_STEP + MULT_DELAY;
-  const totalAt = multAt + TOTAL_DELAY;
+  useScript(async wait => {
+    await wait(STAMP_IN);
+    setTagCount(1);
+    for (let i = 0; i < play.cardContributions.length; i++) {
+      await wait(TAG_STEP);
+      setTagCount(n => n + 1);
+    }
+    await wait(MULT_PAUSE);
+    setShowMult(true);
+    await wait(TOTAL_PAUSE);
+    setShowTotal(true);
+    await wait(HOLD);
+    setExiting(true);
+    await wait(STAMP_OUT);
+    onComplete();
+  });
 
-  // Tick the chips counter in sync with each tag landing
-  useEffect(() => {
-    const timers = [
-      setTimeout(() => setChipsShown(play.baseChips), BASE_TAG_AT),
-      ...play.cardContributions.map((c, i) =>
-        setTimeout(
-          () => setChipsShown(prev => prev + c.chips),
-          CARD_TAGS_FROM + i * TAG_STEP,
-        )),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [play]);
+  const landedTags = play.cardContributions.slice(0, Math.max(tagCount - 1, 0));
+  const chipsShown = tagCount === 0
+    ? 0
+    : play.baseChips + landedTags.reduce((sum, c) => sum + c.chips, 0);
 
   return (
     <div style={{
@@ -87,7 +95,9 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
       pointerEvents: 'none',
       zIndex: 150,
       background: 'rgba(20,6,5,0.55)',
-      animation: `overlayBackdrop ${OVERLAY_DURATION_MS}ms ease-out forwards`,
+      animation: exiting
+        ? `backdropOut ${STAMP_OUT}ms ease-out forwards`
+        : 'backdropIn 0.25s ease-out backwards',
     }}>
       <div style={{
         position: 'relative',
@@ -100,7 +110,9 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
         padding: '30px 44px 26px',
         minWidth: 360,
         maxWidth: 'calc(100vw - 32px)',
-        animation: `overlayEnter ${OVERLAY_DURATION_MS}ms ease-out forwards`,
+        animation: exiting
+          ? `stampOut ${STAMP_OUT}ms ease-in forwards`
+          : 'stampIn 0.35s ease-out backwards',
       }}>
         {CORNER_PIPS.map(pip => (
           <span
@@ -117,8 +129,6 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
           letterSpacing: 4,
           color: 'var(--lacquer)',
           marginBottom: 4,
-          animation: 'slideInUp 0.25s ease-out backwards',
-          animationDelay: '0.05s',
         }}>
           SCORED
         </div>
@@ -129,8 +139,6 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
           fontSize: 34,
           letterSpacing: 1,
           marginBottom: 6,
-          animation: 'slideInUp 0.25s ease-out backwards',
-          animationDelay: '0.05s',
         }}>
           {HAND_DISPLAY_NAMES[play.handName]}
         </div>
@@ -140,11 +148,9 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
           background: 'var(--gilt)',
           opacity: 0.6,
           marginBottom: 14,
-          animation: 'slideInUp 0.25s ease-out backwards',
-          animationDelay: '0.1s',
         }} />
 
-        {/* The tally: hand base + one tag per card */}
+        {/* The tally: hand base + one tag per card, landing in order */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -152,15 +158,15 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
           flexWrap: 'wrap',
           gap: 6,
           marginBottom: 16,
+          minHeight: 42,
         }}>
-          <Tag top="BASE" chips={play.baseChips} delayMs={BASE_TAG_AT} />
-          {play.cardContributions.map((c, i) => (
+          {tagCount >= 1 && <Tag top="BASE" chips={play.baseChips} />}
+          {landedTags.map(c => (
             <Tag
               key={c.card.id}
               top={`${RANK_LABELS[c.card.rank]}${SUIT_SYMBOLS[c.card.suit]}`}
               topColor={RED_SUITS.has(c.card.suit) ? 'var(--lacquer)' : undefined}
               chips={c.chips}
-              delayMs={CARD_TAGS_FROM + i * TAG_STEP}
             />
           ))}
         </div>
@@ -171,38 +177,49 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 14,
+          minHeight: 64,
         }}>
-          <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards', animationDelay: `${BASE_TAG_AT - 100}ms` }}>
-            <div
-              key={chipsShown}
-              style={{
-                fontFamily: 'var(--font-display)',
-                color: 'var(--cardback-blue)',
-                fontSize: 30,
-                animation: chipsShown > 0 ? 'chipTick 0.25s ease-out' : undefined,
-              }}
-            >
-              {chipsShown}
+          {tagCount >= 1 && (
+            <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards' }}>
+              <div
+                key={chipsShown}
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  color: 'var(--cardback-blue)',
+                  fontSize: 30,
+                  animation: 'chipTick 0.25s ease-out',
+                }}
+              >
+                {chipsShown}
+              </div>
+              <div style={tagLabelStyle}>CHIPS</div>
             </div>
-            <div style={tagLabelStyle}>CHIPS</div>
-          </div>
-          <span style={{ opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: `${multAt - 80}ms` }}>×</span>
-          <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards', animationDelay: `${multAt}ms` }}>
-            <div style={{ fontFamily: 'var(--font-display)', color: 'var(--lacquer)', fontSize: 30 }}>{play.mult}</div>
-            <div style={tagLabelStyle}>MULT</div>
-          </div>
-          <span style={{ opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: `${totalAt - 80}ms` }}>=</span>
-          <div style={{ textAlign: 'center', animation: `numberBounce 0.4s ease-out backwards`, animationDelay: `${totalAt}ms` }}>
-            <div style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 40,
-              borderBottom: '3px double var(--gilt)',
-              lineHeight: 1.1,
-            }}>
-              {play.total.toLocaleString()}
-            </div>
-            <div style={{ ...tagLabelStyle, fontSize: 11, marginTop: 3 }}>SCORE</div>
-          </div>
+          )}
+          {showMult && (
+            <>
+              <span style={{ opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards' }}>×</span>
+              <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards' }}>
+                <div style={{ fontFamily: 'var(--font-display)', color: 'var(--lacquer)', fontSize: 30 }}>{play.mult}</div>
+                <div style={tagLabelStyle}>MULT</div>
+              </div>
+            </>
+          )}
+          {showTotal && (
+            <>
+              <span style={{ opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards' }}>=</span>
+              <div style={{ textAlign: 'center', animation: 'numberBounce 0.4s ease-out backwards' }}>
+                <div style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 40,
+                  borderBottom: '3px double var(--gilt)',
+                  lineHeight: 1.1,
+                }}>
+                  {play.total.toLocaleString()}
+                </div>
+                <div style={{ ...tagLabelStyle, fontSize: 11, marginTop: 3 }}>SCORE</div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
