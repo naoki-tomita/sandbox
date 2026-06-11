@@ -12,7 +12,7 @@ All game rules live here, completely decoupled from React.
 
 - **`cards.ts`** — primitive types (`Suit`, `Rank`, `Card`) and pure functions (`createDeck`, `shuffle`, `cardChips`). Card IDs are `"${rank}-${suit}"` (stable across shuffles).
 - **`hands.ts`** — `detectHand(cards)` returns the best `HandResult` from the selected cards. Handles ace-low straight (A-2-3-4-5).
-- **`scoring.ts`** — `calculateScore(hand)` returns `PlayScore` using `(baseChips + sum of cardChips) × baseMult`. `BLIND_TARGETS` array drives progression.
+- **`scoring.ts`** — `calculateScore(hand)` returns `PlayScore` using `(baseChips + sum of cardChips) × baseMult`. `PlayScore` also carries the breakdown (`baseChips`, `cardContributions`) so the UI can animate the tally. `BLIND_TARGETS` array drives progression.
 - **`GameEngine.ts`** — immutable class that owns `GameState`. Every method returns a **new** `GameEngine` instance (no mutation). React calls `setEngine(e => e.someMethod())`.
 
 `GameEngine` phases: `selecting → playing → blind_cleared | game_over`. The `playing` phase exists purely to give React time for the fly-off animation (500 ms); `startPlay()` sets it, `resolvePlay()` (called after the timeout) applies the score.
@@ -23,7 +23,7 @@ All game rules live here, completely decoupled from React.
 
 `ScoreBoard` uses `useCounter` (RAF-based animation) to count up the score display.
 
-`ScoreOverlay` shows the hand result for 1.8 s via a `useEffect` on `state.lastPlay` with a `setTimeout`.
+`ScoreOverlay` shows the hand result for `OVERLAY_DURATION_MS` (3 s, exported from `ScoreOverlay.tsx`) via a `useEffect` on `state.lastPlay` with a `setTimeout`. Inside it, a timeline of `setTimeout`s ticks the CHIPS counter up as the base-chips tag and one tag per played card land in sequence; the mult/total reveal delays are computed from the card count. The `overlayEnter`/`overlayBackdrop` keyframe percentages in `global.css` assume this 3 s duration.
 
 ### CSS / Styling
 

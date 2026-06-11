@@ -1,4 +1,4 @@
-import { cardChips } from './cards';
+import { Card, cardChips } from './cards';
 import { HandName, HandResult } from './hands';
 
 export interface ScoreEntry {
@@ -6,11 +6,18 @@ export interface ScoreEntry {
   baseMult: number;
 }
 
+export interface CardContribution {
+  card: Card;
+  chips: number;
+}
+
 export interface PlayScore {
   chips: number;
   mult: number;
   total: number;
   handName: HandName;
+  baseChips: number;
+  cardContributions: CardContribution[];
 }
 
 export const HAND_SCORES: Record<HandName, ScoreEntry> = {
@@ -30,8 +37,9 @@ export const BLIND_TARGETS = [300, 800, 2000, 5000, 12000, 30000];
 
 export function calculateScore(hand: HandResult): PlayScore {
   const { baseChips, baseMult } = HAND_SCORES[hand.name];
-  const cardTotal = hand.cards.reduce((sum, c) => sum + cardChips(c.rank), 0);
+  const cardContributions = hand.cards.map(card => ({ card, chips: cardChips(card.rank) }));
+  const cardTotal = cardContributions.reduce((sum, c) => sum + c.chips, 0);
   const chips = baseChips + cardTotal;
   const mult = baseMult;
-  return { chips, mult, total: chips * mult, handName: hand.name };
+  return { chips, mult, total: chips * mult, handName: hand.name, baseChips, cardContributions };
 }

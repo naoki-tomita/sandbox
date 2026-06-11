@@ -6,7 +6,7 @@ import { Hand } from './components/Hand';
 import { ScoreBoard } from './components/ScoreBoard';
 import { PlayArea } from './components/PlayArea';
 import { Celebration } from './components/Celebration';
-import { ScoreOverlay } from './components/ScoreOverlay';
+import { ScoreOverlay, OVERLAY_DURATION_MS } from './components/ScoreOverlay';
 
 /** How long to wait for the card fly-off animation before resolving the play. */
 const FLY_DURATION_MS = 500;
@@ -25,7 +25,7 @@ export function App() {
     if (!state.lastPlay) return;
     if (overlayTimer.current) clearTimeout(overlayTimer.current);
     setOverlayPlay(state.lastPlay);
-    overlayTimer.current = setTimeout(() => setOverlayPlay(null), 1800);
+    overlayTimer.current = setTimeout(() => setOverlayPlay(null), OVERLAY_DURATION_MS);
     return () => { if (overlayTimer.current) clearTimeout(overlayTimer.current); };
   }, [state.lastPlay]);
 
