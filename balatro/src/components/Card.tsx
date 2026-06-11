@@ -26,7 +26,16 @@ export function Card({ card, onClick, isFlying = false, dealIndex = 0 }: Props) 
     return () => el.removeEventListener('animationend', stop);
   }, []);
 
-  const className = [
+  // The slot stays put and owns hover/click; only the body inside it moves.
+  // A moving hover target would otherwise flicker: lift → pointer exits →
+  // drop → pointer re-enters → lift …
+  const slotClassName = [
+    styles.slot,
+    isFlying ? styles.slotFlying : '',
+    card.selected && !isFlying ? styles.slotSelected : '',
+  ].filter(Boolean).join(' ');
+
+  const bodyClassName = [
     styles.card,
     isRed ? styles.red : styles.black,
     isDealing ? styles.dealing : '',
@@ -36,22 +45,26 @@ export function Card({ card, onClick, isFlying = false, dealIndex = 0 }: Props) 
 
   return (
     <div
-      ref={ref}
-      className={className}
+      className={slotClassName}
       onClick={isFlying ? undefined : onClick}
       role="button"
       aria-pressed={card.selected}
       aria-label={`${RANK_LABELS[card.rank]} of ${card.suit}`}
-      style={{ animationDelay: `${dealIndex * 0.055}s` }}
     >
-      <div className={`${styles.corner} ${styles.cornerTop}`}>
-        <span className={styles.rank}>{RANK_LABELS[card.rank]}</span>
-        <span className={styles.suit}>{SUIT_SYMBOLS[card.suit]}</span>
-      </div>
-      <span className={styles.centerSuit}>{SUIT_SYMBOLS[card.suit]}</span>
-      <div className={`${styles.corner} ${styles.cornerBottom}`}>
-        <span className={styles.rank}>{RANK_LABELS[card.rank]}</span>
-        <span className={styles.suit}>{SUIT_SYMBOLS[card.suit]}</span>
+      <div
+        ref={ref}
+        className={bodyClassName}
+        style={{ animationDelay: `${dealIndex * 0.055}s` }}
+      >
+        <div className={`${styles.corner} ${styles.cornerTop}`}>
+          <span className={styles.rank}>{RANK_LABELS[card.rank]}</span>
+          <span className={styles.suit}>{SUIT_SYMBOLS[card.suit]}</span>
+        </div>
+        <span className={styles.centerSuit}>{SUIT_SYMBOLS[card.suit]}</span>
+        <div className={`${styles.corner} ${styles.cornerBottom}`}>
+          <span className={styles.rank}>{RANK_LABELS[card.rank]}</span>
+          <span className={styles.suit}>{SUIT_SYMBOLS[card.suit]}</span>
+        </div>
       </div>
     </div>
   );

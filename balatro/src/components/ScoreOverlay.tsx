@@ -1,22 +1,28 @@
+import type { CSSProperties } from 'react';
 import { PlayScore } from '../game/scoring';
 import { HAND_DISPLAY_NAMES } from '../game/hands';
 
-const HAND_COLORS: Record<string, string> = {
-  royal_flush:     '#ff6b9d',
-  straight_flush:  '#e74c3c',
-  four_of_a_kind:  '#9b59b6',
-  full_house:      '#e67e22',
-  flush:           '#3498db',
-  straight:        '#2ecc71',
-  three_of_a_kind: '#1abc9c',
-  two_pair:        '#f1c40f',
-  pair:            '#f39c12',
-  high_card:       '#95a5a6',
-};
+const CORNER_PIPS: Array<{ symbol: string; style: CSSProperties; }> = [
+  { symbol: '♠', style: { top: 10, left: 14 } },
+  { symbol: '♥', style: { top: 10, right: 14, color: 'var(--lacquer)' } },
+  { symbol: '♦', style: { bottom: 10, left: 14, color: 'var(--lacquer)' } },
+  { symbol: '♣', style: { bottom: 10, right: 14 } },
+];
 
+function Factor({ value, label, color, delay }: { value: number; label: string; color: string; delay: string; }) {
+  return (
+    <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards', animationDelay: delay }}>
+      <div style={{ fontFamily: 'var(--font-display)', color, fontSize: 30 }}>{value}</div>
+      <div style={{ fontSize: 11, opacity: 0.55, letterSpacing: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+/**
+ * The maker's duty stamp: each scored hand is pressed onto the table
+ * as a gilt-framed cartouche, chips in card-back blue, mult in lacquer red.
+ */
 export function ScoreOverlay({ play }: { play: PlayScore; }) {
-  const color = HAND_COLORS[play.handName] ?? '#f1c40f';
-
   return (
     <div style={{
       position: 'fixed',
@@ -26,72 +32,84 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
       justifyContent: 'center',
       pointerEvents: 'none',
       zIndex: 150,
-      background: 'rgba(0,0,0,0.45)',
+      background: 'rgba(20,6,5,0.55)',
       animation: 'overlayBackdrop 1.8s ease-out forwards',
     }}>
       <div style={{
+        position: 'relative',
         textAlign: 'center',
-        background: 'rgba(15,20,30,0.92)',
-        border: `2px solid ${color}`,
-        borderRadius: 20,
-        padding: '28px 44px',
-        boxShadow: `0 0 40px ${color}55, 0 8px 32px rgba(0,0,0,0.7)`,
-        backdropFilter: 'blur(8px)',
-        minWidth: 300,
+        background: 'var(--paper)',
+        color: 'var(--ink)',
+        borderRadius: 10,
+        border: '2px solid var(--gilt)',
+        boxShadow: 'inset 0 0 0 5px var(--paper), inset 0 0 0 6px var(--gilt), 0 12px 40px rgba(0,0,0,0.65)',
+        padding: '30px 48px 26px',
+        minWidth: 320,
         animation: 'overlayEnter 1.8s ease-out forwards',
       }}>
-        {/* Hand name */}
+        {CORNER_PIPS.map(pip => (
+          <span
+            key={pip.symbol}
+            aria-hidden="true"
+            style={{ position: 'absolute', fontSize: 13, opacity: 0.7, ...pip.style }}
+          >
+            {pip.symbol}
+          </span>
+        ))}
+
         <div style={{
-          fontSize: 36,
-          fontWeight: 'bold',
-          color: '#fff',
-          letterSpacing: 3,
+          fontSize: 11,
+          letterSpacing: 4,
+          color: 'var(--lacquer)',
           marginBottom: 4,
           animation: 'slideInUp 0.25s ease-out backwards',
           animationDelay: '0.05s',
         }}>
-          {HAND_DISPLAY_NAMES[play.handName].toUpperCase()}
+          SCORED
         </div>
 
-        {/* Color accent bar */}
+        {/* Hand name */}
         <div style={{
-          height: 3,
-          background: color,
-          borderRadius: 2,
-          marginBottom: 20,
-          boxShadow: `0 0 10px ${color}`,
+          fontFamily: 'var(--font-display)',
+          fontSize: 34,
+          letterSpacing: 1,
+          marginBottom: 6,
+          animation: 'slideInUp 0.25s ease-out backwards',
+          animationDelay: '0.05s',
+        }}>
+          {HAND_DISPLAY_NAMES[play.handName]}
+        </div>
+
+        <div style={{
+          height: 1,
+          background: 'var(--gilt)',
+          opacity: 0.6,
+          marginBottom: 18,
           animation: 'slideInUp 0.25s ease-out backwards',
           animationDelay: '0.1s',
         }} />
 
-        {/* Formula */}
+        {/* Formula: twin deck inks — chips blue, mult red */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 10,
-          fontSize: 26,
-          fontWeight: 'bold',
+          gap: 14,
         }}>
-          <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.2s' }}>
-            <div style={{ color: '#7eb8f7', fontSize: 30 }}>{play.chips}</div>
-            <div style={{ color: '#fff', fontSize: 11, opacity: 0.6, fontWeight: 'normal', letterSpacing: 1 }}>CHIPS</div>
-          </div>
-
-          <span style={{ color: '#fff', opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.28s' }}>×</span>
-
-          <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.35s' }}>
-            <div style={{ color: '#f08080', fontSize: 30 }}>{play.mult}</div>
-            <div style={{ color: '#fff', fontSize: 11, opacity: 0.6, fontWeight: 'normal', letterSpacing: 1 }}>MULT</div>
-          </div>
-
-          <span style={{ color: '#fff', opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.43s' }}>=</span>
-
+          <Factor value={play.chips} label="CHIPS" color="var(--cardback-blue)" delay="0.2s" />
+          <span style={{ opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.28s' }}>×</span>
+          <Factor value={play.mult} label="MULT" color="var(--lacquer)" delay="0.35s" />
+          <span style={{ opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards', animationDelay: '0.43s' }}>=</span>
           <div style={{ textAlign: 'center', animation: 'numberBounce 0.4s ease-out backwards', animationDelay: '0.5s' }}>
-            <div style={{ color, fontSize: 38, textShadow: `0 0 16px ${color}` }}>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 40,
+              borderBottom: '3px double var(--gilt)',
+              lineHeight: 1.1,
+            }}>
               {play.total.toLocaleString()}
             </div>
-            <div style={{ color: '#fff', fontSize: 11, opacity: 0.6, fontWeight: 'normal', letterSpacing: 1 }}>SCORE</div>
+            <div style={{ fontSize: 11, opacity: 0.55, letterSpacing: 2, marginTop: 3 }}>SCORE</div>
           </div>
         </div>
       </div>

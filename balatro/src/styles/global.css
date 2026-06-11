@@ -1,3 +1,22 @@
+/* ── "Maker's Mark" design tokens ──
+   A 19th-century playing-card maker's parlour: mahogany table,
+   cream card stock, twin deck inks (lacquer red / card-back blue), gilt. */
+
+:root {
+  --mahogany: #36100f;
+  --mahogany-deep: #1f0908;
+  --paper: #f4ead5;
+  --paper-shade: #e4d6b8;
+  --ink: #22201b;
+  --lacquer: #a8323a;
+  --cardback-blue: #27518f;
+  --gilt: #c8a24b;
+  --gilt-soft: rgba(200, 162, 75, 0.35);
+
+  --font-display: 'Abril Fatface', 'Georgia', serif;
+  --font-body: 'Crimson Pro', 'Georgia', serif;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -5,11 +24,13 @@
 }
 
 body {
-  font-family: 'Georgia', serif;
-  background-color: #1a5c2a;
-  background-image: radial-gradient(ellipse at center, #2d7a3d 0%, #0f3a18 100%);
+  font-family: var(--font-body);
+  background-color: var(--mahogany);
+  background-image:
+    radial-gradient(ellipse 120% 90% at 50% 0%, rgba(255, 214, 150, 0.07) 0%, rgba(0, 0, 0, 0) 55%),
+    radial-gradient(ellipse at center, var(--mahogany) 0%, var(--mahogany-deep) 100%);
   min-height: 100vh;
-  color: #f5f0e8;
+  color: var(--paper);
 }
 
 #root {
@@ -22,10 +43,12 @@ body {
 
 button {
   cursor: pointer;
-  font-family: 'Georgia', serif;
+  font-family: var(--font-body);
   border: none;
   border-radius: 6px;
-  transition: transform 0.1s, opacity 0.1s;
+  transition: transform 0.1s, opacity 0.1s, box-shadow 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 button:disabled {
@@ -41,6 +64,11 @@ button:not(:disabled):active {
   transform: translateY(1px);
 }
 
+:focus-visible {
+  outline: 2px solid var(--gilt);
+  outline-offset: 2px;
+}
+
 /* Global keyframes (used via inline styles or global classes) */
 
 @keyframes confettiFall {
@@ -50,8 +78,8 @@ button:not(:disabled):active {
 }
 
 @keyframes goldenFlash {
-  0%   { background: rgba(241, 196, 15, 0.5); }
-  100% { background: rgba(241, 196, 15, 0); }
+  0%   { background: rgba(200, 162, 75, 0.4); }
+  100% { background: rgba(200, 162, 75, 0); }
 }
 
 @keyframes slideInUp {
@@ -65,17 +93,13 @@ button:not(:disabled):active {
   100% { transform: scale(1);   opacity: 1; }
 }
 
-@keyframes titlePulse {
-  0%, 100% { text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-  50%       { text-shadow: 0 2px 12px rgba(0,0,0,0.7), 0 0 30px rgba(241,196,15,0.8); }
-}
-
+/* The duty stamp: pressed onto the table, held, then lifted away */
 @keyframes overlayEnter {
-  0%   { transform: scale(0.6) translateY(30px); opacity: 0; }
-  25%  { transform: scale(1.05) translateY(0);   opacity: 1; }
-  60%  { transform: scale(1)   translateY(0);    opacity: 1; }
-  85%  { transform: scale(1)   translateY(0);    opacity: 1; }
-  100% { transform: scale(1.1) translateY(-20px); opacity: 0; }
+  0%   { transform: scale(1.6) rotate(-4deg);   opacity: 0; }
+  14%  { transform: scale(0.97) rotate(0.6deg); opacity: 1; }
+  22%  { transform: scale(1) rotate(0deg);      opacity: 1; }
+  86%  { transform: scale(1) rotate(0deg);      opacity: 1; }
+  100% { transform: scale(1.04) translateY(-14px); opacity: 0; }
 }
 
 @keyframes overlayBackdrop {
@@ -90,4 +114,12 @@ button:not(:disabled):active {
   50%  { transform: scale(1.4); opacity: 1; }
   75%  { transform: scale(0.9); }
   100% { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

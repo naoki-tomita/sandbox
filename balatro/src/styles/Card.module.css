@@ -12,12 +12,17 @@
   100% { transform: translateY(-280px) scale(0.1) rotate(40deg); opacity: 0; }
 }
 
-@keyframes selectedGlow {
+@keyframes giltPulse {
   0%, 100% {
-    box-shadow: 0 10px 24px rgba(241,196,15,0.6), 0 0 0 2px rgba(241,196,15,0.3);
+    box-shadow:
+      0 12px 22px rgba(0, 0, 0, 0.5),
+      0 0 0 2px rgba(200, 162, 75, 0.85);
   }
   50% {
-    box-shadow: 0 12px 40px rgba(241,196,15,1), 0 0 20px rgba(241,196,15,0.6), 0 0 0 4px rgba(241,196,15,0.5);
+    box-shadow:
+      0 14px 30px rgba(0, 0, 0, 0.55),
+      0 0 14px rgba(200, 162, 75, 0.45),
+      0 0 0 2px rgba(200, 162, 75, 1);
   }
 }
 
@@ -26,23 +31,44 @@
   to   { left: 140%; }
 }
 
-/* ── Card base ── */
+/* ── Slot: the stationary footprint of the card ──
+   Owns hover, click, and stacking. It never moves, so hovering near the
+   card's resting position can't flicker when the body lifts away. */
 
-.card {
+.slot {
   width: 70px;
   height: 100px;
-  background: #fff;
-  border-radius: 8px;
-  border: 2px solid #ccc;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+  position: relative;
   cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.slotSelected { z-index: 3; }
+
+.slotFlying {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ── Card body: cream card stock (moves inside the slot) ── */
+
+.card {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, #faf3e3 0%, #f1e6cc 100%);
+  border-radius: 6px;
+  border: 1px solid #d9c9a4;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 4px 6px;
-  user-select: none;
   overflow: hidden;
+  font-family: var(--font-body);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -61,50 +87,54 @@
   height: 220%;
   background: linear-gradient(
     to right,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.5) 50%,
-    rgba(255,255,255,0) 100%
+    rgba(255, 252, 240, 0) 0%,
+    rgba(255, 252, 240, 0.6) 50%,
+    rgba(255, 252, 240, 0) 100%
   );
   transform: skewX(-12deg);
   opacity: 0;
   pointer-events: none;
 }
 
-.card:not(.flying):hover {
-  transform: translateY(-10px) scale(1.06);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+/* Hover effects only on devices that can truly hover — touch browsers keep
+   a tapped element in :hover, which would leave cards floating after a tap */
+@media (hover: hover) {
+  .slot:hover { z-index: 2; }
+
+  /* Hover lifts higher than the selected resting height */
+  .slot:not(.slotFlying):hover .card {
+    transform: translateY(-26px) scale(1.06);
+    box-shadow: 0 14px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  .slot:not(.slotFlying):hover .card::after {
+    opacity: 1;
+    animation: shine 0.45s ease-out forwards;
+  }
+
+  .slot:not(.slotFlying):hover .selected {
+    transform: translateY(-30px) scale(1.08);
+  }
 }
 
-.card:not(.flying):hover::after {
-  opacity: 1;
-  animation: shine 0.45s ease-out forwards;
-}
-
-/* ── Selected ── */
+/* ── Selected: gilt ring ── */
 
 .selected {
-  border-color: #f1c40f;
-  border-width: 3px;
+  border-color: #c8a24b;
   transform: translateY(-18px) scale(1.06);
-  animation: selectedGlow 1.4s ease-in-out infinite;
-}
-
-.selected:hover {
-  transform: translateY(-22px) scale(1.08);
+  animation: giltPulse 1.4s ease-in-out infinite;
 }
 
 /* ── Flying off ── */
 
 .flying {
   animation: flyOff 0.5s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
-  pointer-events: none;
-  cursor: default;
 }
 
-/* ── Suit colors ── */
+/* ── Suit inks: lacquer red / ink black ── */
 
-.red   { color: #d32f2f; }
-.black { color: #1a1a2e; }
+.red   { color: #a8323a; }
+.black { color: #22201b; }
 
 /* ── Card internals ── */
 
@@ -119,8 +149,8 @@
 .cornerBottom { align-self: flex-end; transform: rotate(180deg); }
 
 .rank {
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -134,7 +164,18 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 28px;
-  opacity: 0.12;
+  font-size: 30px;
+  opacity: 0.14;
   pointer-events: none;
+}
+
+/* Slightly smaller stock on narrow tables; the aspect ratio never changes */
+@media (max-width: 480px) {
+  .slot {
+    width: 62px;
+    height: 90px;
+  }
+
+  .rank { font-size: 14px; }
+  .centerSuit { font-size: 26px; }
 }
