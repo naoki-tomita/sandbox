@@ -93,20 +93,27 @@ button:not(:disabled):active {
   100% { transform: scale(1);   opacity: 1; }
 }
 
-/* The duty stamp: pressed onto the table, held, then lifted away */
+/* The duty stamp: pressed onto the table, held while the tally runs,
+   then lifted away. Percentages assume the ~3s OVERLAY_DURATION_MS. */
 @keyframes overlayEnter {
   0%   { transform: scale(1.6) rotate(-4deg);   opacity: 0; }
-  14%  { transform: scale(0.97) rotate(0.6deg); opacity: 1; }
-  22%  { transform: scale(1) rotate(0deg);      opacity: 1; }
-  86%  { transform: scale(1) rotate(0deg);      opacity: 1; }
+  8%   { transform: scale(0.97) rotate(0.6deg); opacity: 1; }
+  13%  { transform: scale(1) rotate(0deg);      opacity: 1; }
+  91%  { transform: scale(1) rotate(0deg);      opacity: 1; }
   100% { transform: scale(1.04) translateY(-14px); opacity: 0; }
 }
 
 @keyframes overlayBackdrop {
   0%   { opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
+  9%   { opacity: 1; }
+  91%  { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* Chips counter pulse on each tally tick */
+@keyframes chipTick {
+  0%   { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
 @keyframes numberBounce {

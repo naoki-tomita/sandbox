@@ -20,7 +20,7 @@ export interface GameState {
 const HAND_SIZE = 8;
 const MAX_HANDS = 3;
 const MAX_DISCARDS = 3;
-const MAX_SELECTED = 5;
+export const MAX_SELECTED = 5;
 
 function newBlindState(blindIndex: number, dealKey: number): GameState {
   const deck = shuffle(createDeck());
