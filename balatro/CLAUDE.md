@@ -23,7 +23,7 @@ All game rules live here, completely decoupled from React.
 
 `ScoreBoard` uses `useCounter` (RAF-based animation) to count up the score display.
 
-`ScoreOverlay` shows the hand result for `OVERLAY_DURATION_MS` (3 s, exported from `ScoreOverlay.tsx`) via a `useEffect` on `state.lastPlay` with a `setTimeout`. Inside it, a timeline of `setTimeout`s ticks the CHIPS counter up as the base-chips tag and one tag per played card land in sequence; the mult/total reveal delays are computed from the card count. The `overlayEnter`/`overlayBackdrop` keyframe percentages in `global.css` assume this 3 s duration.
+`ScoreOverlay` shows the hand result for `OVERLAY_DURATION_MS` (~3 s, exported from `ScoreOverlay.tsx` and derived by summing the tally timeline constants at `MAX_SELECTED` cards) via a `useEffect` on `state.lastPlay` with a `setTimeout`. Inside it, a timeline of `setTimeout`s ticks the CHIPS counter up as the base-chips tag and one tag per played card land in sequence; the mult/total reveal delays are computed from the card count. The `overlayEnter`/`overlayBackdrop` keyframe percentages in `global.css` assume this 3 s duration.
 
 ### CSS / Styling
 

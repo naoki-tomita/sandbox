@@ -3,14 +3,21 @@ import type { CSSProperties } from 'react';
 import { PlayScore } from '../game/scoring';
 import { HAND_DISPLAY_NAMES } from '../game/hands';
 import { RANK_LABELS, SUIT_SYMBOLS } from '../game/cards';
-
-/** Total lifetime of the overlay; App unmounts it after this. */
-export const OVERLAY_DURATION_MS = 3000;
+import { MAX_SELECTED } from '../game/GameEngine';
 
 /* Tally timeline (ms from mount) */
 const BASE_TAG_AT = 500;
 const CARD_TAGS_FROM = 700;
 const TAG_STEP = 150;
+const MULT_DELAY = 150;   // × MULT appears this long after the last card tag
+const TOTAL_DELAY = 250;  // = TOTAL appears this long after the mult
+const FINAL_HOLD = 1150;  // dwell after the slowest possible total reveal, incl. lift-off
+
+/** Total lifetime of the overlay; App unmounts it after this. Derived from
+    the timeline above at the maximum hand size, so retuning any step can
+    never outlive the overlay. */
+export const OVERLAY_DURATION_MS =
+  CARD_TAGS_FROM + MAX_SELECTED * TAG_STEP + MULT_DELAY + TOTAL_DELAY + FINAL_HOLD;
 
 const RED_SUITS = new Set(['hearts', 'diamonds']);
 
@@ -54,8 +61,8 @@ export function ScoreOverlay({ play }: { play: PlayScore; }) {
   const [chipsShown, setChipsShown] = useState(0);
 
   const cardCount = play.cardContributions.length;
-  const multAt = CARD_TAGS_FROM + cardCount * TAG_STEP + 150;
-  const totalAt = multAt + 250;
+  const multAt = CARD_TAGS_FROM + cardCount * TAG_STEP + MULT_DELAY;
+  const totalAt = multAt + TOTAL_DELAY;
 
   // Tick the chips counter in sync with each tag landing
   useEffect(() => {
