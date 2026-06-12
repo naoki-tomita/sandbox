@@ -169,11 +169,12 @@
   pointer-events: none;
 }
 
-/* Slightly smaller stock on narrow tables; the aspect ratio never changes */
-@media (max-width: 480px) {
+/* Smaller stock only on the very narrowest phones (the two-row hand keeps
+   full-size cards down to ~360px); the aspect ratio never changes */
+@media (max-width: 350px) {
   .slot {
-    width: 62px;
-    height: 90px;
+    width: 60px;
+    height: 86px;
   }
 
   .rank { font-size: 14px; }

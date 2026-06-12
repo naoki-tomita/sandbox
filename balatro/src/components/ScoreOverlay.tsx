@@ -107,8 +107,8 @@ export function ScoreOverlay({ play, onComplete }: Props) {
         borderRadius: 10,
         border: '2px solid var(--gilt)',
         boxShadow: 'inset 0 0 0 5px var(--paper), inset 0 0 0 6px var(--gilt), 0 12px 40px rgba(0,0,0,0.65)',
-        padding: '30px 44px 26px',
-        minWidth: 360,
+        padding: '30px clamp(16px, 6vw, 44px) 26px',
+        minWidth: 'min(360px, calc(100vw - 32px))',
         maxWidth: 'calc(100vw - 32px)',
         animation: exiting
           ? `stampOut ${STAMP_OUT}ms ease-in forwards`
@@ -136,7 +136,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
         {/* Hand name */}
         <div style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 34,
+          fontSize: 'clamp(26px, 8vw, 34px)',
           letterSpacing: 1,
           marginBottom: 6,
         }}>
@@ -176,7 +176,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 14,
+          gap: 'clamp(8px, 3vw, 14px)',
           minHeight: 64,
         }}>
           {tagCount >= 1 && (
@@ -210,7 +210,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
               <div style={{ textAlign: 'center', animation: 'numberBounce 0.4s ease-out backwards' }}>
                 <div style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 40,
+                  fontSize: 'clamp(32px, 9vw, 40px)',
                   borderBottom: '3px double var(--gilt)',
                   lineHeight: 1.1,
                 }}>

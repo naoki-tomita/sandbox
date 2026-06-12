@@ -58,7 +58,7 @@ export function App() {
         <header style={{ textAlign: 'center', marginBottom: 20 }}>
           <h1 style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 40,
+            fontSize: 'clamp(32px, 9vw, 40px)',
             fontWeight: 'normal',
             letterSpacing: 6,
             color: 'var(--paper)',
@@ -118,7 +118,7 @@ export function App() {
             border: '1px solid var(--paper-shade)',
             borderRadius: 10,
             boxShadow: 'inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--gilt), 0 8px 24px rgba(0,0,0,0.5)',
-            padding: '28px 44px',
+            padding: '28px clamp(24px, 8vw, 44px)',
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
             <div style={{ fontSize: 11, letterSpacing: 3, color: 'var(--lacquer)', marginBottom: 6 }}>
@@ -152,7 +152,7 @@ export function App() {
             border: '1px solid var(--paper-shade)',
             borderRadius: 10,
             boxShadow: 'inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--lacquer), 0 8px 24px rgba(0,0,0,0.5)',
-            padding: '28px 44px',
+            padding: '28px clamp(24px, 8vw, 44px)',
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, color: 'var(--lacquer)', marginBottom: 6 }}>
