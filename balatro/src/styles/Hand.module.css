@@ -26,13 +26,26 @@
   }
 }
 
-@media (max-width: 480px) {
+/* Phones: two rows of four, full-size stock, no overlap — every index
+   stays readable and every card is a comfortable tap target. */
+@media (max-width: 600px) {
   .hand {
-    padding: 16px 14px 30px;
-    min-height: 152px;
+    display: grid;
+    grid-template-columns: repeat(4, 70px);
+    justify-content: center;
+    gap: 26px 8px;
+    padding: 24px 12px 28px;
   }
 
   .hand > :not(:first-child) {
-    margin-left: -30px;
+    margin-left: 0;
+  }
+}
+
+/* The very narrowest phones: slightly smaller stock so 4 columns still fit */
+@media (max-width: 350px) {
+  .hand {
+    grid-template-columns: repeat(4, 60px);
+    gap: 24px 6px;
   }
 }

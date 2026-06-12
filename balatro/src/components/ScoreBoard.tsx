@@ -32,7 +32,7 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
       border: '1px solid var(--paper-shade)',
       borderRadius: 10,
       boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
-      padding: '16px 24px',
+      padding: '16px clamp(14px, 4vw, 24px)',
       width: '100%',
       marginBottom: 20,
     }}>
@@ -41,7 +41,7 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
           <div style={{ ...labelStyle, color: 'var(--lacquer)', opacity: 1 }}>
             Blind No. {blindIndex + 1}
           </div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 34, lineHeight: 1.2 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(27px, 8vw, 34px)', lineHeight: 1.2 }}>
             {animatedScore.toLocaleString()}
             <span style={{
               fontFamily: 'var(--font-body)',
@@ -54,7 +54,7 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
             </span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 20, textAlign: 'center' }}>
+        <div style={{ display: 'flex', gap: 'clamp(12px, 3.5vw, 20px)', textAlign: 'center' }}>
           <div>
             <div style={labelStyle}>Hands</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{maxHands - handsPlayed}</div>
