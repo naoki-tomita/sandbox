@@ -12,10 +12,11 @@ All game rules live here, completely decoupled from React.
 
 - **`cards.ts`** — primitive types (`Suit`, `Rank`, `Card`) and pure functions (`createDeck`, `shuffle`, `cardChips`). Card IDs are `"${rank}-${suit}"` (stable across shuffles).
 - **`hands.ts`** — `detectHand(cards)` returns the best `HandResult` from the selected cards. Handles ace-low straight (A-2-3-4-5).
-- **`scoring.ts`** — `calculateScore(hand)` returns `PlayScore` using `(baseChips + sum of cardChips) × baseMult`. `PlayScore` also carries the breakdown (`baseChips`, `cardContributions`) so the UI can animate the tally. `BLIND_TARGETS` array drives progression.
+- **`scoring.ts`** — `calculateScore(hand, jokers, ctx)` returns `PlayScore`. Pipeline: chips = baseChips + card chips, mult = baseMult, then each owned joker's effect applies **left to right** (chips +=, mult +=, mult ×=). `PlayScore` carries the full breakdown (`baseChips`, `baseMult`, `cardContributions`, `jokerContributions`) so the UI can animate the tally. `BLIND_TARGETS` array drives progression.
+- **`jokers.ts`** — the joker pool (`JOKERS` record, workshop-flavoured names). Each `JokerDef.effect(ctx)` returns a `JokerEffect` (`chips`/`mult`/`xmult`) or `null` when it doesn't trigger. `drawJokerChoices(owned)` picks three unowned ones for the draft; `MAX_JOKERS = 5`. Parity jokers use the pip value (Ace = 1, odd), not the internal rank 14.
 - **`GameEngine.ts`** — immutable class that owns `GameState`. Every method returns a **new** `GameEngine` instance (no mutation). React calls `setEngine(e => e.someMethod())`.
 
-`GameEngine` phases: `selecting → playing → scored → selecting | blind_cleared | game_over`. The presentation beats are phases: `playing` covers the fly-off animation (500 ms; `startPlay()` → `resolvePlay()`), and `scored` covers the score-tally overlay — `resolvePlay()` applies the score and draws cards but never decides the outcome; `advanceAfterScore()` (called by the UI when the overlay finishes) does. This guarantees the cleared/game-over popups can't appear behind the overlay.
+`GameEngine` phases: `selecting → playing → scored → selecting | blind_cleared | game_over`, plus `blind_cleared → joker_draft → selecting` between blinds. The presentation beats are phases: `playing` covers the fly-off animation (500 ms; `startPlay()` → `resolvePlay()`), and `scored` covers the score-tally overlay — `resolvePlay()` applies the score and draws cards but never decides the outcome; `advanceAfterScore()` (called by the UI when the overlay finishes) does. This guarantees the cleared/game-over popups can't appear behind the overlay. After a clear, `startJokerDraft()` offers three jokers (`pickJoker(id)` / `skipDraft()` both lead to the next blind); jokers persist across blinds and reset on `restart()`.
 
 ### React — `src/`
 
@@ -23,7 +24,9 @@ All game rules live here, completely decoupled from React.
 
 `ScoreBoard` uses `useCounter` (RAF-based animation) to count up the score display.
 
-`ScoreOverlay` renders while `phase === 'scored'`. Its presentation is a sequential script (`useScript` in `src/hooks/useScript.ts`): stamp in → BASE tag → one tag per card (the CHIPS counter is *derived* from how many tags have landed) → × mult → = total → hold → stamp out → `onComplete()`, which advances the engine. Order lives in the code; only the pauses between beats are durations. Unmounting the overlay silently stops the script.
+`ScoreOverlay` renders while `phase === 'scored'`. Its presentation is a sequential script (`useScript` in `src/hooks/useScript.ts`): stamp in → BASE tag → one tag per card → × mult → one gilt tag per triggered joker → = total → hold → stamp out → `onComplete()`, which advances the engine. The CHIPS and MULT counters are *derived* by replaying the scoring pipeline over the beats landed so far. Order lives in the code; only the pauses between beats are durations. Unmounting the overlay silently stops the script.
+
+`JokerShelf` (owned jokers above the scoreboard, hidden while empty) and `JokerDraft` (the 3-choice panel during `joker_draft`) are stateless displays over `state.jokers` / `state.jokerChoices`.
 
 ### CSS / Styling
 

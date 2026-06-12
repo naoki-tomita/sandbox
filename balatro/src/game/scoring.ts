@@ -1,5 +1,6 @@
 import { Card, cardChips } from './cards';
 import { HandName, HandResult } from './hands';
+import { JokerId, JOKERS } from './jokers';
 
 export interface ScoreEntry {
   baseChips: number;
@@ -11,13 +12,23 @@ export interface CardContribution {
   chips: number;
 }
 
+export interface JokerContribution {
+  jokerId: JokerId;
+  chips?: number;
+  mult?: number;
+  xmult?: number;
+}
+
 export interface PlayScore {
   chips: number;
   mult: number;
   total: number;
   handName: HandName;
   baseChips: number;
+  baseMult: number;
   cardContributions: CardContribution[];
+  /** Triggered jokers in owned order; effects were applied left to right. */
+  jokerContributions: JokerContribution[];
 }
 
 export const HAND_SCORES: Record<HandName, ScoreEntry> = {
@@ -35,11 +46,30 @@ export const HAND_SCORES: Record<HandName, ScoreEntry> = {
 
 export const BLIND_TARGETS = [300, 800, 2000, 5000, 12000, 30000];
 
-export function calculateScore(hand: HandResult): PlayScore {
+export function calculateScore(
+  hand: HandResult,
+  jokers: JokerId[] = [],
+  ctx: { discardsLeft: number } = { discardsLeft: 0 },
+): PlayScore {
   const { baseChips, baseMult } = HAND_SCORES[hand.name];
   const cardContributions = hand.cards.map(card => ({ card, chips: cardChips(card.rank) }));
   const cardTotal = cardContributions.reduce((sum, c) => sum + c.chips, 0);
-  const chips = baseChips + cardTotal;
-  const mult = baseMult;
-  return { chips, mult, total: chips * mult, handName: hand.name, baseChips, cardContributions };
+
+  let chips = baseChips + cardTotal;
+  let mult = baseMult;
+  const jokerContributions: JokerContribution[] = [];
+  for (const jokerId of jokers) {
+    const effect = JOKERS[jokerId].effect({ hand, discardsLeft: ctx.discardsLeft, jokerCount: jokers.length });
+    if (!effect) continue;
+    chips += effect.chips ?? 0;
+    mult += effect.mult ?? 0;
+    mult *= effect.xmult ?? 1;
+    jokerContributions.push({ jokerId, ...effect });
+  }
+
+  return {
+    chips, mult, total: chips * mult,
+    handName: hand.name, baseChips, baseMult,
+    cardContributions, jokerContributions,
+  };
 }

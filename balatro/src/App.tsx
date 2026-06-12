@@ -1,11 +1,14 @@
 import { useState, useCallback } from 'react';
 import { GameEngine } from './game/GameEngine';
 import { BLIND_TARGETS } from './game/scoring';
+import { JokerId } from './game/jokers';
 import { Hand } from './components/Hand';
 import { ScoreBoard } from './components/ScoreBoard';
 import { PlayArea } from './components/PlayArea';
 import { Celebration } from './components/Celebration';
 import { ScoreOverlay } from './components/ScoreOverlay';
+import { JokerShelf } from './components/JokerShelf';
+import { JokerDraft } from './components/JokerDraft';
 
 /** How long to wait for the card fly-off animation before resolving the play. */
 const FLY_DURATION_MS = 500;
@@ -36,8 +39,16 @@ export function App() {
     setEngine(e => e.discard());
   }, []);
 
-  const nextBlind = useCallback(() => {
-    setEngine(e => e.nextBlind());
+  const startJokerDraft = useCallback(() => {
+    setEngine(e => e.startJokerDraft());
+  }, []);
+
+  const pickJoker = useCallback((id: JokerId) => {
+    setEngine(e => e.pickJoker(id));
+  }, []);
+
+  const skipDraft = useCallback(() => {
+    setEngine(e => e.skipDraft());
   }, []);
 
   const restart = useCallback(() => {
@@ -81,6 +92,8 @@ export function App() {
             <span style={{ flex: 1, minWidth: 48, borderTop: '1px solid var(--gilt-soft)' }} />
           </div>
         </header>
+
+        <JokerShelf jokers={state.jokers} />
 
         <ScoreBoard
           currentScore={state.currentScore}
@@ -131,7 +144,7 @@ export function App() {
               {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
             </div>
             <button
-              onClick={hasNextBlind ? nextBlind : restart}
+              onClick={hasNextBlind ? startJokerDraft : restart}
               style={{
                 padding: '12px 36px', fontSize: 17, fontWeight: 700,
                 background: 'var(--lacquer)', color: 'var(--paper)',
@@ -141,6 +154,10 @@ export function App() {
               {hasNextBlind ? 'Next blind →' : 'Play again'}
             </button>
           </div>
+        )}
+
+        {state.phase === 'joker_draft' && state.jokerChoices && (
+          <JokerDraft choices={state.jokerChoices} onPick={pickJoker} onSkip={skipDraft} />
         )}
 
         {state.phase === 'game_over' && (

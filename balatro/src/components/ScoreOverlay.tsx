@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import { PlayScore } from '../game/scoring';
+import { PlayScore, JokerContribution } from '../game/scoring';
 import { HAND_DISPLAY_NAMES } from '../game/hands';
 import { RANK_LABELS, SUIT_SYMBOLS } from '../game/cards';
+import { JOKERS } from '../game/jokers';
 import { useScript } from '../hooks/useScript';
 
 /* Pauses between the beats of the tally (ms) */
 const STAMP_IN = 500;     // stamp pressed + the hand name gets a beat
 const TAG_STEP = 150;     // between each landing tag
 const MULT_PAUSE = 300;   // before × MULT
+const JOKER_STEP = 380;   // between each joker chiming in
 const TOTAL_PAUSE = 250;  // before = TOTAL
 const HOLD = 900;         // dwell on the finished formula
 const STAMP_OUT = 300;    // lift-off animation length
@@ -45,6 +47,38 @@ function Tag({ top, topColor, chips }: { top: string; topColor?: string; chips: 
   );
 }
 
+function jokerEffectText(c: JokerContribution): { text: string; color: string } {
+  if (c.xmult) return { text: `×${c.xmult} Mult`, color: 'var(--lacquer)' };
+  if (c.mult) return { text: `+${c.mult} Mult`, color: 'var(--lacquer)' };
+  return { text: `+${c.chips}`, color: 'var(--cardback-blue)' };
+}
+
+/** A joker chiming in: gilt-edged, named, with its effect on the tally. */
+function JokerTag({ contribution }: { contribution: JokerContribution }) {
+  const { text, color } = jokerEffectText(contribution);
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 1,
+      minWidth: 64,
+      padding: '5px 8px',
+      background: '#fdf8ec',
+      border: '1px solid var(--gilt)',
+      borderRadius: 5,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+      animation: 'popIn 0.3s ease-out backwards',
+    }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1 }}>
+        {JOKERS[contribution.jokerId].name}
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 600, color }}>{text}</div>
+    </div>
+  );
+}
+
 interface Props {
   play: PlayScore;
   /** Called when the stamp has fully lifted away; the game may move on. */
@@ -60,6 +94,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
   // 0 = no tags yet, 1 = BASE landed, 1+i = first i card tags landed
   const [tagCount, setTagCount] = useState(0);
   const [showMult, setShowMult] = useState(false);
+  const [jokersLanded, setJokersLanded] = useState(0);
   const [showTotal, setShowTotal] = useState(false);
   const [exiting, setExiting] = useState(false);
 
@@ -72,6 +107,10 @@ export function ScoreOverlay({ play, onComplete }: Props) {
     }
     await wait(MULT_PAUSE);
     setShowMult(true);
+    for (let i = 0; i < play.jokerContributions.length; i++) {
+      await wait(JOKER_STEP);
+      setJokersLanded(n => n + 1);
+    }
     await wait(TOTAL_PAUSE);
     setShowTotal(true);
     await wait(HOLD);
@@ -81,9 +120,16 @@ export function ScoreOverlay({ play, onComplete }: Props) {
   });
 
   const landedTags = play.cardContributions.slice(0, Math.max(tagCount - 1, 0));
-  const chipsShown = tagCount === 0
+  const landedJokers = play.jokerContributions.slice(0, jokersLanded);
+  // Both counters replay the scoring pipeline over the beats landed so far
+  const chipsShown = (tagCount === 0
     ? 0
-    : play.baseChips + landedTags.reduce((sum, c) => sum + c.chips, 0);
+    : play.baseChips + landedTags.reduce((sum, c) => sum + c.chips, 0))
+    + landedJokers.reduce((sum, c) => sum + (c.chips ?? 0), 0);
+  const multShown = landedJokers.reduce(
+    (m, c) => (m + (c.mult ?? 0)) * (c.xmult ?? 1),
+    play.baseMult,
+  );
 
   return (
     <div style={{
@@ -169,6 +215,9 @@ export function ScoreOverlay({ play, onComplete }: Props) {
               chips={c.chips}
             />
           ))}
+          {landedJokers.map(c => (
+            <JokerTag key={c.jokerId} contribution={c} />
+          ))}
         </div>
 
         {/* Formula: twin deck inks — chips blue, mult red */}
@@ -199,7 +248,17 @@ export function ScoreOverlay({ play, onComplete }: Props) {
             <>
               <span style={{ opacity: 0.4, fontSize: 22, animation: 'popIn 0.3s ease-out backwards' }}>×</span>
               <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease-out backwards' }}>
-                <div style={{ fontFamily: 'var(--font-display)', color: 'var(--lacquer)', fontSize: 30 }}>{play.mult}</div>
+                <div
+                  key={multShown}
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    color: 'var(--lacquer)',
+                    fontSize: 30,
+                    animation: 'chipTick 0.25s ease-out',
+                  }}
+                >
+                  {multShown}
+                </div>
                 <div style={tagLabelStyle}>MULT</div>
               </div>
             </>
