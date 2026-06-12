@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-No test runner is configured. TypeScript strict mode serves as the primary correctness check (`tsc` runs as part of `npm run build`).
+Unit tests use vitest (`npm test`, watch mode via `npm run test:watch`). They cover the pure game layer only — `src/game/*.test.ts`, with card fixtures in `src/game/testFixtures.ts`. Engine tests construct `GameEngine` with explicit `GameState` objects to stay deterministic despite `shuffle`/draft randomness. CI runs them on every PR touching `balatro/**` (`.github/workflows/test.yml`). TypeScript strict mode (`tsc` during `npm run build`) remains the check for the React layer.
+
+When you change game rules (scoring, hands, jokers, engine flow), update or add tests in the same PR.
 
 ## Architecture
 
