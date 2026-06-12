@@ -37,9 +37,12 @@ describe('各ジョーカーの効果', () => {
     expect(effect('short_run', ctx([card(2), card(3, 'hearts'), card(4, 'clubs'), card(5, 'diamonds')]))).toBeNull();
   });
 
-  it('Uncut Sheets は残りディスカード×30 Chips、Last Scrap は残り0のときだけ +15 Mult', () => {
+  it('Uncut Sheets: 残りディスカード1回につき +30 Chips、残り0なら不発', () => {
     expect(effect('uncut_sheets', ctx([card(2)], { discardsLeft: 3 }))).toEqual({ chips: 90 });
     expect(effect('uncut_sheets', ctx([card(2)], { discardsLeft: 0 }))).toBeNull();
+  });
+
+  it('Last Scrap: 残りディスカード0のときだけ +15 Mult', () => {
     expect(effect('last_scrap', ctx([card(2)], { discardsLeft: 0 }))).toEqual({ mult: 15 });
     expect(effect('last_scrap', ctx([card(2)], { discardsLeft: 1 }))).toBeNull();
   });

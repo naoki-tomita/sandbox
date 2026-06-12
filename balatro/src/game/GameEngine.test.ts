@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GameEngine, GameState, MAX_SELECTED } from './GameEngine';
+import { GameEngine, GameState } from './GameEngine';
 import { BLIND_TARGETS } from './scoring';
 import { JokerId, JOKER_IDS } from './jokers';
 import { Card } from './cards';
@@ -40,11 +40,21 @@ describe('toggleSelect: カード選択', () => {
     expect(selected.toggleSelect(id).selectedCards).toEqual([]);
   });
 
-  it(`選択は最大${MAX_SELECTED}枚まで(超過分は無視される)`, () => {
-    let engine = makeEngine();
-    for (const c of engine.state.hand.slice(0, MAX_SELECTED)) engine = engine.toggleSelect(c.id);
-    const sixth = engine.toggleSelect(engine.state.hand[MAX_SELECTED].id);
-    expect(sixth.selectedCards).toHaveLength(MAX_SELECTED);
+  it('選択は最大5枚まで: 5枚選べるが、6枚目は無視される', () => {
+    const engine = makeEngine();
+    const [c1, c2, c3, c4, c5, c6] = engine.state.hand;
+
+    const five = engine
+      .toggleSelect(c1.id)
+      .toggleSelect(c2.id)
+      .toggleSelect(c3.id)
+      .toggleSelect(c4.id)
+      .toggleSelect(c5.id);
+    expect(five.selectedCards).toHaveLength(5);
+
+    const sixth = five.toggleSelect(c6.id);
+    expect(sixth.selectedCards).toHaveLength(5);
+    expect(sixth.state.hand.find(c => c.id === c6.id)?.selected).toBe(false);
   });
 
   it('selecting フェーズ以外では選択できない', () => {
@@ -59,17 +69,23 @@ describe('toggleSelect: カード選択', () => {
   });
 });
 
-describe('プレイの解決', () => {
-  const pairOfNines = [card(9, 'spades', true), card(9, 'hearts', true)];
-
-  it('startPlay は1枚以上選んでいないと始まらない', () => {
+describe('startPlay: プレイ開始', () => {
+  it('1枚も選んでいなければ始まらない', () => {
     const engine = makeEngine();
     expect(engine.startPlay()).toBe(engine);
+  });
+
+  it('選択があれば playing フェーズ(飛んでいくアニメーション中)へ進む', () => {
+    const engine = makeEngine();
     const armed = engine.toggleSelect(engine.state.hand[0].id).startPlay();
     expect(armed.state.phase).toBe('playing');
   });
+});
 
-  it('resolvePlay: スコア適用・手札補充・捨て札を行い、scored フェーズで待機する', () => {
+describe('resolvePlay: プレイしたカードの精算', () => {
+  const pairOfNines = [card(9, 'spades', true), card(9, 'hearts', true)];
+
+  it('スコア適用・手札補充・捨て札を行い、scored フェーズで待機する', () => {
     const deck = [card(11, 'spades'), card(12, 'hearts'), card(13, 'clubs')];
     const engine = makeEngine({ phase: 'playing', hand: eightCards(pairOfNines), deck });
 
@@ -89,7 +105,7 @@ describe('プレイの解決', () => {
     expect(s.hand.every(c => !c.selected)).toBe(true);
   });
 
-  it('resolvePlay: 所持ジョーカーと現在の残りディスカード数がスコアに反映される', () => {
+  it('所持ジョーカーと現在の残りディスカード数がスコアに反映される', () => {
     const engine = makeEngine({
       phase: 'playing',
       hand: eightCards(pairOfNines),
@@ -101,15 +117,25 @@ describe('プレイの解決', () => {
     expect(s.currentScore).toBe(176);
     expect(s.lastPlay?.jokerContributions).toEqual([{ jokerId: 'uncut_sheets', chips: 60 }]);
   });
+});
 
-  it('advanceAfterScore: scored からのみ、クリア/ゲームオーバー/続行を判定する', () => {
-    const target = BLIND_TARGETS[0];
-    expect(makeEngine({ phase: 'scored', currentScore: target }).advanceAfterScore().state.phase)
-      .toBe('blind_cleared');
-    expect(makeEngine({ phase: 'scored', currentScore: 10, handsPlayed: 3 }).advanceAfterScore().state.phase)
-      .toBe('game_over');
-    expect(makeEngine({ phase: 'scored', currentScore: 10, handsPlayed: 1 }).advanceAfterScore().state.phase)
-      .toBe('selecting');
+describe('advanceAfterScore: プレイ結果の判定', () => {
+  it('スコアが目標に達していればブラインドクリア', () => {
+    const engine = makeEngine({ phase: 'scored', currentScore: BLIND_TARGETS[0] });
+    expect(engine.advanceAfterScore().state.phase).toBe('blind_cleared');
+  });
+
+  it('目標未達のまま3ハンド使い切ったらゲームオーバー', () => {
+    const engine = makeEngine({ phase: 'scored', currentScore: 10, handsPlayed: 3 });
+    expect(engine.advanceAfterScore().state.phase).toBe('game_over');
+  });
+
+  it('目標未達でもハンドが残っていれば selecting に戻って続行', () => {
+    const engine = makeEngine({ phase: 'scored', currentScore: 10, handsPlayed: 1 });
+    expect(engine.advanceAfterScore().state.phase).toBe('selecting');
+  });
+
+  it('scored フェーズ以外では何もしない', () => {
     const idle = makeEngine({ phase: 'selecting' });
     expect(idle.advanceAfterScore()).toBe(idle);
   });
@@ -129,9 +155,12 @@ describe('discard: ディスカード', () => {
     expect(s.discardPile.map(c => c.id)).toEqual(['9-spades']);
   });
 
-  it('残り回数0、または未選択では何も起きない', () => {
+  it('残り回数が0なら捨てられない', () => {
     const spent = makeEngine({ hand: eightCards([card(9, 'spades', true)]), discardsLeft: 0 });
     expect(spent.discard()).toBe(spent);
+  });
+
+  it('1枚も選んでいなければ何も起きない', () => {
     const nothing = makeEngine();
     expect(nothing.discard()).toBe(nothing);
   });
