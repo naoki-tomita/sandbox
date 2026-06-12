@@ -2,7 +2,7 @@ import { Card, createDeck, shuffle } from './cards';
 import { detectHand } from './hands';
 import { calculateScore, PlayScore, BLIND_TARGETS } from './scoring';
 
-export type Phase = 'selecting' | 'playing' | 'blind_cleared' | 'game_over';
+export type Phase = 'selecting' | 'playing' | 'scored' | 'blind_cleared' | 'game_over';
 
 export interface GameState {
   deck: Card[];
@@ -73,31 +73,41 @@ export class GameEngine {
     return this.evolve({ phase: 'playing' });
   }
 
-  /** Apply score and draw replacement cards. Call after fly-off animation completes. */
+  /**
+   * Apply score and draw replacement cards; the game stays in the 'scored'
+   * phase while the UI presents the result. Call after the fly-off
+   * animation completes, then advanceAfterScore() once the presentation
+   * is done.
+   */
   resolvePlay(): GameEngine {
     if (this.state.phase !== 'playing') return this;
 
     const selected = this.selectedCards;
     const play = calculateScore(detectHand(selected));
-    const newScore = this.state.currentScore + play.total;
-    const newHandsPlayed = this.state.handsPlayed + 1;
 
     const remaining = this.state.hand.filter(c => !c.selected).map(c => ({ ...c, selected: false }));
     const draw = this.state.deck.slice(0, HAND_SIZE - remaining.length);
-
-    let phase: Phase = 'selecting';
-    if (newScore >= this.blindTarget) phase = 'blind_cleared';
-    else if (newHandsPlayed >= MAX_HANDS) phase = 'game_over';
 
     return this.evolve({
       deck: this.state.deck.slice(draw.length),
       hand: [...remaining, ...draw],
       discardPile: [...this.state.discardPile, ...selected],
-      handsPlayed: newHandsPlayed,
-      currentScore: newScore,
+      handsPlayed: this.state.handsPlayed + 1,
+      currentScore: this.state.currentScore + play.total,
       lastPlay: play,
-      phase,
+      phase: 'scored',
     });
+  }
+
+  /** Decide the outcome of the scored hand: cleared, game over, or keep playing. */
+  advanceAfterScore(): GameEngine {
+    if (this.state.phase !== 'scored') return this;
+
+    let phase: Phase = 'selecting';
+    if (this.state.currentScore >= this.blindTarget) phase = 'blind_cleared';
+    else if (this.state.handsPlayed >= MAX_HANDS) phase = 'game_over';
+
+    return this.evolve({ phase });
   }
 
   discard(): GameEngine {
