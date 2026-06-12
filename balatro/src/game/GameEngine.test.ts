@@ -31,8 +31,8 @@ function makeEngine(overrides: Partial<GameState> = {}): GameEngine {
   });
 }
 
-describe('toggleSelect', () => {
-  it('selects and deselects a card', () => {
+describe('toggleSelect: カード選択', () => {
+  it('選択と選択解除をトグルできる', () => {
     const engine = makeEngine();
     const id = engine.state.hand[0].id;
     const selected = engine.toggleSelect(id);
@@ -40,47 +40,47 @@ describe('toggleSelect', () => {
     expect(selected.toggleSelect(id).selectedCards).toEqual([]);
   });
 
-  it(`caps the selection at ${MAX_SELECTED}`, () => {
+  it(`選択は最大${MAX_SELECTED}枚まで(超過分は無視される)`, () => {
     let engine = makeEngine();
     for (const c of engine.state.hand.slice(0, MAX_SELECTED)) engine = engine.toggleSelect(c.id);
     const sixth = engine.toggleSelect(engine.state.hand[MAX_SELECTED].id);
     expect(sixth.selectedCards).toHaveLength(MAX_SELECTED);
   });
 
-  it('only works while selecting', () => {
+  it('selecting フェーズ以外では選択できない', () => {
     const engine = makeEngine({ phase: 'scored' });
     expect(engine.toggleSelect(engine.state.hand[0].id)).toBe(engine);
   });
 
-  it('never mutates the original engine', () => {
+  it('元のエンジンは変異しない(イミュータブル)', () => {
     const engine = makeEngine();
     engine.toggleSelect(engine.state.hand[0].id);
     expect(engine.selectedCards).toEqual([]);
   });
 });
 
-describe('play resolution', () => {
+describe('プレイの解決', () => {
   const pairOfNines = [card(9, 'spades', true), card(9, 'hearts', true)];
 
-  it('startPlay needs a selection', () => {
+  it('startPlay は1枚以上選んでいないと始まらない', () => {
     const engine = makeEngine();
     expect(engine.startPlay()).toBe(engine);
     const armed = engine.toggleSelect(engine.state.hand[0].id).startPlay();
     expect(armed.state.phase).toBe('playing');
   });
 
-  it('resolvePlay scores the hand, refills, and waits in scored', () => {
+  it('resolvePlay: スコア適用・手札補充・捨て札を行い、scored フェーズで待機する', () => {
     const deck = [card(11, 'spades'), card(12, 'hearts'), card(13, 'clubs')];
     const engine = makeEngine({ phase: 'playing', hand: eightCards(pairOfNines), deck });
 
     const resolved = engine.resolvePlay();
     const s = resolved.state;
     expect(s.phase).toBe('scored');
-    // pair of 9s: (10 + 9 + 9) × 2 = 56
+    // 9のペア: (10 + 9 + 9) × 2 = 56
     expect(s.currentScore).toBe(56);
     expect(s.lastPlay?.handName).toBe('pair');
     expect(s.handsPlayed).toBe(1);
-    // 6 kept + 2 drawn from the top of the deck
+    // 残した6枚 + デッキの上から2枚補充
     expect(s.hand).toHaveLength(8);
     expect(s.hand.map(c => c.id)).toContain('11-spades');
     expect(s.hand.map(c => c.id)).toContain('12-hearts');
@@ -89,7 +89,7 @@ describe('play resolution', () => {
     expect(s.hand.every(c => !c.selected)).toBe(true);
   });
 
-  it('resolvePlay feeds owned jokers and the current discards into scoring', () => {
+  it('resolvePlay: 所持ジョーカーと現在の残りディスカード数がスコアに反映される', () => {
     const engine = makeEngine({
       phase: 'playing',
       hand: eightCards(pairOfNines),
@@ -102,7 +102,7 @@ describe('play resolution', () => {
     expect(s.lastPlay?.jokerContributions).toEqual([{ jokerId: 'uncut_sheets', chips: 60 }]);
   });
 
-  it('advanceAfterScore decides the outcome only from scored', () => {
+  it('advanceAfterScore: scored からのみ、クリア/ゲームオーバー/続行を判定する', () => {
     const target = BLIND_TARGETS[0];
     expect(makeEngine({ phase: 'scored', currentScore: target }).advanceAfterScore().state.phase)
       .toBe('blind_cleared');
@@ -115,8 +115,8 @@ describe('play resolution', () => {
   });
 });
 
-describe('discard', () => {
-  it('swaps the selection for fresh cards and spends a discard', () => {
+describe('discard: ディスカード', () => {
+  it('選択カードを捨てて補充し、残り回数を1消費する', () => {
     const engine = makeEngine({
       hand: eightCards([card(9, 'spades', true)]),
       deck: [card(13, 'clubs')],
@@ -129,7 +129,7 @@ describe('discard', () => {
     expect(s.discardPile.map(c => c.id)).toEqual(['9-spades']);
   });
 
-  it('refuses with no discards left or nothing selected', () => {
+  it('残り回数0、または未選択では何も起きない', () => {
     const spent = makeEngine({ hand: eightCards([card(9, 'spades', true)]), discardsLeft: 0 });
     expect(spent.discard()).toBe(spent);
     const nothing = makeEngine();
@@ -137,8 +137,8 @@ describe('discard', () => {
   });
 });
 
-describe('joker draft flow', () => {
-  it('a cleared blind leads to a draft of three unowned jokers', () => {
+describe('ジョーカードラフトの流れ', () => {
+  it('ブラインドクリア後、未所持の3種が提示される', () => {
     const owned: JokerId[] = ['apprentice'];
     const draft = makeEngine({ phase: 'blind_cleared', jokers: owned }).startJokerDraft();
     expect(draft.state.phase).toBe('joker_draft');
@@ -146,7 +146,7 @@ describe('joker draft flow', () => {
     expect(draft.state.jokerChoices).not.toContain('apprentice');
   });
 
-  it('skips straight to the next blind when the shelf is full', () => {
+  it('棚が満杯(5枠)ならドラフトを飛ばして次のブラインドへ', () => {
     const full: JokerId[] = ['apprentice', 'engraver', 'collector', 'twin_press', 'short_run'];
     const next = makeEngine({ phase: 'blind_cleared', blindIndex: 1, jokers: full }).startJokerDraft();
     expect(next.state.phase).toBe('selecting');
@@ -154,7 +154,7 @@ describe('joker draft flow', () => {
     expect(next.state.jokers).toEqual(full);
   });
 
-  it('picking a joker carries it into the next blind', () => {
+  it('選んだジョーカーは次のブラインドに持ち越される(スコアはリセット)', () => {
     const draft = makeEngine({ phase: 'blind_cleared', blindIndex: 0, currentScore: 400 }).startJokerDraft();
     const choice = draft.state.jokerChoices![0];
     const s = draft.pickJoker(choice).state;
@@ -166,13 +166,13 @@ describe('joker draft flow', () => {
     expect(s.hand).toHaveLength(8);
   });
 
-  it('rejects picks that were not offered', () => {
+  it('提示されていないジョーカーは選べない', () => {
     const draft = makeEngine({ phase: 'blind_cleared' }).startJokerDraft();
     const notOffered = JOKER_IDS.find(id => !draft.state.jokerChoices!.includes(id))!;
     expect(draft.pickJoker(notOffered)).toBe(draft);
   });
 
-  it('skipping moves on without a new joker', () => {
+  it('スキップするとジョーカーを増やさず次のブラインドへ', () => {
     const draft = makeEngine({ phase: 'blind_cleared', jokers: ['apprentice'] }).startJokerDraft();
     const s = draft.skipDraft().state;
     expect(s.jokers).toEqual(['apprentice']);
@@ -180,7 +180,7 @@ describe('joker draft flow', () => {
     expect(s.phase).toBe('selecting');
   });
 
-  it('restart clears the shelf', () => {
+  it('restart で棚も含めてすべて初期化される', () => {
     const s = makeEngine({ phase: 'game_over', blindIndex: 3, jokers: ['apprentice'] }).restart().state;
     expect(s.jokers).toEqual([]);
     expect(s.blindIndex).toBe(0);
