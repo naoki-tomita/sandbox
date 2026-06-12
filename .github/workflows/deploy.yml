@@ -28,7 +28,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: balatro/package-lock.json
+          cache-dependency-path: |
+            balatro/package-lock.json
+            fps/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -38,12 +40,20 @@ jobs:
         run: npm run build
         working-directory: balatro
 
+      - name: Install FPS dependencies
+        run: npm ci
+        working-directory: fps
+
+      - name: Build FPS
+        run: npm run build
+        working-directory: fps
+
       - name: Assemble site
         run: |
           mkdir -p _site
           cp index.html _site/index.html
           cp -r balatro/dist _site/balatro
-          cp -r fps _site/fps
+          cp -r fps/dist _site/fps
 
       - uses: actions/upload-pages-artifact@v3
         with:
