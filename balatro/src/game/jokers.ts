@@ -1,5 +1,5 @@
 import { Suit, shuffle } from './cards';
-import { HandResult } from './hands';
+import { HandResult, HandName } from './hands';
 
 export type JokerId =
   | 'apprentice'
@@ -15,7 +15,8 @@ export type JokerId =
   | 'odd_lot'
   | 'court_painter'
   | 'collector'
-  | 'engraver';
+  | 'engraver'
+  | 'guilloche';
 
 /** What one joker adds to the running tally; fields apply in this order. */
 export interface JokerEffect {
@@ -41,6 +42,7 @@ export interface JokerDef {
 export const MAX_JOKERS = 5;
 
 const FACE_RANKS = new Set([11, 12, 13]);
+const FLUSH_HANDS = new Set<HandName>(['flush', 'straight_flush', 'royal_flush']);
 
 /** Parity uses the pip value: Ace counts as 1 (odd), not its internal rank 14. */
 function pipValue(rank: number): number {
@@ -138,6 +140,12 @@ export const JOKERS: Record<JokerId, JokerDef> = {
     name: 'The Engraver',
     description: '×2 Mult if the hand has a face card',
     effect: ({ hand }) => hand.cards.some(c => FACE_RANKS.has(c.rank)) ? { xmult: 2 } : null,
+  },
+  guilloche: {
+    id: 'guilloche',
+    name: 'The Guilloché',
+    description: '×3 Mult on a flush',
+    effect: ({ hand }) => FLUSH_HANDS.has(hand.name) ? { xmult: 3 } : null,
   },
 };
 

@@ -68,6 +68,18 @@ describe('各ジョーカーの効果', () => {
     expect(effect('engraver', ctx([card(12)]))).toEqual({ xmult: 2 });
     expect(effect('engraver', ctx([card(14), card(10, 'hearts')]))).toBeNull();
   });
+
+  it('The Guilloché: フラッシュ系の役のときだけ Mult ×3', () => {
+    const flush = [card(2, 'hearts'), card(5, 'hearts'), card(9, 'hearts'), card(11, 'hearts'), card(13, 'hearts')];
+    expect(effect('guilloche', ctx(flush))).toEqual({ xmult: 3 });
+
+    const straightFlush = [card(5, 'clubs'), card(6, 'clubs'), card(7, 'clubs'), card(8, 'clubs'), card(9, 'clubs')];
+    expect(effect('guilloche', ctx(straightFlush))).toEqual({ xmult: 3 });
+
+    // 同スーツでも4枚ではフラッシュ不成立 → 不発
+    const fourSameSuit = [card(2, 'hearts'), card(5, 'hearts'), card(9, 'hearts'), card(11, 'hearts')];
+    expect(effect('guilloche', ctx(fourSameSuit))).toBeNull();
+  });
 });
 
 describe('drawJokerChoices: ドラフト抽選', () => {
