@@ -144,7 +144,7 @@ export const JOKERS: Record<JokerId, JokerDef> = {
   guilloche: {
     id: 'guilloche',
     name: 'The Guilloché',
-    description: '×3 Mult on a flush — one clean, uniform plate',
+    description: '×3 Mult on a flush',
     effect: ({ hand }) => FLUSH_HANDS.has(hand.name) ? { xmult: 3 } : null,
   },
 };
