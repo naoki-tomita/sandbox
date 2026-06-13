@@ -15,10 +15,20 @@ All game rules live here, completely decoupled from React.
 - **`cards.ts`** — primitive types (`Suit`, `Rank`, `Card`) and pure functions (`createDeck`, `shuffle`, `cardChips`). Card IDs are `"${rank}-${suit}"` (stable across shuffles).
 - **`hands.ts`** — `detectHand(cards)` returns the best `HandResult` from the selected cards. Handles ace-low straight (A-2-3-4-5).
 - **`scoring.ts`** — `calculateScore(hand, jokers, ctx)` returns `PlayScore`. Pipeline: chips = baseChips + card chips, mult = baseMult, then each owned joker's effect applies **left to right** (chips +=, mult +=, mult ×=). `PlayScore` carries the full breakdown (`baseChips`, `baseMult`, `cardContributions`, `jokerContributions`) so the UI can animate the tally. `BLIND_TARGETS` array drives progression.
-- **`jokers.ts`** — the joker pool (`JOKERS` record, workshop-flavoured names). Each `JokerDef.effect(ctx)` returns a `JokerEffect` (`chips`/`mult`/`xmult`) or `null` when it doesn't trigger. `drawJokerChoices(owned)` picks three unowned ones for the draft; `MAX_JOKERS = 5`. Parity jokers use the pip value (Ace = 1, odd), not the internal rank 14.
+- **`jokers.ts`** — the joker pool (`JOKERS` record, keyed by `JokerId`). Each `JokerDef` is `{ id, effect }`; `effect(ctx)` returns a `JokerEffect` (`chips`/`mult`/`xmult`) or `null` when it doesn't trigger. Display names/descriptions are **not** here — they live in `src/i18n` keyed by `JokerId`. `drawJokerChoices(owned)` picks three unowned ones for the draft; `MAX_JOKERS = 5`. Parity jokers use the pip value (Ace = 1, odd), not the internal rank 14.
 - **`GameEngine.ts`** — immutable class that owns `GameState`. Every method returns a **new** `GameEngine` instance (no mutation). React calls `setEngine(e => e.someMethod())`.
 
 `GameEngine` phases: `selecting → playing → scored → selecting | blind_cleared | game_over`, plus `blind_cleared → joker_draft → selecting` between blinds. The presentation beats are phases: `playing` covers the fly-off animation (500 ms; `startPlay()` → `resolvePlay()`), and `scored` covers the score-tally overlay — `resolvePlay()` applies the score and draws cards but never decides the outcome; `advanceAfterScore()` (called by the UI when the overlay finishes) does. This guarantees the cleared/game-over popups can't appear behind the overlay. After a clear, `startJokerDraft()` offers three jokers (`pickJoker(id)` / `skipDraft()` both lead to the next blind); jokers persist across blinds and reset on `restart()`.
+
+### Localization — `src/i18n/`
+
+All user-facing copy is localized (Japanese + English). The game layer holds only stable IDs (`HandName`, `JokerId`, `Suit`); their display strings live here, keyed by those IDs.
+
+- **`types.ts`** — the `Translations` interface. Strings that embed runtime values (counts, score, blind number) are functions so each language controls word order; everything else is a plain string.
+- **`en.ts` / `ja.ts`** — the two dictionaries, each a full `Translations`. TypeScript guarantees they stay in sync (a missing key fails `tsc`).
+- **`index.ts`** — `detectLocale(languages?)` reads `navigator.languages` (preference order) and returns the first supported locale, falling back to `en`. `locale` and the active table `t` are resolved **once** at module load — there is no language switcher or React state, so components just `import { t } from '../i18n'` and read `t.someKey`. `main.tsx` sets `<html lang>` from `locale`.
+
+When you add a user-facing string, add it to `Translations` and both dictionaries. When you add a joker or hand, add its `name`/`description` (or hand name) to `t.jokers` / `t.handNames` in both languages.
 
 ### React — `src/`
 

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { PlayScore } from '../game/scoring';
-import { HAND_DISPLAY_NAMES } from '../game/hands';
 import { useCounter } from '../hooks/useCounter';
+import { t } from '../i18n';
 
 interface Props {
   currentScore: number;
@@ -39,7 +39,7 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
           <div style={{ ...labelStyle, color: 'var(--lacquer)', opacity: 1 }}>
-            Blind No. {blindIndex + 1}
+            {t.blindNo(blindIndex + 1)}
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(27px, 8vw, 34px)', lineHeight: 1.2 }}>
             {animatedScore.toLocaleString()}
@@ -50,18 +50,18 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
               opacity: 0.5,
               marginLeft: 8,
             }}>
-              of {blindTarget.toLocaleString()}
+              {t.ofTarget(blindTarget.toLocaleString())}
             </span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 'clamp(12px, 3.5vw, 20px)', textAlign: 'center' }}>
           <div>
-            <div style={labelStyle}>Hands</div>
+            <div style={labelStyle}>{t.handsLeft}</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{maxHands - handsPlayed}</div>
           </div>
           <div style={{ borderLeft: '1px solid var(--paper-shade)' }} />
           <div>
-            <div style={labelStyle}>Discards</div>
+            <div style={labelStyle}>{t.discards}</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{discardsLeft}</div>
           </div>
         </div>
@@ -93,8 +93,8 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
           gap: 6,
           alignItems: 'baseline',
         }}>
-          <span style={{ color: 'var(--lacquer)', fontWeight: 600 }}>{HAND_DISPLAY_NAMES[lastPlay.handName]}</span>
-          <span style={{ opacity: 0.6 }}>scored +{lastPlay.total.toLocaleString()}</span>
+          <span style={{ color: 'var(--lacquer)', fontWeight: 600 }}>{t.handNames[lastPlay.handName]}</span>
+          <span style={{ opacity: 0.6 }}>{t.scoredPlus(lastPlay.total.toLocaleString())}</span>
         </div>
       )}
     </div>

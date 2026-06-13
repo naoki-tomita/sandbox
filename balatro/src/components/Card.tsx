@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card as CardType, SUIT_SYMBOLS, RANK_LABELS } from '../game/cards';
+import { t } from '../i18n';
 import styles from '../styles/Card.module.css';
 
 interface Props {
@@ -49,7 +50,7 @@ export function Card({ card, onClick, isFlying = false, dealIndex = 0 }: Props) 
       onClick={isFlying ? undefined : onClick}
       role="button"
       aria-pressed={card.selected}
-      aria-label={`${RANK_LABELS[card.rank]} of ${card.suit}`}
+      aria-label={t.cardLabel(RANK_LABELS[card.rank], card.suit)}
     >
       <div
         ref={ref}

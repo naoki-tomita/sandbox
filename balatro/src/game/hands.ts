@@ -17,19 +17,6 @@ export interface HandResult {
   cards: Card[];
 }
 
-export const HAND_DISPLAY_NAMES: Record<HandName, string> = {
-  royal_flush: 'Royal Flush',
-  straight_flush: 'Straight Flush',
-  four_of_a_kind: 'Four of a Kind',
-  full_house: 'Full House',
-  flush: 'Flush',
-  straight: 'Straight',
-  three_of_a_kind: 'Three of a Kind',
-  two_pair: 'Two Pair',
-  pair: 'Pair',
-  high_card: 'High Card',
-};
-
 function rankCounts(cards: Card[]): Map<Rank, number> {
   const counts = new Map<Rank, number>();
   for (const card of cards) {

@@ -9,6 +9,7 @@ import { Celebration } from './components/Celebration';
 import { ScoreOverlay } from './components/ScoreOverlay';
 import { JokerShelf } from './components/JokerShelf';
 import { JokerDraft } from './components/JokerDraft';
+import { t } from './i18n';
 
 /** How long to wait for the card fly-off animation before resolving the play. */
 const FLY_DURATION_MS = 500;
@@ -135,10 +136,10 @@ export function App() {
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
             <div style={{ fontSize: 11, letterSpacing: 3, color: 'var(--lacquer)', marginBottom: 6 }}>
-              BLIND {state.blindIndex + 1} SETTLED
+              {t.blindSettled(state.blindIndex + 1)}
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, marginBottom: 6 }}>
-              Blind cleared
+              {t.blindCleared}
             </div>
             <div style={{ opacity: 0.7, marginBottom: 18 }}>
               {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
@@ -151,7 +152,7 @@ export function App() {
                 borderRadius: 8, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.25), 0 4px 14px rgba(168,50,58,0.4)',
               }}
             >
-              {hasNextBlind ? 'Next blind →' : 'Play again'}
+              {hasNextBlind ? t.nextBlind : t.playAgain}
             </button>
           </div>
         )}
@@ -173,13 +174,13 @@ export function App() {
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, color: 'var(--lacquer)', marginBottom: 6 }}>
-              Game over
+              {t.gameOver}
             </div>
             <div style={{ opacity: 0.7, marginBottom: 4 }}>
               {state.currentScore.toLocaleString()} / {blindTarget.toLocaleString()}
             </div>
             <div style={{ opacity: 0.5, fontSize: 14, marginBottom: 18 }}>
-              Reached blind {state.blindIndex + 1}
+              {t.reachedBlind(state.blindIndex + 1)}
             </div>
             <button
               onClick={restart}
@@ -189,13 +190,13 @@ export function App() {
                 borderRadius: 8, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.4), 0 4px 14px rgba(0,0,0,0.4)',
               }}
             >
-              Play again
+              {t.playAgain}
             </button>
           </div>
         )}
 
         <div style={{ marginTop: 16, fontSize: 13, letterSpacing: 1, color: 'var(--paper)', opacity: 0.35 }}>
-          Select up to 5 cards · {state.deck.length} cards remaining
+          {t.selectHint(state.deck.length)}
         </div>
       </div>
     </>

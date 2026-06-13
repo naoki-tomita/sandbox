@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { PlayScore, JokerContribution } from '../game/scoring';
-import { HAND_DISPLAY_NAMES } from '../game/hands';
 import { RANK_LABELS, SUIT_SYMBOLS } from '../game/cards';
-import { JOKERS } from '../game/jokers';
 import { useScript } from '../hooks/useScript';
+import { t } from '../i18n';
 
 /* Pauses between the beats of the tally (ms) */
 const STAMP_IN = 500;     // stamp pressed + the hand name gets a beat
@@ -48,8 +47,8 @@ function Tag({ top, topColor, chips }: { top: string; topColor?: string; chips: 
 }
 
 function jokerEffectText(c: JokerContribution): { text: string; color: string } {
-  if (c.xmult) return { text: `×${c.xmult} Mult`, color: 'var(--lacquer)' };
-  if (c.mult) return { text: `+${c.mult} Mult`, color: 'var(--lacquer)' };
+  if (c.xmult) return { text: `×${c.xmult} ${t.multUnit}`, color: 'var(--lacquer)' };
+  if (c.mult) return { text: `+${c.mult} ${t.multUnit}`, color: 'var(--lacquer)' };
   return { text: `+${c.chips}`, color: 'var(--cardback-blue)' };
 }
 
@@ -72,7 +71,7 @@ function JokerTag({ contribution }: { contribution: JokerContribution }) {
       animation: 'popIn 0.3s ease-out backwards',
     }}>
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1 }}>
-        {JOKERS[contribution.jokerId].name}
+        {t.jokers[contribution.jokerId].name}
       </div>
       <div style={{ fontSize: 12, fontWeight: 600, color }}>{text}</div>
     </div>
@@ -176,7 +175,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
           color: 'var(--lacquer)',
           marginBottom: 4,
         }}>
-          SCORED
+          {t.scoredStamp}
         </div>
 
         {/* Hand name */}
@@ -186,7 +185,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
           letterSpacing: 1,
           marginBottom: 6,
         }}>
-          {HAND_DISPLAY_NAMES[play.handName]}
+          {t.handNames[play.handName]}
         </div>
 
         <div style={{
@@ -206,7 +205,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
           marginBottom: 16,
           minHeight: 42,
         }}>
-          {tagCount >= 1 && <Tag top="BASE" chips={play.baseChips} />}
+          {tagCount >= 1 && <Tag top={t.baseTag} chips={play.baseChips} />}
           {landedTags.map(c => (
             <Tag
               key={c.card.id}
@@ -241,7 +240,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
               >
                 {chipsShown}
               </div>
-              <div style={tagLabelStyle}>CHIPS</div>
+              <div style={tagLabelStyle}>{t.chips}</div>
             </div>
           )}
           {showMult && (
@@ -259,7 +258,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
                 >
                   {multShown}
                 </div>
-                <div style={tagLabelStyle}>MULT</div>
+                <div style={tagLabelStyle}>{t.mult}</div>
               </div>
             </>
           )}
@@ -275,7 +274,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
                 }}>
                   {play.total.toLocaleString()}
                 </div>
-                <div style={{ ...tagLabelStyle, fontSize: 11, marginTop: 3 }}>SCORE</div>
+                <div style={{ ...tagLabelStyle, fontSize: 11, marginTop: 3 }}>{t.score}</div>
               </div>
             </>
           )}
