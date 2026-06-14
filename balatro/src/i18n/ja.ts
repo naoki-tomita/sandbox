@@ -23,12 +23,12 @@ export const ja: DeepPartial<Translations> = {
 
   blindNo: n => `第${n}ブラインド`,
   ofTarget: target => `/ ${target}`,
-  handsLeft: 'ハンド',
-  discards: 'ディスカード',
+  handsLeft: 'Hand',
+  discards: 'Discard',
   scoredPlus: total => `+${total} 獲得`,
 
-  playHand: 'ハンドをプレイ',
-  discard: 'ディスカード',
+  playHand: 'Play',
+  discard: 'Discard',
 
   workshopOffers: '工房の品ぞろえ',
   takeAJoker: 'ジョーカーを1枚',
