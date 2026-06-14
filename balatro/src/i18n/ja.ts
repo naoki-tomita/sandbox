@@ -1,5 +1,5 @@
 import type { Suit } from '../game/cards';
-import type { Translations } from './types';
+import type { DeepPartial, Translations } from './types';
 
 const suitNames: Record<Suit, string> = {
   spades: 'スペード',
@@ -8,7 +8,11 @@ const suitNames: Record<Suit, string> = {
   clubs: 'クラブ',
 };
 
-export const ja: Translations = {
+/**
+ * Japanese overrides. Any key omitted here falls back to English at merge
+ * time (see buildTranslations), so this table may be partial.
+ */
+export const ja: DeepPartial<Translations> = {
   blindSettled: n => `ブラインド ${n} 清算`,
   blindCleared: 'ブラインド突破',
   nextBlind: '次のブラインド →',

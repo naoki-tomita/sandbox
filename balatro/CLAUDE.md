@@ -24,11 +24,12 @@ All game rules live here, completely decoupled from React.
 
 All user-facing copy is localized (Japanese + English). The game layer holds only stable IDs (`HandName`, `JokerId`, `Suit`); their display strings live here, keyed by those IDs.
 
-- **`types.ts`** — the `Translations` interface. Strings that embed runtime values (counts, score, blind number) are functions so each language controls word order; everything else is a plain string.
-- **`en.ts` / `ja.ts`** — the two dictionaries, each a full `Translations`. TypeScript guarantees they stay in sync (a missing key fails `tsc`).
-- **`index.ts`** — `detectLocale(languages?)` reads `navigator.languages` (preference order) and returns the first supported locale, falling back to `en`. `locale` and the active table `t` are resolved **once** at module load — there is no language switcher or React state, so components just `import { t } from '../i18n'` and read `t.someKey`. `main.tsx` sets `<html lang>` from `locale`.
+- **`types.ts`** — the `Translations` interface plus `DeepPartial<T>`. Strings that embed runtime values (counts, score, blind number) are functions so each language controls word order; everything else is a plain string.
+- **`en.ts`** — the **complete** `Translations`. English is the fallback, so every key must exist here.
+- **`ja.ts`** — a `DeepPartial<Translations>`: a non-English locale only lists what it translates. Anything omitted falls back to English string by string.
+- **`index.ts`** — `detectLocale(languages?)` reads `navigator.languages` (preference order) and returns the first supported locale, falling back to `en`. `buildTranslations(override)` overlays a locale's partial table onto English **leaf by leaf** (nested tables like `jokers` merge per string; functions are taken whole). `locale` and the active table `t` are resolved **once** at module load — there is no language switcher or React state, so components just `import { t } from '../i18n'` and read `t.someKey`. `main.tsx` sets `<html lang>` from `locale`.
 
-When you add a user-facing string, add it to `Translations` and both dictionaries. When you add a joker or hand, add its `name`/`description` (or hand name) to `t.jokers` / `t.handNames` in both languages.
+When you add a user-facing string, add it to `Translations` and to `en.ts`; translating it elsewhere is optional (untranslated keys show English). When you add a joker or hand, its English `name`/`description` (or hand name) goes in `en.ts` under `jokers` / `handNames`.
 
 ### React — `src/`
 

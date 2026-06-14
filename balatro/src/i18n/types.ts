@@ -2,6 +2,18 @@ import type { HandName } from '../game/hands';
 import type { JokerId } from '../game/jokers';
 import type { Suit } from '../game/cards';
 
+/**
+ * A translation table where any leaf may be omitted. Functions are kept whole
+ * (you either provide the localized function or you don't); nested tables
+ * (handNames, jokers, …) can be filled in string by string. Anything missing
+ * falls back to English.
+ */
+export type DeepPartial<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T;
+
 /** Display name + effect blurb for one joker. */
 export interface JokerText {
   name: string;
