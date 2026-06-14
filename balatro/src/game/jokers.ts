@@ -33,8 +33,6 @@ export interface ScoringContext {
 
 export interface JokerDef {
   id: JokerId;
-  name: string;
-  description: string;
   /** Returns the effect for this play, or null when it doesn't trigger. */
   effect: (ctx: ScoringContext) => JokerEffect | null;
 }
@@ -49,11 +47,9 @@ function pipValue(rank: number): number {
   return rank === 14 ? 1 : rank;
 }
 
-function perSuit(id: JokerId, name: string, suit: Suit, symbol: string): JokerDef {
+function perSuit(id: JokerId, suit: Suit): JokerDef {
   return {
     id,
-    name,
-    description: `+3 Mult for each ${symbol} played`,
     effect: ({ hand }) => {
       const n = hand.cards.filter(c => c.suit === suit).length;
       return n > 0 ? { mult: 3 * n } : null;
@@ -70,42 +66,30 @@ function hasPairOrBetter(hand: HandResult): boolean {
 export const JOKERS: Record<JokerId, JokerDef> = {
   apprentice: {
     id: 'apprentice',
-    name: 'The Apprentice',
-    description: '+4 Mult, always eager',
     effect: () => ({ mult: 4 }),
   },
-  lacquer_pot: perSuit('lacquer_pot', 'Pot of Lacquer', 'hearts', '♥'),
-  vermilion_jar: perSuit('vermilion_jar', 'Vermilion Jar', 'diamonds', '♦'),
-  india_ink: perSuit('india_ink', 'India Ink', 'spades', '♠'),
-  lamp_black: perSuit('lamp_black', 'Lamp Black', 'clubs', '♣'),
+  lacquer_pot: perSuit('lacquer_pot', 'hearts'),
+  vermilion_jar: perSuit('vermilion_jar', 'diamonds'),
+  india_ink: perSuit('india_ink', 'spades'),
+  lamp_black: perSuit('lamp_black', 'clubs'),
   twin_press: {
     id: 'twin_press',
-    name: 'Twin Press',
-    description: '+50 Chips if the hand contains a pair',
     effect: ({ hand }) => hasPairOrBetter(hand) ? { chips: 50 } : null,
   },
   short_run: {
     id: 'short_run',
-    name: 'Short Run',
-    description: '+20 Mult when playing 3 cards or fewer',
     effect: ({ hand }) => hand.cards.length <= 3 ? { mult: 20 } : null,
   },
   uncut_sheets: {
     id: 'uncut_sheets',
-    name: 'Uncut Sheets',
-    description: '+30 Chips per discard remaining',
     effect: ({ discardsLeft }) => discardsLeft > 0 ? { chips: 30 * discardsLeft } : null,
   },
   last_scrap: {
     id: 'last_scrap',
-    name: 'Last Scrap',
-    description: '+15 Mult when no discards remain',
     effect: ({ discardsLeft }) => discardsLeft === 0 ? { mult: 15 } : null,
   },
   even_grain: {
     id: 'even_grain',
-    name: 'Even Grain',
-    description: '+4 Mult for each even card (2,4,6,8,10,Q)',
     effect: ({ hand }) => {
       const n = hand.cards.filter(c => pipValue(c.rank) % 2 === 0).length;
       return n > 0 ? { mult: 4 * n } : null;
@@ -113,8 +97,6 @@ export const JOKERS: Record<JokerId, JokerDef> = {
   },
   odd_lot: {
     id: 'odd_lot',
-    name: 'Odd Lot',
-    description: '+30 Chips for each odd card (A,3,5,7,9,J,K)',
     effect: ({ hand }) => {
       const n = hand.cards.filter(c => pipValue(c.rank) % 2 === 1).length;
       return n > 0 ? { chips: 30 * n } : null;
@@ -122,8 +104,6 @@ export const JOKERS: Record<JokerId, JokerDef> = {
   },
   court_painter: {
     id: 'court_painter',
-    name: 'Court Painter',
-    description: '+30 Chips for each face card played',
     effect: ({ hand }) => {
       const n = hand.cards.filter(c => FACE_RANKS.has(c.rank)).length;
       return n > 0 ? { chips: 30 * n } : null;
@@ -131,20 +111,14 @@ export const JOKERS: Record<JokerId, JokerDef> = {
   },
   collector: {
     id: 'collector',
-    name: 'The Collector',
-    description: '+3 Mult for each joker owned',
     effect: ({ jokerCount }) => ({ mult: 3 * jokerCount }),
   },
   engraver: {
     id: 'engraver',
-    name: 'The Engraver',
-    description: '×2 Mult if the hand has a face card',
     effect: ({ hand }) => hand.cards.some(c => FACE_RANKS.has(c.rank)) ? { xmult: 2 } : null,
   },
   guilloche: {
     id: 'guilloche',
-    name: 'The Guilloché',
-    description: '×3 Mult on a flush',
     effect: ({ hand }) => FLUSH_HANDS.has(hand.name) ? { xmult: 3 } : null,
   },
 };

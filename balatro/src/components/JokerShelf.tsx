@@ -1,4 +1,5 @@
-import { JokerId, JOKERS, MAX_JOKERS } from '../game/jokers';
+import { JokerId, MAX_JOKERS } from '../game/jokers';
+import { t } from '../i18n';
 
 interface Props {
   jokers: JokerId[];
@@ -22,7 +23,7 @@ export function JokerShelf({ jokers }: Props) {
       {jokers.map(id => (
         <div
           key={id}
-          title={JOKERS[id].description}
+          title={t.jokers[id].description}
           style={{
             flex: '0 1 128px',
             minWidth: 104,
@@ -42,10 +43,10 @@ export function JokerShelf({ jokers }: Props) {
             lineHeight: 1.2,
             marginBottom: 3,
           }}>
-            {JOKERS[id].name}
+            {t.jokers[id].name}
           </div>
           <div style={{ fontSize: 10.5, lineHeight: 1.25, opacity: 0.65 }}>
-            {JOKERS[id].description}
+            {t.jokers[id].description}
           </div>
         </div>
       ))}

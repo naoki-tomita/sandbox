@@ -1,4 +1,5 @@
-import { JokerId, JOKERS } from '../game/jokers';
+import { JokerId } from '../game/jokers';
+import { t } from '../i18n';
 
 interface Props {
   choices: JokerId[];
@@ -22,10 +23,10 @@ export function JokerDraft({ choices, onPick, onSkip }: Props) {
       animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
     }}>
       <div style={{ fontSize: 11, letterSpacing: 3, color: 'var(--lacquer)', marginBottom: 4 }}>
-        THE WORKSHOP OFFERS
+        {t.workshopOffers}
       </div>
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, marginBottom: 16 }}>
-        Take a joker
+        {t.takeAJoker}
       </div>
 
       <div style={{
@@ -59,10 +60,10 @@ export function JokerDraft({ choices, onPick, onSkip }: Props) {
               lineHeight: 1.2,
               marginBottom: 6,
             }}>
-              {JOKERS[id].name}
+              {t.jokers[id].name}
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.35, opacity: 0.75 }}>
-              {JOKERS[id].description}
+              {t.jokers[id].description}
             </div>
           </button>
         ))}
@@ -80,7 +81,7 @@ export function JokerDraft({ choices, onPick, onSkip }: Props) {
           borderRadius: 8,
         }}
       >
-        Continue without
+        {t.continueWithout}
       </button>
     </div>
   );

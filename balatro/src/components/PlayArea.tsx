@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 interface Props {
   selectedCount: number;
   discardsLeft: number;
@@ -33,7 +35,7 @@ export function PlayArea({ selectedCount, discardsLeft, onPlayHand, onDiscard, d
             : 'none',
         }}
       >
-        Play hand
+        {t.playHand}
         {selectedCount > 0 && <span style={{ fontSize: 13, marginLeft: 6, opacity: 0.8 }}>({selectedCount})</span>}
       </button>
 
@@ -50,7 +52,7 @@ export function PlayArea({ selectedCount, discardsLeft, onPlayHand, onDiscard, d
           minWidth: 120,
         }}
       >
-        Discard ({discardsLeft})
+        {t.discard} ({discardsLeft})
       </button>
     </div>
   );
