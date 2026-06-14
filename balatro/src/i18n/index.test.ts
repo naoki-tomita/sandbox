@@ -9,6 +9,11 @@ describe('detectLocale: ブラウザ言語からロケール判定', () => {
     expect(detectLocale(['JA-jp'])).toBe('ja');
   });
 
+  it('POSIX ロケール形式 (LANG) も解釈する', () => {
+    expect(detectLocale(['ja_JP.UTF-8'])).toBe('ja');
+    expect(detectLocale(['en_US.UTF-8'])).toBe('en');
+  });
+
   it('英語はそのまま英語', () => {
     expect(detectLocale(['en-US'])).toBe('en');
   });

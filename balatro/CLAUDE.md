@@ -27,7 +27,7 @@ All user-facing copy is localized (Japanese + English). The game layer holds onl
 - **`types.ts`** — the `Translations` interface plus `DeepPartial<T>`. Strings that embed runtime values (counts, score, blind number) are functions so each language controls word order; everything else is a plain string.
 - **`en.ts`** — the **complete** `Translations`. English is the fallback, so every key must exist here.
 - **`ja.ts`** — a `DeepPartial<Translations>`: a non-English locale only lists what it translates. Anything omitted falls back to English string by string.
-- **`index.ts`** — `detectLocale(languages?)` reads `navigator.languages` (preference order) and returns the first supported locale, falling back to `en`. `buildTranslations(override)` overlays a locale's partial table onto English **leaf by leaf** (nested tables like `jokers` merge per string; functions are taken whole). `locale` and the active table `t` are resolved **once** at module load — there is no language switcher or React state, so components just `import { t } from '../i18n'` and read `t.someKey`. `main.tsx` sets `<html lang>` from `locale`.
+- **`index.ts`** — `detectLocale(languages?)` returns the first supported locale (preference order), falling back to `en`. The language list comes from `navigator.languages` in the browser, or POSIX env vars (`LC_ALL`/`LANG`/`LANGUAGE`, e.g. `ja_JP.UTF-8`) when running in a terminal — so the same module drives both the web app and the TUI. `buildTranslations(override)` overlays a locale's partial table onto English **leaf by leaf** (nested tables like `jokers` merge per string; functions are taken whole). `locale` and the active table `t` are resolved **once** at module load — there is no language switcher or React state, so components just `import { t } from '../i18n'` and read `t.someKey`. The web `main.tsx` sets `<html lang>` from `locale`.
 
 When you add a user-facing string, add it to `Translations` and to `en.ts`; translating it elsewhere is optional (untranslated keys show English). When you add a joker or hand, its English `name`/`description` (or hand name) goes in `en.ts` under `jokers` / `handNames`.
 
@@ -40,6 +40,16 @@ When you add a user-facing string, add it to `Translations` and to `en.ts`; tran
 `ScoreOverlay` renders while `phase === 'scored'`. Its presentation is a sequential script (`useScript` in `src/hooks/useScript.ts`): stamp in → BASE tag → one tag per card → × mult → one gilt tag per triggered joker → = total → hold → stamp out → `onComplete()`, which advances the engine. The CHIPS and MULT counters are *derived* by replaying the scoring pipeline over the beats landed so far. Order lives in the code; only the pauses between beats are durations. Unmounting the overlay silently stops the script.
 
 `JokerShelf` (owned jokers above the scoreboard, hidden while empty) and `JokerDraft` (the 3-choice panel during `joker_draft`) are stateless displays over `state.jokers` / `state.jokerChoices`.
+
+### Terminal UI — `src/tui/`
+
+A second frontend that plays the same game in a terminal, built with [Ink](https://github.com/vadimdemedes/ink) (React for the terminal). Run it with `npm run tui`. It reuses the whole game layer and `src/i18n` unchanged — only the *views* are reimplemented for the terminal, and there are **no animations** (the score lands as a single static panel, not a tally script).
+
+- **`App.tsx`** — the TUI counterpart of the web `App`: one `useState<GameEngine>` and an Ink `useInput` keyboard router that switches on `state.phase`. Selection is by number key (`1`-`8` toggle), `enter` plays (it runs `startPlay().resolvePlay()` back to back since there's no fly-off to wait for), `d` discards, the draft takes `1`-`3`/`s`, and `q`/`esc` quits.
+- **`Card`/`Hand`/`Scoreboard`/`JokerShelf`/`ScoreResult`/`JokerDraft`** — Ink (`<Box>`/`<Text>`) views mirroring the web components. Game text comes from `t`; terminal-only control hints live in **`strings.ts`** (keyed off the shared `locale`), and small render helpers (card label, suit color, joker effect text, progress bar) in **`format.ts`**.
+- **`main.tsx`** — the entry: bails with a message unless `process.stdin.isTTY` (Ink needs raw mode), then renders `<App>`.
+
+Build/types: the TUI is **excluded from the main `tsconfig.json`** (which pins `types: []` to keep Node globals out of the browser build) and type-checked separately via **`tsconfig.tui.json`** (`npm run typecheck:tui`, adds `@types/node`). It runs through `tsx`, so pass `--tsconfig tsconfig.tui.json` (the `tui` script does) or JSX falls back to the classic runtime.
 
 ### CSS / Styling
 

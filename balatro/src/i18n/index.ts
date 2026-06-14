@@ -16,16 +16,34 @@ function browserLanguages(): readonly string[] {
 }
 
 /**
- * Pick the locale from the browser's language list, falling back to English
+ * POSIX locale env vars, highest precedence first, for terminal runs (TUI).
+ * Values look like "ja_JP.UTF-8"; LANGUAGE may be a colon-separated list.
+ * Accessed through globalThis so this stays browser-safe (no `process` type).
+ */
+function envLanguages(): readonly string[] {
+  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+  if (!env) return [];
+  const value = env.LC_ALL || env.LC_MESSAGES || env.LANG || env.LANGUAGE;
+  return value ? value.split(':') : [];
+}
+
+/** Where this build gets its language preferences: browser first, then env. */
+function systemLanguages(): readonly string[] {
+  const fromBrowser = browserLanguages();
+  return fromBrowser.length > 0 ? fromBrowser : envLanguages();
+}
+
+/**
+ * Pick the locale from the system's language list, falling back to English
  * for anything we don't ship. The list is in preference order, so the first
- * language we actually support wins. Only the primary subtag matters
- * (ja-JP → ja).
+ * language we actually support wins. Only the primary subtag matters, across
+ * the separators locales use in the wild (ja-JP, ja_JP.UTF-8 → ja).
  */
 export function detectLocale(
-  languages: readonly string[] = browserLanguages(),
+  languages: readonly string[] = systemLanguages(),
 ): Locale {
   for (const lang of languages) {
-    const primary = lang?.toLowerCase().split('-')[0];
+    const primary = lang?.toLowerCase().split(/[-_.]/)[0];
     if (primary === 'ja') return 'ja';
     if (primary === 'en') return 'en';
   }
@@ -61,7 +79,7 @@ export function buildTranslations(override: DeepPartial<Translations>): Translat
 export const locale: Locale = detectLocale();
 
 /**
- * The active translation table, chosen once from the browser language. Any
+ * The active translation table, chosen once from the system language. Any
  * string the locale leaves out falls back to its English counterpart.
  */
 export const t: Translations = buildTranslations(OVERRIDES[locale]);
