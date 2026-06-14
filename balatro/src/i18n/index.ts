@@ -9,6 +9,12 @@ export type Locale = 'en' | 'ja';
 /** English is always the fallback; other locales supply partial overrides. */
 const OVERRIDES: Record<Locale, DeepPartial<Translations>> = { en: {}, ja };
 
+/** The browser's language preference list, or empty when off the browser. */
+function browserLanguages(): readonly string[] {
+  if (typeof navigator === 'undefined') return [];
+  return navigator.languages ?? (navigator.language ? [navigator.language] : []);
+}
+
 /**
  * Pick the locale from the browser's language list, falling back to English
  * for anything we don't ship. The list is in preference order, so the first
@@ -16,7 +22,7 @@ const OVERRIDES: Record<Locale, DeepPartial<Translations>> = { en: {}, ja };
  * (ja-JP → ja).
  */
 export function detectLocale(
-  languages: readonly string[] = navigator.languages ?? [navigator.language],
+  languages: readonly string[] = browserLanguages(),
 ): Locale {
   for (const lang of languages) {
     const primary = lang?.toLowerCase().split('-')[0];
