@@ -47,3 +47,14 @@ export function cardChips(rank: Rank): number {
   if (rank === 14) return 11;
   return 10;
 }
+
+/** Suit order used only to break ties between same-rank cards, for stability. */
+const SUIT_ORDER: Record<Suit, number> = { spades: 0, hearts: 1, clubs: 2, diamonds: 3 };
+
+/**
+ * A new array sorted high → low by rank (suit breaks ties) for readability.
+ * Pure — the input array is left untouched.
+ */
+export function sortCards(cards: Card[]): Card[] {
+  return [...cards].sort((a, b) => (b.rank - a.rank) || (SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit]));
+}

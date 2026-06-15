@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { createDeck, shuffle, cardChips } from './cards';
+import { createDeck, shuffle, cardChips, sortCards, Card } from './cards';
+
+const card = (rank: number, suit: Card['suit'] = 'spades'): Card =>
+  ({ id: `${rank}-${suit}`, rank: rank as Card['rank'], suit, selected: false });
 
 describe('createDeck: デッキ生成', () => {
   it('52枚で、IDはすべてユニーク', () => {
@@ -39,5 +42,19 @@ describe('cardChips: カードのチップ価値', () => {
 
   it('Aは11', () => {
     expect(cardChips(14)).toBe(11);
+  });
+});
+
+describe('sortCards: 手札の並べ替え', () => {
+  it('ランク高い順（A→2）に並べ、同ランクはスートで安定化', () => {
+    const hand = [card(2, 'hearts'), card(14, 'clubs'), card(10, 'spades'), card(14, 'spades')];
+    expect(sortCards(hand).map(c => c.id)).toEqual(['14-spades', '14-clubs', '10-spades', '2-hearts']);
+  });
+
+  it('元の配列を壊さない', () => {
+    const hand = [card(2), card(14)];
+    const before = [...hand];
+    sortCards(hand);
+    expect(hand).toEqual(before);
   });
 });
