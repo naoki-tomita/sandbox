@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas-renderer</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        background: #0d0d1a;
+        color: #fff;
+        font-family: 'Courier New', Courier, monospace;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        padding: 40px 20px;
+      }
+      h1 { font-size: 1.4rem; letter-spacing: 0.2em; }
+      h1 span { color: #6699ff; }
+      canvas {
+        width: 640px;
+        height: 420px;
+        max-width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+      }
+      p.note { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); letter-spacing: 0.1em; }
+    </style>
+  </head>
+  <body>
+    <h1>CANVAS <span>RENDERER</span></h1>
+    <canvas id="app"></canvas>
+    <p class="note">Reactコンポーネントをcanvasに描画 — クリック / ホバーで操作できます</p>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-# balatro のユニットテスト (vitest)。PR と main 押し込みの両方で走る。
+# balatro / canvas-renderer のユニットテスト (vitest)。PR と main 押し込みの両方で走る。
 
 name: Test
 
@@ -6,11 +6,13 @@ on:
   pull_request:
     paths:
       - 'balatro/**'
+      - 'canvas-renderer/**'
       - '.github/workflows/test.yml'
   push:
     branches: [main]
     paths:
       - 'balatro/**'
+      - 'canvas-renderer/**'
 
 concurrency:
   group: test-${{ github.ref }}
@@ -29,15 +31,25 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: balatro/package-lock.json
+          cache-dependency-path: |
+            balatro/package-lock.json
+            canvas-renderer/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Balatro dependencies
         run: npm ci
         working-directory: balatro
         env:
           # puppeteer は E2E 検証用の依存。CI のユニットテストでは Chrome 不要
           PUPPETEER_SKIP_DOWNLOAD: 'true'
 
-      - name: Run unit tests
+      - name: Run Balatro unit tests
         run: npm test
         working-directory: balatro
+
+      - name: Install canvas-renderer dependencies
+        run: npm ci
+        working-directory: canvas-renderer
+
+      - name: Run canvas-renderer unit tests
+        run: npm test
+        working-directory: canvas-renderer

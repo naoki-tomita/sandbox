@@ -6,6 +6,8 @@ on:
     paths:
       - 'balatro/**'
       - 'fps/**'
+      - 'canvas-renderer/**'
+      - 'index.html'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -31,6 +33,7 @@ jobs:
           cache-dependency-path: |
             balatro/package-lock.json
             fps/package-lock.json
+            canvas-renderer/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -48,12 +51,21 @@ jobs:
         run: npm run build
         working-directory: fps
 
+      - name: Install canvas-renderer dependencies
+        run: npm ci
+        working-directory: canvas-renderer
+
+      - name: Build canvas-renderer
+        run: npm run build
+        working-directory: canvas-renderer
+
       - name: Assemble site
         run: |
           mkdir -p _site
           cp index.html _site/index.html
           cp -r balatro/dist _site/balatro
           cp -r fps/dist _site/fps
+          cp -r canvas-renderer/dist _site/canvas-renderer
 
       - uses: actions/upload-pages-artifact@v3
         with:
