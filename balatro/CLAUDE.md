@@ -12,7 +12,7 @@ When you change game rules (scoring, hands, jokers, engine flow), update or add 
 
 All game rules live here, completely decoupled from React.
 
-- **`cards.ts`** — primitive types (`Suit`, `Rank`, `Card`) and pure functions (`createDeck`, `shuffle`, `cardChips`). Card IDs are `"${rank}-${suit}"` (stable across shuffles).
+- **`cards.ts`** — primitive types (`Suit`, `Rank`, `Card`) and pure functions (`createDeck`, `shuffle`, `cardChips`, `sortCards`). Card IDs are `"${rank}-${suit}"` (stable across shuffles). `sortCards(cards, 'rank' | 'suit')` returns a readability-sorted copy (used by the TUI hand view).
 - **`hands.ts`** — `detectHand(cards)` returns the best `HandResult` from the selected cards. Handles ace-low straight (A-2-3-4-5).
 - **`scoring.ts`** — `calculateScore(hand, jokers, ctx)` returns `PlayScore`. Pipeline: chips = baseChips + card chips, mult = baseMult, then each owned joker's effect applies **left to right** (chips +=, mult +=, mult ×=). `PlayScore` carries the full breakdown (`baseChips`, `baseMult`, `cardContributions`, `jokerContributions`) so the UI can animate the tally. `BLIND_TARGETS` array drives progression.
 - **`jokers.ts`** — the joker pool (`JOKERS` record, keyed by `JokerId`). Each `JokerDef` is `{ id, effect }`; `effect(ctx)` returns a `JokerEffect` (`chips`/`mult`/`xmult`) or `null` when it doesn't trigger. Display names/descriptions are **not** here — they live in `src/i18n` keyed by `JokerId`. `drawJokerChoices(owned)` picks three unowned ones for the draft; `MAX_JOKERS = 5`. Parity jokers use the pip value (Ace = 1, odd), not the internal rank 14.
@@ -45,7 +45,7 @@ When you add a user-facing string, add it to `Translations` and to `en.ts`; tran
 
 A second frontend that plays the same game in a terminal, built with [Ink](https://github.com/vadimdemedes/ink) (React for the terminal). Run it with `npm run tui`. It reuses the whole game layer and `src/i18n` unchanged — only the *views* are reimplemented for the terminal, and there are **no animations** (the score lands as a single static panel, not a tally script).
 
-- **`App.tsx`** — the TUI counterpart of the web `App`: one `useState<GameEngine>` and an Ink `useInput` keyboard router that switches on `state.phase`. Selection is by number key (`1`-`8` toggle), `enter` plays (it runs `startPlay().resolvePlay()` back to back since there's no fly-off to wait for), `d` discards, the draft takes `1`-`3`/`s`, and `q`/`esc` quits.
+- **`App.tsx`** — the TUI counterpart of the web `App`: one `useState<GameEngine>`, a `sortMode` (`rank`/`suit`) for the displayed hand, and an Ink `useInput` keyboard router that switches on `state.phase`. Selection is by number key (`1`-`8` toggle, indexing the *sorted* hand), `enter` plays (it runs `startPlay().resolvePlay()` back to back since there's no fly-off to wait for), `d` discards, `r`/`s` re-sort the hand by rank/suit, the draft takes `1`-`3`/`s`, and `q`/`esc` quits. Sorting is display-only — the engine keys cards by id, so reordering never touches game state.
 - **`Card`/`Hand`/`Scoreboard`/`JokerShelf`/`ScoreResult`/`JokerDraft`** — Ink (`<Box>`/`<Text>`) views mirroring the web components. Game text comes from `t`; terminal-only control hints live in **`strings.ts`** (keyed off the shared `locale`), and small render helpers (card label, suit color, joker effect text, progress bar) in **`format.ts`**.
 - **`main.tsx`** — the entry: bails with a message unless `process.stdin.isTTY` (Ink needs raw mode), then renders `<App>`.
 

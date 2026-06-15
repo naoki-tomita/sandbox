@@ -47,3 +47,20 @@ export function cardChips(rank: Rank): number {
   if (rank === 14) return 11;
   return 10;
 }
+
+export type SortMode = 'rank' | 'suit';
+
+/** Suit grouping order used when sorting a hand by suit. */
+const SUIT_ORDER: Record<Suit, number> = { spades: 0, hearts: 1, clubs: 2, diamonds: 3 };
+
+/**
+ * A new array sorted for readability: by rank (high → low) or grouped by
+ * suit then rank. Pure — the input array is left untouched.
+ */
+export function sortCards(cards: Card[], mode: SortMode): Card[] {
+  const byRankDesc = (a: Card, b: Card) => b.rank - a.rank;
+  const bySuit = (a: Card, b: Card) => SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
+  return [...cards].sort(mode === 'rank'
+    ? (a, b) => byRankDesc(a, b) || bySuit(a, b)
+    : (a, b) => bySuit(a, b) || byRankDesc(a, b));
+}

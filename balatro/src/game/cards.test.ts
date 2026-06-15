@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { createDeck, shuffle, cardChips } from './cards';
+import { createDeck, shuffle, cardChips, sortCards, Card } from './cards';
+
+const card = (rank: number, suit: Card['suit'] = 'spades'): Card =>
+  ({ id: `${rank}-${suit}`, rank: rank as Card['rank'], suit, selected: false });
 
 describe('createDeck: デッキ生成', () => {
   it('52枚で、IDはすべてユニーク', () => {
@@ -39,5 +42,25 @@ describe('cardChips: カードのチップ価値', () => {
 
   it('Aは11', () => {
     expect(cardChips(14)).toBe(11);
+  });
+});
+
+describe('sortCards: 手札の並べ替え', () => {
+  it('ランク順は高い順（A→2）', () => {
+    const hand = [card(2, 'hearts'), card(14, 'clubs'), card(10, 'spades')];
+    expect(sortCards(hand, 'rank').map(c => c.rank)).toEqual([14, 10, 2]);
+  });
+
+  it('スート順はスートでまとめ、その中はランク高い順', () => {
+    const hand = [card(5, 'hearts'), card(9, 'spades'), card(2, 'spades'), card(7, 'hearts')];
+    const sorted = sortCards(hand, 'suit');
+    expect(sorted.map(c => c.id)).toEqual(['9-spades', '2-spades', '7-hearts', '5-hearts']);
+  });
+
+  it('元の配列を壊さない', () => {
+    const hand = [card(2), card(14)];
+    const before = [...hand];
+    sortCards(hand, 'rank');
+    expect(hand).toEqual(before);
   });
 });
