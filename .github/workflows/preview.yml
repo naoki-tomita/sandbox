@@ -31,7 +31,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: balatro/package-lock.json
+          cache-dependency-path: |
+            balatro/package-lock.json
+            canvas-renderer/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -42,12 +44,22 @@ jobs:
         run: npm run build -- --base=/balatro/
         working-directory: balatro
 
+      - name: Install canvas-renderer dependencies
+        run: npm ci
+        working-directory: canvas-renderer
+
+      # 同上: /sandbox/canvas-renderer/ をルート配信用の /canvas-renderer/ に上書き
+      - name: Build canvas-renderer
+        run: npm run build -- --base=/canvas-renderer/
+        working-directory: canvas-renderer
+
       - name: Assemble site
         run: |
           mkdir -p _site
           cp index.html _site/index.html
           cp -r balatro/dist _site/balatro
           cp -r fps _site/fps
+          cp -r canvas-renderer/dist _site/canvas-renderer
 
       - name: Deploy to Cloudflare Pages
         id: deploy
