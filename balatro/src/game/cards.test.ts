@@ -46,21 +46,15 @@ describe('cardChips: カードのチップ価値', () => {
 });
 
 describe('sortCards: 手札の並べ替え', () => {
-  it('ランク順は高い順（A→2）', () => {
-    const hand = [card(2, 'hearts'), card(14, 'clubs'), card(10, 'spades')];
-    expect(sortCards(hand, 'rank').map(c => c.rank)).toEqual([14, 10, 2]);
-  });
-
-  it('スート順はスートでまとめ、その中はランク高い順', () => {
-    const hand = [card(5, 'hearts'), card(9, 'spades'), card(2, 'spades'), card(7, 'hearts')];
-    const sorted = sortCards(hand, 'suit');
-    expect(sorted.map(c => c.id)).toEqual(['9-spades', '2-spades', '7-hearts', '5-hearts']);
+  it('ランク高い順（A→2）に並べ、同ランクはスートで安定化', () => {
+    const hand = [card(2, 'hearts'), card(14, 'clubs'), card(10, 'spades'), card(14, 'spades')];
+    expect(sortCards(hand).map(c => c.id)).toEqual(['14-spades', '14-clubs', '10-spades', '2-hearts']);
   });
 
   it('元の配列を壊さない', () => {
     const hand = [card(2), card(14)];
     const before = [...hand];
-    sortCards(hand, 'rank');
+    sortCards(hand);
     expect(hand).toEqual(before);
   });
 });

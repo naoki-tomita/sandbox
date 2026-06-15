@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import { GameEngine } from '../game/GameEngine';
-import { SortMode, sortCards } from '../game/cards';
+import { sortCards } from '../game/cards';
 import { BLIND_TARGETS } from '../game/scoring';
 import { t } from '../i18n';
 import { ui } from './strings';
@@ -26,10 +26,10 @@ const CONTROLS: Record<string, string> = {
 export function App() {
   const { exit } = useApp();
   const [engine, setEngine] = useState(() => new GameEngine());
-  const [sortMode, setSortMode] = useState<SortMode>('rank');
   const { state } = engine;
   const blindTarget = engine.blindTarget;
-  const sortedHand = sortCards(state.hand, sortMode);
+  // Always shown rank-sorted; a user-pickable sort can come later if needed.
+  const sortedHand = sortCards(state.hand);
 
   useInput((input, key) => {
     if (input === 'q' || key.escape || (key.ctrl && input === 'c')) {
@@ -46,13 +46,9 @@ export function App() {
           setEngine(e => e.startPlay().resolvePlay());
         } else if (input === 'd') {
           setEngine(e => e.discard());
-        } else if (input === 'r') {
-          setSortMode('rank');
-        } else if (input === 's') {
-          setSortMode('suit');
         } else if (isDigit) {
           setEngine(e => {
-            const card = sortCards(e.state.hand, sortMode)[digit - 1];
+            const card = sortCards(e.state.hand)[digit - 1];
             return card ? e.toggleSelect(card.id) : e;
           });
         }
