@@ -14,7 +14,7 @@ interface TuiStrings {
 
 const STRINGS: Record<Locale, TuiStrings> = {
   en: {
-    selectingControls: '1-8 select · enter play · d discard · q quit',
+    selectingControls: '←/→ move · space pick · enter play · d discard · q quit',
     scoredControls: 'enter continue · q quit',
     clearedControls: 'enter next · q quit',
     draftControls: '1-3 take · s skip · q quit',
@@ -23,7 +23,7 @@ const STRINGS: Record<Locale, TuiStrings> = {
     needTty: 'The TUI needs an interactive terminal (TTY). Run it directly in a terminal.',
   },
   ja: {
-    selectingControls: '1-8 選択 · enter プレイ · d 捨てる · q 終了',
+    selectingControls: '←/→ 移動 · space 選択 · enter プレイ · d 捨てる · q 終了',
     scoredControls: 'enter 続ける · q 終了',
     clearedControls: 'enter 次へ · q 終了',
     draftControls: '1-3 取る · s スキップ · q 終了',

@@ -26,10 +26,12 @@ const CONTROLS: Record<string, string> = {
 export function App() {
   const { exit } = useApp();
   const [engine, setEngine] = useState(() => new GameEngine());
+  const [cursor, setCursor] = useState(0);
   const { state } = engine;
   const blindTarget = engine.blindTarget;
   // Always shown rank-sorted; a user-pickable sort can come later if needed.
   const sortedHand = sortCards(state.hand);
+  const cursorIndex = Math.max(0, Math.min(cursor, sortedHand.length - 1));
 
   useInput((input, key) => {
     if (input === 'q' || key.escape || (key.ctrl && input === 'c')) {
@@ -42,15 +44,19 @@ export function App() {
 
     switch (state.phase) {
       case 'selecting':
-        if (key.return) {
+        if (key.leftArrow) {
+          setCursor(c => Math.max(0, c - 1));
+        } else if (key.rightArrow) {
+          setCursor(c => Math.min(state.hand.length - 1, c + 1));
+        } else if (input === ' ') {
+          setEngine(e => {
+            const card = sortCards(e.state.hand)[cursorIndex];
+            return card ? e.toggleSelect(card.id) : e;
+          });
+        } else if (key.return) {
           setEngine(e => e.startPlay().resolvePlay());
         } else if (input === 'd') {
           setEngine(e => e.discard());
-        } else if (isDigit) {
-          setEngine(e => {
-            const card = sortCards(e.state.hand)[digit - 1];
-            return card ? e.toggleSelect(card.id) : e;
-          });
         }
         return;
 
@@ -102,7 +108,7 @@ export function App() {
         blindIndex={state.blindIndex}
       />
 
-      {showHand && <Hand cards={sortedHand} />}
+      {showHand && <Hand cards={sortedHand} cursor={state.phase === 'selecting' ? cursorIndex : -1} />}
 
       {state.phase === 'scored' && state.lastPlay && <ScoreResult play={state.lastPlay} />}
 
