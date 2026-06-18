@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>FPS Game</title>
 </head>
 <body>
@@ -20,6 +20,15 @@
         <tr><td>左クリック</td><td>射撃</td></tr>
         <tr><td>R</td><td>リロード</td></tr>
         <tr><td>ESC</td><td>ポーズ</td></tr>
+      </table>
+    </div>
+    <div class="controls-info touch-hint">
+      <h3>操作方法</h3>
+      <table>
+        <tr><td>左スティック</td><td>移動</td></tr>
+        <tr><td>右側ドラッグ</td><td>視点操作</td></tr>
+        <tr><td>🔫 ボタン</td><td>射撃</td></tr>
+        <tr><td>⟳ / ⏸</td><td>リロード / ポーズ</td></tr>
       </table>
     </div>
   </div>
@@ -74,6 +83,15 @@
   </div>
 
   <canvas id="gameCanvas"></canvas>
+
+  <!-- タッチ操作 (タッチ端末でのみ表示) -->
+  <div id="touchControls" class="hidden">
+    <div id="lookZone"></div>
+    <div id="moveZone"><div id="moveStick"></div></div>
+    <button id="pauseBtn" type="button">⏸</button>
+    <button id="reloadBtn" type="button">⟳</button>
+    <button id="fireBtn" type="button">🔫</button>
+  </div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

@@ -36,7 +36,9 @@ export class Player {
     if (input.isDown('KeyS')    || input.isDown('ArrowDown'))  dir.z += 1;
     if (input.isDown('KeyA')    || input.isDown('ArrowLeft'))  dir.x -= 1;
     if (input.isDown('KeyD')    || input.isDown('ArrowRight')) dir.x += 1;
-    dir.normalize();
+    dir.x += input.moveX; // touch joystick (analog)
+    dir.z += input.moveZ;
+    if (dir.lengthSq() > 1) dir.normalize(); // clamp speed; keep analog partial-tilt
 
     const moveWorld = dir.applyEuler(new THREE.Euler(0, input.yaw, 0));
     const nx = this.camera.position.x + moveWorld.x * PLAYER_SPEED * dt;

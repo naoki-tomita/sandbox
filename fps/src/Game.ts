@@ -76,6 +76,7 @@ export class Game {
 
     this.gameState = 'playing';
     this.input.requestLock();
+    this.input.showTouchControls();
     this.clock.start();
     requestAnimationFrame(this.loop);
   }
@@ -118,6 +119,7 @@ export class Game {
     this.gameState = 'gameover';
     if (this.player.reloadTimer !== null) clearTimeout(this.player.reloadTimer);
     this.input.exitLock();
+    this.input.hideTouchControls();
     UI.showGameOver({ score: this.player.score, kills: this.player.kills, wave: this.wave });
   }
 
@@ -125,6 +127,7 @@ export class Game {
     if (this.gameState === 'playing') {
       this.gameState = 'paused';
       this.input.exitLock();
+      this.input.hideTouchControls();
       UI.showPause();
     }
   }
@@ -134,6 +137,7 @@ export class Game {
     UI.hidePause();
     this.gameState = 'playing';
     this.input.requestLock();
+    this.input.showTouchControls();
     this.clock.getDelta(); // drain accumulated delta
     requestAnimationFrame(this.loop);
   }
@@ -168,6 +172,8 @@ export class Game {
 
     const dt  = Math.min(this.clock.getDelta(), 0.05);
     const now = performance.now();
+
+    if (this.input.firing) this.tryShoot(); // hold-to-fire (touch); rate-limited by Weapon
 
     this.player.update(dt, this.input, this.world);
     this.weapon.update(dt);
