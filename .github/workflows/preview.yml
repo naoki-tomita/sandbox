@@ -33,6 +33,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             balatro/package-lock.json
+            fps/package-lock.json
             canvas-renderer/package-lock.json
 
       - name: Install Balatro dependencies
@@ -43,6 +44,15 @@ jobs:
       - name: Build Balatro
         run: npm run build -- --base=/balatro/
         working-directory: balatro
+
+      - name: Install FPS dependencies
+        run: npm ci
+        working-directory: fps
+
+      # 同上: /sandbox/fps/ をルート配信用の /fps/ に上書き
+      - name: Build FPS
+        run: npm run build -- --base=/fps/
+        working-directory: fps
 
       - name: Install canvas-renderer dependencies
         run: npm ci
@@ -58,7 +68,7 @@ jobs:
           mkdir -p _site
           cp index.html _site/index.html
           cp -r balatro/dist _site/balatro
-          cp -r fps _site/fps
+          cp -r fps/dist _site/fps
           cp -r canvas-renderer/dist _site/canvas-renderer
 
       - name: Deploy to Cloudflare Pages
