@@ -12,19 +12,20 @@
   100% { transform: translateY(-280px) scale(0.1) rotate(40deg); opacity: 0; }
 }
 
+/* Selected: stays lifted with a deeper, softer extrusion and a faint warm
+   under-glow — no hard ring or bright halo, keeping the soft-UI feel. */
 @keyframes giltPulse {
   0%, 100% {
     box-shadow:
-      6px 6px 14px var(--shadow-dark),
-      -6px -6px 14px var(--shadow-light),
-      0 0 0 2px rgba(194, 168, 120, 0.85);
+      5px 5px 12px var(--shadow-dark),
+      -5px -5px 12px var(--shadow-light),
+      0 10px 18px rgba(194, 168, 120, 0.22);
   }
   50% {
     box-shadow:
-      8px 8px 18px var(--shadow-dark),
-      -8px -8px 18px var(--shadow-light),
-      0 0 12px rgba(194, 168, 120, 0.5),
-      0 0 0 2px rgba(194, 168, 120, 1);
+      7px 7px 16px var(--shadow-dark),
+      -7px -7px 16px var(--shadow-light),
+      0 12px 24px rgba(194, 168, 120, 0.34);
   }
 }
 
