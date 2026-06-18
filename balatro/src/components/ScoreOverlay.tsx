@@ -33,11 +33,11 @@ function Tag({ top, topColor, chips }: { top: string; topColor?: string; chips: 
       alignItems: 'center',
       gap: 1,
       minWidth: 38,
-      padding: '5px 6px',
-      background: '#fdf8ec',
-      border: '1px solid var(--paper-shade)',
-      borderRadius: 5,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+      padding: '6px 8px',
+      background: 'var(--paper)',
+      border: 'none',
+      borderRadius: 12,
+      boxShadow: 'var(--neu-raised-sm)',
       animation: 'popIn 0.3s ease-out backwards',
     }}>
       <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1, color: topColor }}>{top}</div>
@@ -63,14 +63,14 @@ function JokerTag({ contribution }: { contribution: JokerContribution }) {
       justifyContent: 'center',
       gap: 1,
       minWidth: 64,
-      padding: '5px 8px',
-      background: '#fdf8ec',
-      border: '1px solid var(--gilt)',
-      borderRadius: 5,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+      padding: '6px 10px',
+      background: 'var(--paper)',
+      border: '1px solid var(--gilt-soft)',
+      borderRadius: 12,
+      boxShadow: 'var(--neu-raised-sm)',
       animation: 'popIn 0.3s ease-out backwards',
     }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 11, lineHeight: 1.1 }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 11, lineHeight: 1.1 }}>
         {t.jokers[contribution.jokerId].name}
       </div>
       <div style={{ fontSize: 12, fontWeight: 600, color }}>{text}</div>
@@ -139,7 +139,9 @@ export function ScoreOverlay({ play, onComplete }: Props) {
       justifyContent: 'center',
       pointerEvents: 'none',
       zIndex: 150,
-      background: 'rgba(20,6,5,0.55)',
+      background: 'rgba(214, 221, 232, 0.6)',
+      backdropFilter: 'blur(3px)',
+      WebkitBackdropFilter: 'blur(3px)',
       animation: exiting
         ? `backdropOut ${STAMP_OUT}ms ease-out forwards`
         : 'backdropIn 0.25s ease-out backwards',
@@ -149,9 +151,9 @@ export function ScoreOverlay({ play, onComplete }: Props) {
         textAlign: 'center',
         background: 'var(--paper)',
         color: 'var(--ink)',
-        borderRadius: 10,
-        border: '2px solid var(--gilt)',
-        boxShadow: 'inset 0 0 0 5px var(--paper), inset 0 0 0 6px var(--gilt), 0 12px 40px rgba(0,0,0,0.65)',
+        borderRadius: 28,
+        border: 'none',
+        boxShadow: 'var(--neu-raised-lg)',
         padding: '30px clamp(16px, 6vw, 44px) 26px',
         minWidth: 'min(360px, calc(100vw - 32px))',
         maxWidth: 'calc(100vw - 32px)',
@@ -181,6 +183,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
         {/* Hand name */}
         <div style={{
           fontFamily: 'var(--font-display)',
+          fontWeight: 700,
           fontSize: 'clamp(26px, 8vw, 34px)',
           letterSpacing: 1,
           marginBottom: 6,
@@ -233,6 +236,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
                 key={chipsShown}
                 style={{
                   fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
                   color: 'var(--cardback-blue)',
                   fontSize: 30,
                   animation: 'chipTick 0.25s ease-out',
@@ -251,6 +255,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
                   key={multShown}
                   style={{
                     fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
                     color: 'var(--lacquer)',
                     fontSize: 30,
                     animation: 'chipTick 0.25s ease-out',
@@ -268,6 +273,7 @@ export function ScoreOverlay({ play, onComplete }: Props) {
               <div style={{ textAlign: 'center', animation: 'numberBounce 0.4s ease-out backwards' }}>
                 <div style={{
                   fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
                   fontSize: 'clamp(32px, 9vw, 40px)',
                   borderBottom: '3px double var(--gilt)',
                   lineHeight: 1.1,

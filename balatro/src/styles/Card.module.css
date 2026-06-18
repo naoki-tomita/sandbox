@@ -15,14 +15,16 @@
 @keyframes giltPulse {
   0%, 100% {
     box-shadow:
-      0 12px 22px rgba(0, 0, 0, 0.5),
-      0 0 0 2px rgba(200, 162, 75, 0.85);
+      6px 6px 14px var(--shadow-dark),
+      -6px -6px 14px var(--shadow-light),
+      0 0 0 2px rgba(194, 168, 120, 0.85);
   }
   50% {
     box-shadow:
-      0 14px 30px rgba(0, 0, 0, 0.55),
-      0 0 14px rgba(200, 162, 75, 0.45),
-      0 0 0 2px rgba(200, 162, 75, 1);
+      8px 8px 18px var(--shadow-dark),
+      -8px -8px 18px var(--shadow-light),
+      0 0 12px rgba(194, 168, 120, 0.5),
+      0 0 0 2px rgba(194, 168, 120, 1);
   }
 }
 
@@ -58,10 +60,10 @@
 .card {
   width: 100%;
   height: 100%;
-  background: linear-gradient(160deg, #faf3e3 0%, #f1e6cc 100%);
-  border-radius: 6px;
-  border: 1px solid #d9c9a4;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  background: var(--paper);
+  border-radius: 14px;
+  border: none;
+  box-shadow: var(--neu-raised-sm);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -69,7 +71,7 @@
   padding: 4px 6px;
   overflow: hidden;
   font-family: var(--font-body);
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 /* Applied only on mount; removed after animationend to avoid re-triggering on class changes */
@@ -104,7 +106,7 @@
   /* Hover lifts higher than the selected resting height */
   .slot:not(.slotFlying):hover .card {
     transform: translateY(-26px) scale(1.06);
-    box-shadow: 0 14px 24px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--neu-raised-lg);
   }
 
   .slot:not(.slotFlying):hover .card::after {
@@ -120,7 +122,6 @@
 /* ── Selected: gilt ring ── */
 
 .selected {
-  border-color: #c8a24b;
   transform: translateY(-18px) scale(1.06);
   animation: giltPulse 1.4s ease-in-out infinite;
 }
@@ -133,8 +134,8 @@
 
 /* ── Suit inks: lacquer red / ink black ── */
 
-.red   { color: #a8323a; }
-.black { color: #22201b; }
+.red   { color: var(--lacquer); }
+.black { color: #4a5568; }
 
 /* ── Card internals ── */
 

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
-// Confetti in the design's own inks: gilt, lacquer red, card-back blue, paper
-const COLORS = ['#c8a24b', '#a8323a', '#27518f', '#f4ead5'];
+// Confetti in the soft palette: gilt, mult red, chips blue, light surface
+const COLORS = ['#c2a878', '#d27a7d', '#6286c2', '#ffffff'];
 
 export function Celebration() {
   const particles = useMemo(() =>

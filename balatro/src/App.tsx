@@ -71,10 +71,11 @@ export function App() {
           <h1 style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(32px, 9vw, 40px)',
-            fontWeight: 'normal',
+            fontWeight: 700,
             letterSpacing: 6,
-            color: 'var(--paper)',
+            color: 'var(--ink)',
             lineHeight: 1,
+            textShadow: '-1px -1px 1px rgba(255,255,255,0.9), 2px 2px 3px rgba(168,180,200,0.8)',
           }}>
             BALATRO
           </h1>
@@ -129,16 +130,16 @@ export function App() {
             textAlign: 'center',
             background: 'var(--paper)',
             color: 'var(--ink)',
-            border: '1px solid var(--paper-shade)',
-            borderRadius: 10,
-            boxShadow: 'inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--gilt), 0 8px 24px rgba(0,0,0,0.5)',
+            border: 'none',
+            borderRadius: 24,
+            boxShadow: 'var(--neu-raised-lg)',
             padding: '28px clamp(24px, 8vw, 44px)',
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
             <div style={{ fontSize: 11, letterSpacing: 3, color: 'var(--lacquer)', marginBottom: 6 }}>
               {t.blindSettled(state.blindIndex + 1)}
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, marginBottom: 6 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30, marginBottom: 6 }}>
               {t.blindCleared}
             </div>
             <div style={{ opacity: 0.7, marginBottom: 18 }}>
@@ -148,8 +149,8 @@ export function App() {
               onClick={hasNextBlind ? startJokerDraft : restart}
               style={{
                 padding: '12px 36px', fontSize: 17, fontWeight: 700,
-                background: 'var(--lacquer)', color: 'var(--paper)',
-                borderRadius: 8, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.25), 0 4px 14px rgba(168,50,58,0.4)',
+                background: 'var(--lacquer)', color: '#fff',
+                borderRadius: 14,
               }}
             >
               {hasNextBlind ? t.nextBlind : t.playAgain}
@@ -167,13 +168,13 @@ export function App() {
             textAlign: 'center',
             background: 'var(--paper)',
             color: 'var(--ink)',
-            border: '1px solid var(--paper-shade)',
-            borderRadius: 10,
-            boxShadow: 'inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--lacquer), 0 8px 24px rgba(0,0,0,0.5)',
+            border: 'none',
+            borderRadius: 24,
+            boxShadow: 'var(--neu-raised-lg)',
             padding: '28px clamp(24px, 8vw, 44px)',
             animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, color: 'var(--lacquer)', marginBottom: 6 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30, color: 'var(--lacquer)', marginBottom: 6 }}>
               {t.gameOver}
             </div>
             <div style={{ opacity: 0.7, marginBottom: 4 }}>
@@ -186,8 +187,8 @@ export function App() {
               onClick={restart}
               style={{
                 padding: '12px 36px', fontSize: 17, fontWeight: 700,
-                background: 'var(--ink)', color: 'var(--paper)',
-                borderRadius: 8, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.4), 0 4px 14px rgba(0,0,0,0.4)',
+                background: 'var(--ink)', color: '#fff',
+                borderRadius: 14,
               }}
             >
               {t.playAgain}
@@ -195,7 +196,7 @@ export function App() {
           </div>
         )}
 
-        <div style={{ marginTop: 16, fontSize: 13, letterSpacing: 1, color: 'var(--paper)', opacity: 0.35 }}>
+        <div style={{ marginTop: 16, fontSize: 13, letterSpacing: 1, color: 'var(--ink)', opacity: 0.5 }}>
           {t.selectHint(state.deck.length)}
         </div>
       </div>

@@ -27,18 +27,19 @@ export function JokerShelf({ jokers }: Props) {
           style={{
             flex: '0 1 128px',
             minWidth: 104,
-            padding: '8px 10px',
+            padding: '10px 12px',
             background: 'var(--paper)',
             color: 'var(--ink)',
-            border: '1px solid var(--gilt)',
-            borderRadius: 7,
-            boxShadow: '0 3px 8px rgba(0,0,0,0.4)',
+            border: '1px solid var(--gilt-soft)',
+            borderRadius: 16,
+            boxShadow: 'var(--neu-raised-sm)',
             textAlign: 'center',
             animation: 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) backwards',
           }}
         >
           <div style={{
             fontFamily: 'var(--font-display)',
+            fontWeight: 600,
             fontSize: 13,
             lineHeight: 1.2,
             marginBottom: 3,
@@ -57,8 +58,9 @@ export function JokerShelf({ jokers }: Props) {
           style={{
             flex: '0 1 128px',
             minWidth: 104,
-            border: '1px dashed rgba(200, 162, 75, 0.3)',
-            borderRadius: 7,
+            background: 'var(--paper)',
+            borderRadius: 16,
+            boxShadow: 'var(--neu-pressed-sm)',
             minHeight: 48,
           }}
         />

@@ -29,10 +29,10 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
     <div style={{
       background: 'var(--paper)',
       color: 'var(--ink)',
-      border: '1px solid var(--paper-shade)',
-      borderRadius: 10,
-      boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
-      padding: '16px clamp(14px, 4vw, 24px)',
+      border: 'none',
+      borderRadius: 24,
+      boxShadow: 'var(--neu-raised)',
+      padding: '18px clamp(16px, 4vw, 26px)',
       width: '100%',
       marginBottom: 20,
     }}>
@@ -41,7 +41,7 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
           <div style={{ ...labelStyle, color: 'var(--lacquer)', opacity: 1 }}>
             {t.blindNo(blindIndex + 1)}
           </div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(27px, 8vw, 34px)', lineHeight: 1.2 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(27px, 8vw, 34px)', lineHeight: 1.2 }}>
             {animatedScore.toLocaleString()}
             <span style={{
               fontFamily: 'var(--font-body)',
@@ -57,29 +57,31 @@ export function ScoreBoard({ currentScore, blindTarget, handsPlayed, maxHands, d
         <div style={{ display: 'flex', gap: 'clamp(12px, 3.5vw, 20px)', textAlign: 'center' }}>
           <div>
             <div style={labelStyle}>{t.handsLeft}</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{maxHands - handsPlayed}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 24 }}>{maxHands - handsPlayed}</div>
           </div>
           <div style={{ borderLeft: '1px solid var(--paper-shade)' }} />
           <div>
             <div style={labelStyle}>{t.discards}</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 24 }}>{discardsLeft}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 24 }}>{discardsLeft}</div>
           </div>
         </div>
       </div>
 
-      {/* Progress: gilt fill in a recessed groove */}
+      {/* Progress: gilt fill in a recessed neumorphic groove */}
       <div style={{
-        background: 'var(--paper-shade)',
-        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
-        borderRadius: 4,
-        height: 10,
+        background: 'var(--paper)',
+        boxShadow: 'var(--neu-pressed-sm)',
+        borderRadius: 8,
+        height: 12,
+        padding: 2,
         overflow: 'hidden',
       }}>
         <div style={{
           width: `${pct}%`,
           height: '100%',
-          background: 'linear-gradient(90deg, #b08a35, var(--gilt))',
-          borderRadius: 4,
+          background: 'linear-gradient(90deg, #b8975f, var(--gilt))',
+          borderRadius: 6,
+          boxShadow: '0 1px 2px rgba(168,180,200,0.6)',
           transition: 'width 0.7s cubic-bezier(0.34,1.56,0.64,1)',
         }} />
       </div>

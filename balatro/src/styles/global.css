@@ -1,20 +1,46 @@
-/* ── "Maker's Mark" design tokens ──
-   A 19th-century playing-card maker's parlour: mahogany table,
-   cream card stock, twin deck inks (lacquer red / card-back blue), gilt. */
+/* ── Neumorphism design tokens ──
+   Soft UI: a single cool-gray surface where everything is the same colour as
+   the background, sculpted only by a top-left light and a bottom-right shadow.
+   Twin accents (chips blue / mult red) and a soft gilt accent stay for the
+   game's number readability — the worldview/theme follows later. */
 
 :root {
-  --mahogany: #36100f;
-  --mahogany-deep: #1f0908;
-  --paper: #f4ead5;
-  --paper-shade: #e4d6b8;
-  --ink: #22201b;
-  --lacquer: #a8323a;
-  --cardback-blue: #27518f;
-  --gilt: #c8a24b;
-  --gilt-soft: rgba(200, 162, 75, 0.35);
+  /* Surface — body and panels share one colour; depth comes from shadows */
+  --mahogany: #e3e8ef;       /* body background base */
+  --mahogany-deep: #d6dde8;  /* body gradient end */
+  --paper: #e3e8ef;          /* raised panel surface (== bg) */
+  --paper-shade: #cdd5e3;    /* recessed grooves / faint dividers */
 
-  --font-display: 'Abril Fatface', 'Georgia', serif;
-  --font-body: 'Crimson Pro', 'Georgia', serif;
+  /* Soft neumorphic shadow pair */
+  --shadow-light: #ffffff;
+  --shadow-dark: #a8b4c8;
+
+  /* Ink + accents (muted for the soft palette) */
+  --ink: #5a6678;           /* primary slate text */
+  --lacquer: #d27a7d;       /* mult — soft red */
+  --cardback-blue: #6286c2; /* chips — soft blue */
+  --gilt: #c2a878;          /* decorative accent — soft gilt */
+  --gilt-soft: rgba(194, 168, 120, 0.4);
+
+  /* Reusable extruded shadows */
+  --neu-raised:
+    6px 6px 14px var(--shadow-dark),
+    -6px -6px 14px var(--shadow-light);
+  --neu-raised-sm:
+    3px 3px 7px var(--shadow-dark),
+    -3px -3px 7px var(--shadow-light);
+  --neu-raised-lg:
+    10px 10px 24px var(--shadow-dark),
+    -10px -10px 24px var(--shadow-light);
+  --neu-pressed:
+    inset 4px 4px 8px var(--shadow-dark),
+    inset -4px -4px 8px var(--shadow-light);
+  --neu-pressed-sm:
+    inset 2px 2px 5px var(--shadow-dark),
+    inset -2px -2px 5px var(--shadow-light);
+
+  --font-display: 'Poppins', 'Segoe UI', sans-serif;
+  --font-body: 'Nunito', 'Segoe UI', sans-serif;
 }
 
 *, *::before, *::after {
@@ -27,10 +53,10 @@ body {
   font-family: var(--font-body);
   background-color: var(--mahogany);
   background-image:
-    radial-gradient(ellipse 120% 90% at 50% 0%, rgba(255, 214, 150, 0.07) 0%, rgba(0, 0, 0, 0) 55%),
+    radial-gradient(ellipse 120% 90% at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 55%),
     radial-gradient(ellipse at center, var(--mahogany) 0%, var(--mahogany-deep) 100%);
   min-height: 100vh;
-  color: var(--paper);
+  color: var(--ink);
 }
 
 #root {
@@ -44,29 +70,35 @@ body {
 button {
   cursor: pointer;
   font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper);
   border: none;
-  border-radius: 6px;
-  transition: transform 0.1s, opacity 0.1s, box-shadow 0.1s;
+  border-radius: 14px;
+  box-shadow: var(--neu-raised-sm);
+  transition: transform 0.12s, opacity 0.12s, box-shadow 0.15s;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
 button:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: var(--neu-pressed-sm);
 }
 
 button:not(:disabled):hover {
-  transform: translateY(-1px);
+  box-shadow: var(--neu-raised);
 }
 
 button:not(:disabled):active {
+  box-shadow: var(--neu-pressed);
   transform: translateY(1px);
 }
 
 :focus-visible {
   outline: 2px solid var(--gilt);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 /* Global keyframes (used via inline styles or global classes) */
@@ -78,8 +110,8 @@ button:not(:disabled):active {
 }
 
 @keyframes goldenFlash {
-  0%   { background: rgba(200, 162, 75, 0.4); }
-  100% { background: rgba(200, 162, 75, 0); }
+  0%   { background: rgba(255, 255, 255, 0.5); }
+  100% { background: rgba(255, 255, 255, 0); }
 }
 
 @keyframes slideInUp {

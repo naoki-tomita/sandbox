@@ -25,14 +25,11 @@ export function PlayArea({ selectedCount, discardsLeft, onPlayHand, onDiscard, d
           padding: '12px 32px',
           fontSize: 17,
           fontWeight: 700,
-          background: canPlay ? 'var(--lacquer)' : 'rgba(244,234,213,0.12)',
-          color: 'var(--paper)',
-          borderRadius: 8,
+          background: canPlay ? 'var(--lacquer)' : 'var(--paper)',
+          color: canPlay ? '#fff' : 'var(--ink)',
+          borderRadius: 14,
           letterSpacing: 0.5,
           minWidth: 140,
-          boxShadow: canPlay
-            ? 'inset 0 -2px 0 rgba(0,0,0,0.25), 0 4px 14px rgba(168,50,58,0.4)'
-            : 'none',
         }}
       >
         {t.playHand}
@@ -45,10 +42,10 @@ export function PlayArea({ selectedCount, discardsLeft, onPlayHand, onDiscard, d
         style={{
           padding: '12px 24px',
           fontSize: 15,
-          background: 'transparent',
-          color: 'var(--paper)',
-          borderRadius: 8,
-          border: '1px solid var(--gilt-soft)',
+          fontWeight: 700,
+          background: 'var(--paper)',
+          color: 'var(--ink)',
+          borderRadius: 14,
           minWidth: 120,
         }}
       >
