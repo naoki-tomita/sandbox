@@ -20,7 +20,7 @@ main.ts → Game.ts → { world, input, player, weapon, enemies, ui } → { conf
 | `types.ts` | 共有型定義（GameState, Enemy, Bullet, WallBox…） |
 | `utils.ts` | 汎用ユーティリティ（shuffleArr） |
 | `world.ts` | `World` クラス: レベルジオメトリ・照明・AABB 衝突判定 |
-| `input.ts` | `Input` クラス: キーボード・マウス・ポインターロック管理 |
+| `input.ts` | `Input` クラス: キーボード・マウス・ポインターロック + タッチ操作（仮想スティック/ドラッグ視点/ボタン）管理 |
 | `player.ts` | `Player` クラス: HP/弾薬/スコア等の状態 + 移動・カメラ姿勢 |
 | `weapon.ts` | `Weapon` クラス: 銃モデル・発射機構・リロード・リコイル・弾道 |
 | `enemies.ts` | `EnemyManager` クラス: スポーン・AI ステートマシン・敵弾 |
@@ -48,6 +48,18 @@ npm run preview  # /sandbox/fps/ パスのビルド成果物を確認
 `fps/dist/` を GitHub Pages の `/sandbox/fps/` に配置する。
 
 `vite.config.ts` の `base: '/sandbox/fps/'` がこのパスに対応する。
+
+## タッチ操作（スマホ対応）
+
+`Input` は `(hover: none) and (pointer: coarse)` でタッチ主体端末を判定する（`isTouch`）。
+タッチ端末ではポインターロックを使わず、`index.html` の `#touchControls` を表示する:
+
+- `#moveZone` / `#moveStick`: 左下の仮想スティック → `Input.moveX/moveZ`（アナログ）。`Player` がキー入力に加算。
+- `#lookZone`: 画面右側のドラッグで `yaw/pitch` を更新（マウス視点の代替）。
+- `#fireBtn`（長押しで連射、`Input.firing` を `Game` ループが参照）/ `#reloadBtn` / `#pauseBtn`。
+
+PC（マウス）挙動は従来どおり。判定が `pointer: coarse` のみだとタッチ対応ノートPCで
+マウスが無効化されるため `hover: none` を併用している。
 
 ## three.js バージョンについて
 

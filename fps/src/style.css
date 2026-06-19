@@ -1,17 +1,25 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html, body {
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
 body {
   background: #000;
   overflow: hidden;
   font-family: 'Courier New', Courier, monospace;
   color: #fff;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #gameCanvas {
   display: block;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* ───── Overlays ───── */
@@ -338,6 +346,105 @@ button:hover {
   color: #ff4444;
   letter-spacing: 0.3em;
   animation: fadeUp 0.8s forwards;
+}
+
+/* ───── Touch controls ───── */
+.touch-hint { display: none; }
+
+@media (hover: none) and (pointer: coarse) {
+  .controls-info:not(.touch-hint) { display: none; }
+  .touch-hint { display: block; }
+}
+
+#touchControls {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none; /* children re-enable */
+  touch-action: none;
+}
+
+#touchControls > * { pointer-events: auto; }
+
+/* drag-to-look region (right side of the screen) */
+#lookZone {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 62%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* movement joystick (bottom-left) */
+#moveZone {
+  position: absolute;
+  left: max(24px, env(safe-area-inset-left));
+  bottom: max(28px, env(safe-area-inset-bottom));
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,80,80,0.3);
+  touch-action: none;
+}
+
+#moveStick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  border-radius: 50%;
+  background: rgba(255,80,80,0.45);
+  border: 2px solid rgba(255,255,255,0.5);
+}
+
+/* on-screen action buttons */
+#touchControls button {
+  position: absolute;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255,51,51,0.18);
+  border: 2px solid rgba(255,80,80,0.6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  text-transform: none;
+  touch-action: none;
+  transition: none;
+}
+
+#touchControls button:active {
+  background: rgba(255,51,51,0.5);
+}
+
+#fireBtn {
+  right: max(28px, env(safe-area-inset-right));
+  bottom: max(40px, env(safe-area-inset-bottom));
+  width: 104px;
+  height: 104px;
+  font-size: 2rem;
+}
+
+#reloadBtn {
+  right: max(150px, calc(env(safe-area-inset-right) + 122px));
+  bottom: max(56px, env(safe-area-inset-bottom));
+  width: 76px;
+  height: 76px;
+  font-size: 1.8rem;
+}
+
+#pauseBtn {
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 52px;
+  font-size: 1.2rem;
 }
 
 @keyframes pulse {
