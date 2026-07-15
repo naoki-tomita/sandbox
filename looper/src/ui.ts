@@ -67,11 +67,16 @@ export interface TransportEls {
   warn: HTMLElement;
 }
 
-/** 動的な表示（再生ボタン・入力レベル・再生ヘッド・状態文言）を毎ティック更新する。 */
+/** 動的な表示（再生ボタン・入力レベル・再生ヘッド・状態文言）を毎ティック更新する。
+ *
+ * 注意: `textContent` への代入は毎回テキストノードを差し替える。毎ティック無条件に
+ * 書き換えると、ボタン文字の上で mousedown → 次ティックでノード差し替え → mouseup と
+ * なった際に click が発火せず「フチは押せるが文字の上は反応しない」現象が起きる。
+ * そのため文言・disabled は「変化した時だけ」書き込む。 */
 export function updateTransport(els: TransportEls, status: EngineStatus): void {
-  els.playBtn.textContent = status.playing ? '⏸ Stop' : '▶ Play';
-  els.playBtn.disabled = status.loopLen === 0;
-  els.addBtn.disabled = status.recording;
+  setText(els.playBtn, status.playing ? '⏸ Stop' : '▶ Play');
+  setDisabled(els.playBtn, status.loopLen === 0);
+  setDisabled(els.addBtn, status.recording);
 
   els.level.style.width = `${Math.min(1, status.inputLevel) * 100}%`;
 
@@ -86,11 +91,21 @@ export function updateTransport(els: TransportEls, status: EngineStatus): void {
   }
   if (status.recording) parts.push('● REC');
   if (status.sampleRate > 0) parts.push(`${(status.sampleRate / 1000).toFixed(1)}kHz`);
-  els.statusText.textContent = parts.join('  ·  ');
+  setText(els.statusText, parts.join('  ·  '));
 
-  els.warn.textContent = status.audioOk
-    ? ''
-    : '⚠ 音声デバイスを初期化できませんでした。マイク／スピーカーを確認してください。';
+  setText(
+    els.warn,
+    status.audioOk ? '' : '⚠ 音声デバイスを初期化できませんでした。マイク／スピーカーを確認してください。',
+  );
+}
+
+/** 値が変わった時だけ textContent を書き込む（テキストノードの不要な差し替えを避ける）。 */
+function setText(el: HTMLElement, text: string): void {
+  if (el.textContent !== text) el.textContent = text;
+}
+
+function setDisabled(el: HTMLButtonElement, disabled: boolean): void {
+  if (el.disabled !== disabled) el.disabled = disabled;
 }
 
 function button(label: string, cls: string): HTMLButtonElement {
