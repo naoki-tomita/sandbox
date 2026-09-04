@@ -89,16 +89,26 @@ def fetch_requests(url: str, timeout: int, retries: int = 3) -> str | None:
 class PlaywrightFetcher:
     """メルカリのような JavaScript 描画サイト用。"""
 
-    def __init__(self, timeout: int):
+    def __init__(self, timeout: int, scroll: int = 0):
         from playwright.sync_api import sync_playwright
         self._pw = sync_playwright().start()
         self.browser = self._pw.chromium.launch()
         self.page = self.browser.new_page(user_agent=UA, locale="ja-JP")
         self.timeout = timeout * 1000
+        self.scroll = scroll
 
     def fetch(self, url: str) -> str | None:
         try:
-            self.page.goto(url, timeout=self.timeout, wait_until="networkidle")
+            self.page.goto(url, timeout=self.timeout, wait_until="domcontentloaded")
+            self.page.wait_for_timeout(4000)
+            # メルカリのような無限スクロールのサイトは、下まで送らないと
+            # 最初の数十件しか DOM に載らない
+            for _ in range(self.scroll):
+                before = self.page.evaluate("document.body.scrollHeight")
+                self.page.mouse.wheel(0, 20000)
+                self.page.wait_for_timeout(2500)
+                if self.page.evaluate("document.body.scrollHeight") == before:
+                    break  # これ以上増えない
             return self.page.content()
         except Exception as e:
             print(f"  失敗: {e}", file=sys.stderr)
@@ -116,7 +126,8 @@ class Collector:
         self.today = date.today().isoformat()
         self.cache_dir = Path(args.cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.fetcher = PlaywrightFetcher(args.timeout) if args.engine == "playwright" else None
+        self.fetcher = (PlaywrightFetcher(args.timeout, args.scroll)
+                        if args.engine == "playwright" else None)
         self.rows = 0
         # (ソース, 誌名) -> 採用した価格。sanity_check で使う
         self.prices: dict[tuple[str, str], list[int]] = {}
@@ -254,6 +265,9 @@ def main() -> int:
     p.add_argument("--engine", choices=["requests", "playwright"], default="requests")
     p.add_argument("--delay", type=float, default=3.0, help="リクエスト間隔（秒）")
     p.add_argument("--timeout", type=int, default=30)
+    p.add_argument("--scroll", type=int, default=0,
+                   help="Playwright 使用時、ページ下端まで送る回数。"
+                        "メルカリのような無限スクロールのサイトで必要")
     p.add_argument("--cache-dir", default=".cache")
     p.add_argument("--no-cache", action="store_true")
     p.add_argument("--limit", type=int, default=0,

@@ -36,13 +36,32 @@ uv run --with playwright src/collect.py \
 `collect.py` は取得済み HTML をキャッシュから読むので、
 一度取れてしまえば以降の解析はオフラインでやり直せる。
 
-## 3. メルカリ SOLD（同じく要ブラウザ・無限スクロールで1ページ目のみ）
+## 3. メルカリ SOLD（要ブラウザ・無限スクロール）
+
+SOLD はヤフオク落札相場より長く残るので、この調査には向いている。
+ただし商品はクライアント側で描画されるため、requests では中身が空になる
+（i18n のテンプレートしか入っていない HTML が返る）。実ブラウザが要る。
+
+無限スクロールなので `--scroll` で下端まで送らないと最初の数十件しか
+DOM に載らない。誌名だけのブロード検索だと件数が多すぎるので、
+1号ずつ検索する `--mode issue` のほうが確実。
 
 ```bash
+# まず1号だけで試す。--keep-unmatched で弾かれた行も見る
 uv run --with playwright src/collect.py \
     --mode issue --sources mercari_sold --engine playwright \
-    --delay 3 -o data/observations-mercari.csv
+    --scroll 10 --limit 2 --keep-unmatched
+
+# 通ったら本番（168号 x 3秒 + スクロールで1時間強かかる）
+uv run --with playwright src/collect.py \
+    --mode issue --sources mercari_sold --engine playwright \
+    --scroll 10 --delay 3 -o data/observations-mercari.csv
 ```
+
+**収集の最後に出る `[警告] ... 全件が N 円` は必ず読むこと。**
+駿河屋では57件すべてが 240円（送料案内の金額）になっていた前例がある。
+警告が出たら `.cache/` をコミットして渡してもらえれば、実際の HTML を見て
+パーサを直せる。
 
 ## 4. 集計
 
