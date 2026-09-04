@@ -118,6 +118,8 @@ class Collector:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.fetcher = PlaywrightFetcher(args.timeout) if args.engine == "playwright" else None
         self.rows = 0
+        # (ソース, 誌名) -> 採用した価格。sanity_check で使う
+        self.prices: dict[tuple[str, str], list[int]] = {}
 
     def get(self, url: str) -> str | None:
         cp = cache_path(self.cache_dir, url)
@@ -149,6 +151,7 @@ class Collector:
             "is_extra": int(listing.is_extra), "matched_issue": int(matched),
             "url": listing.url,
         })
+        self.prices.setdefault((source.name, magazine), []).append(listing.price_jpy)
         self.rows += 1
 
     def run_broad(self, source, mag_key: str) -> None:
@@ -204,6 +207,26 @@ class Collector:
                 kept += 1
             print(f"[{n}/{len(issues)}] {it.issue_id} {source.name}: "
                   f"{len(listings)}件中 {kept}件採用", file=sys.stderr)
+
+    def sanity_check(self) -> None:
+        """明らかにおかしい抽出結果を検出して警告する。
+
+        価格が全件同じなら、商品ごとの価格ではなくページ共通の要素
+        （送料表示など）を拾っている可能性が高い。価格を含む祖先まで
+        遡る処理は、商品に価格が表示されていないと遡りすぎて
+        ページ全体の共通要素に当たることがある。
+        """
+        for (src, mag), prices in self.prices.items():
+            if len(prices) < 5:
+                continue
+            uniq = set(prices)
+            if len(uniq) == 1:
+                print(f"\n[警告] {src} / {mag}: {len(prices)}件すべてが "
+                      f"{uniq.pop():,}円。商品価格ではなくページ共通の要素を"
+                      f"拾っている疑いが濃い。抽出結果を疑うこと", file=sys.stderr)
+            elif len(uniq) <= max(2, len(prices) // 20):
+                print(f"\n[警告] {src} / {mag}: {len(prices)}件で価格の種類が "
+                      f"{len(uniq)}種しかない。抽出を確認すること", file=sys.stderr)
 
     def close(self):
         if self.fetcher:
@@ -279,6 +302,7 @@ def main() -> int:
                         c.run_broad(s, k)
                 else:
                     c.run_issue(s, issues)
+            c.sanity_check()
         finally:
             c.close()
 
