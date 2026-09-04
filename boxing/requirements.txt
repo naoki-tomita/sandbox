@@ -1,0 +1,4 @@
+requests>=2.31
+beautifulsoup4>=4.12
+# メルカリなど JavaScript 描画のサイトを --engine playwright で叩く場合のみ
+# playwright>=1.40   （インストール後 `playwright install chromium` が必要）
