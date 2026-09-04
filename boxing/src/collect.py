@@ -5,14 +5,25 @@
 集計・推定は estimate.py が別途おこなう。生データと推定を分けておくと、
 推定ロジックを変えても再クロールが要らない。
 
-    # まず何を叩くのか確認する（通信しない）
-    python3 src/collect.py --dry-run --limit 3
+収集モードが2つある:
 
-    # 静的HTMLで取れるサイトだけ収集
+  broad (既定) — 誌名だけで1回検索し、ページ送りで全件を辿ってから、
+      各商品タイトルの「◯年◯月号」を読んで該当する号に割り当てる。
+      リクエスト数が桁違いに少なく、表記ゆれの号も拾える。
+  issue — 168号それぞれについて「誌名 + 年月」で検索する。ヒット数は
+      少ないが確実。ページ送り非対応のサイト向け。
+
+    # まず何を叩くのか確認する（通信しない）
+    python3 src/collect.py --dry-run
+
+    # 駿河屋をブロード検索（在庫あり + 品切れの両方を拾う）
+    python3 src/collect.py --sources surugaya --max-pages 30
+
+    # ヤフオク落札相場も一緒に
     python3 src/collect.py --sources yahoo_closed,surugaya --delay 3
 
     # メルカリは JavaScript 描画なので Playwright が要る
-    python3 src/collect.py --sources mercari_sold --engine playwright
+    python3 src/collect.py --mode issue --sources mercari_sold --engine playwright
 
 注意: 各サイトの利用規約・robots.txt に従うこと。--delay は 2 秒以上を
 推奨（既定 3 秒）。短時間に大量アクセスするとブロックされる。
@@ -31,8 +42,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from issues import all_issues
-from parse import extract_listings, title_matches_issue
+from issues import MAGAZINES, all_issues
+from parse import extract_listings, parse_issue_from_title, title_matches_issue
 from sources import SOURCES
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -40,8 +51,8 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
 
 FIELDS = [
     "issue_id", "magazine", "year", "month", "issue_label", "source", "listing_type",
-    "observed_on", "title", "condition", "price_jpy", "is_set", "set_size",
-    "unit_price_jpy", "matched_issue", "url",
+    "observed_on", "title", "condition", "stock", "price_jpy", "is_set", "set_size",
+    "unit_price_jpy", "is_extra", "matched_issue", "url",
 ]
 
 
@@ -94,23 +105,124 @@ class PlaywrightFetcher:
         self._pw.stop()
 
 
+class Collector:
+    def __init__(self, args, writer):
+        self.args = args
+        self.w = writer
+        self.today = date.today().isoformat()
+        self.cache_dir = Path(args.cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.fetcher = PlaywrightFetcher(args.timeout) if args.engine == "playwright" else None
+        self.rows = 0
+
+    def get(self, url: str) -> str | None:
+        cp = cache_path(self.cache_dir, url)
+        if not self.args.no_cache and cp.exists():
+            return cp.read_text(encoding="utf-8", errors="replace")
+        html = self.fetcher.fetch(url) if self.fetcher else fetch_requests(url, self.args.timeout)
+        if html:
+            cp.write_text(html, encoding="utf-8", errors="replace")
+        # 一定間隔＋ゆらぎ。連続アクセスで弾かれないように
+        time.sleep(self.args.delay + random.uniform(0, self.args.delay * 0.4))
+        return html
+
+    def write(self, listing, source, magazine: str, year, month, matched: bool):
+        issue_id = ""
+        label = ""
+        if year and month:
+            key = next(k for k, v in MAGAZINES.items() if v["title"] == magazine)
+            issue_id = f"{key}-{year}-{month:02d}"
+            label = f"{year}年{month}月号"
+        self.w.writerow({
+            "issue_id": issue_id, "magazine": magazine,
+            "year": year or "", "month": month or "", "issue_label": label,
+            "source": source.name, "listing_type": source.listing_type,
+            "observed_on": self.today, "title": listing.title,
+            "condition": listing.condition, "stock": listing.stock,
+            "price_jpy": listing.price_jpy, "is_set": int(listing.is_set),
+            "set_size": listing.set_size,
+            "unit_price_jpy": listing.unit_price_jpy if listing.set_size else "",
+            "is_extra": int(listing.is_extra), "matched_issue": int(matched),
+            "url": listing.url,
+        })
+        self.rows += 1
+
+    def run_broad(self, source, mag_key: str) -> None:
+        """誌名だけで検索し、ページ送りで辿ってタイトルから号を割り当てる。"""
+        meta = MAGAZINES[mag_key]
+        lo, hi = self.args.start_year, self.args.end_year
+        for alias in meta["aliases"]:
+            seen: set[tuple[str, int]] = set()
+            for page in range(1, self.args.max_pages + 1):
+                url = source.url(alias, page)
+                html = self.get(url)
+                if not html:
+                    break
+                listings = extract_listings(html, source.name, base_url=url)
+                fresh = [l for l in listings if (l.title, l.price_jpy) not in seen]
+                if not fresh:
+                    # 同じ結果が返り続けたら最終ページ。ページ送りが効いて
+                    # いないケースもここで止まる
+                    print(f"  {alias} p{page}: 新規0件。打ち切り", file=sys.stderr)
+                    break
+                kept = 0
+                for l in fresh:
+                    seen.add((l.title, l.price_jpy))
+                    parsed = parse_issue_from_title(l.title, meta["aliases"])
+                    if parsed and lo <= parsed[0] <= hi:
+                        self.write(l, source, meta["title"], parsed[0], parsed[1], True)
+                        kept += 1
+                    elif self.args.keep_unmatched:
+                        y, m = parsed if parsed else (None, None)
+                        self.write(l, source, meta["title"], y, m, False)
+                print(f"  {alias} p{page}: {len(fresh)}件中 {kept}件が対象期間の号",
+                      file=sys.stderr)
+                if not source.paged:
+                    break
+
+    def run_issue(self, source, issues) -> None:
+        """1号ずつ「誌名 + 年月」で検索する。"""
+        for n, it in enumerate(issues, 1):
+            url = source.url(it.query())
+            html = self.get(url)
+            if not html:
+                continue
+            listings = extract_listings(html, source.name, base_url=url)
+            kept = 0
+            for l in listings:
+                matched = title_matches_issue(l.title, it.year, it.month, it.aliases)
+                if not matched and not self.args.keep_unmatched:
+                    continue
+                self.write(l, source, it.magazine, it.year, it.month, matched)
+                kept += 1
+            print(f"[{n}/{len(issues)}] {it.issue_id} {source.name}: "
+                  f"{len(listings)}件中 {kept}件採用", file=sys.stderr)
+
+    def close(self):
+        if self.fetcher:
+            self.fetcher.close()
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("-o", "--out", default="data/observations.csv")
-    p.add_argument("--sources", default="yahoo_closed,surugaya",
+    p.add_argument("--mode", choices=["broad", "issue"], default="broad")
+    p.add_argument("--sources", default="surugaya,yahoo_closed",
                    help=f"カンマ区切り。利用可能: {','.join(SOURCES)}")
     p.add_argument("--magazine", default="", help="world_boxing / boxing_magazine")
     p.add_argument("--start-year", type=int, default=1995)
     p.add_argument("--end-year", type=int, default=2001)
+    p.add_argument("--max-pages", type=int, default=30, help="broad モードの上限ページ数")
     p.add_argument("--engine", choices=["requests", "playwright"], default="requests")
     p.add_argument("--delay", type=float, default=3.0, help="リクエスト間隔（秒）")
     p.add_argument("--timeout", type=int, default=30)
     p.add_argument("--cache-dir", default=".cache")
     p.add_argument("--no-cache", action="store_true")
-    p.add_argument("--limit", type=int, default=0, help="先頭 N 号だけ処理（試運転用）")
+    p.add_argument("--limit", type=int, default=0,
+                   help="issue モードで先頭 N 号だけ処理（試運転用）")
     p.add_argument("--keep-unmatched", action="store_true",
-                   help="号の一致検証に落ちた行も残す（デバッグ用）")
+                   help="号に割り当てられなかった行も残す（デバッグ用）")
     p.add_argument("--dry-run", action="store_true", help="叩くURLを出すだけで通信しない")
     args = p.parse_args()
 
@@ -119,7 +231,9 @@ def main() -> int:
     if unknown:
         print(f"未知のソース: {unknown}", file=sys.stderr)
         return 2
+    sources = [SOURCES[n] for n in names]
 
+    mag_keys = [args.magazine] if args.magazine else list(MAGAZINES)
     issues = all_issues(args.start_year, args.end_year)
     if args.magazine:
         issues = [i for i in issues if i.magazine_key == args.magazine]
@@ -127,82 +241,43 @@ def main() -> int:
         issues = issues[:args.limit]
 
     if args.dry_run:
-        for it in issues:
-            for n in names:
-                build, ltype, verified = SOURCES[n]
-                mark = "" if verified else "  [URL形式が未検証]"
-                print(f"{it.issue_id}\t{n}\t{build(it.query())}{mark}")
-        print(f"\n{len(issues)} 号 x {len(names)} ソース = "
-              f"{len(issues) * len(names)} リクエスト / "
-              f"想定所要 {len(issues) * len(names) * args.delay / 60:.0f} 分",
+        reqs = 0
+        for s in sources:
+            mark = "" if s.verified else "  [URL形式が未検証]"
+            if args.mode == "broad":
+                pages = args.max_pages if s.paged else 1
+                for k in mag_keys:
+                    for alias in MAGAZINES[k]["aliases"]:
+                        print(f"{s.name}\tbroad\t{alias}\tp1..p{pages}\t{s.url(alias)}{mark}")
+                        reqs += pages
+            else:
+                for it in issues:
+                    print(f"{s.name}\tissue\t{it.issue_id}\t{s.url(it.query())}{mark}")
+                    reqs += 1
+        print(f"\n最大 {reqs} リクエスト / 想定所要 {reqs * args.delay / 60:.0f} 分",
               file=sys.stderr)
         return 0
 
-    cache_dir = Path(args.cache_dir)
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    fetcher = PlaywrightFetcher(args.timeout) if args.engine == "playwright" else None
-
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    today = date.today().isoformat()
-    rows_written = 0
+    with out.open("w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS)
+        w.writeheader()
+        c = Collector(args, w)
+        try:
+            for s in sources:
+                print(f"=== {s.name} ({s.listing_type}) {s.note} ===", file=sys.stderr)
+                if args.mode == "broad":
+                    for k in mag_keys:
+                        c.run_broad(s, k)
+                else:
+                    c.run_issue(s, issues)
+        finally:
+            c.close()
 
-    try:
-        with out.open("w", newline="", encoding="utf-8-sig") as f:
-            w = csv.DictWriter(f, fieldnames=FIELDS)
-            w.writeheader()
-
-            total = len(issues) * len(names)
-            done = 0
-            for it in issues:
-                for n in names:
-                    build, ltype, _verified = SOURCES[n]
-                    url = build(it.query())
-                    done += 1
-
-                    cp = cache_path(cache_dir, url)
-                    html = None
-                    if not args.no_cache and cp.exists():
-                        html = cp.read_text(encoding="utf-8", errors="replace")
-                    else:
-                        html = (fetcher.fetch(url) if fetcher
-                                else fetch_requests(url, args.timeout))
-                        if html:
-                            cp.write_text(html, encoding="utf-8", errors="replace")
-                        # 一定間隔＋ゆらぎ。連続アクセスで弾かれないように
-                        time.sleep(args.delay + random.uniform(0, args.delay * 0.4))
-
-                    if not html:
-                        continue
-
-                    listings = extract_listings(html, n, base_url=url)
-                    kept = 0
-                    for l in listings:
-                        matched = title_matches_issue(l.title, it.year, it.month, it.aliases)
-                        if not matched and not args.keep_unmatched:
-                            continue
-                        w.writerow({
-                            "issue_id": it.issue_id, "magazine": it.magazine,
-                            "year": it.year, "month": it.month,
-                            "issue_label": it.issue_label, "source": n,
-                            "listing_type": ltype, "observed_on": today,
-                            "title": l.title, "condition": l.condition,
-                            "price_jpy": l.price_jpy, "is_set": int(l.is_set),
-                            "set_size": l.set_size,
-                            "unit_price_jpy": l.unit_price_jpy if l.set_size else "",
-                            "matched_issue": int(matched), "url": l.url,
-                        })
-                        kept += 1
-                        rows_written += 1
-                    print(f"[{done}/{total}] {it.issue_id} {n}: "
-                          f"{len(listings)}件中 {kept}件採用", file=sys.stderr)
-    finally:
-        if fetcher:
-            fetcher.close()
-
-    print(f"\n{rows_written} 行を {out} に書き出しました", file=sys.stderr)
-    if rows_written == 0:
-        print("0件でした。--keep-unmatched --limit 2 で生の抽出結果を見て、"
+    print(f"\n{c.rows} 行を {out} に書き出しました", file=sys.stderr)
+    if c.rows == 0:
+        print("0件でした。--keep-unmatched --max-pages 1 で生の抽出結果を見て、"
               "パーサが検索結果ページの構造に合っているか確認してください。", file=sys.stderr)
     return 0
 

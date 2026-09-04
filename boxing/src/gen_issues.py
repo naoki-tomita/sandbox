@@ -47,8 +47,8 @@ def main() -> int:
                 "issue_label": it.issue_label,
                 "search_query": q,
             }
-            for name, (build, _type, _verified) in SOURCES.items():
-                row[f"url_{name}"] = build(q)
+            for name, src in SOURCES.items():
+                row[f"url_{name}"] = src.url(q)
             w.writerow(row)
 
     print(f"{len(issues)} 号を {out} に書き出しました", file=sys.stderr)
