@@ -326,6 +326,10 @@ def _normalize_year(raw: str) -> int:
     return 1900 + y if y >= 80 else 2000 + y
 
 
+# 「2019年８月号」のように全角数字で書かれた出品がある
+_ZEN_TO_HAN = str.maketrans("０１２３４５６７８９", "0123456789")
+
+
 def parse_issue_from_title(title: str, aliases: list[str]) -> tuple[int, int] | None:
     """タイトルから (発行年, 月) を取り出す。ブロード検索の結果を号に割り当てる。
 
@@ -334,6 +338,7 @@ def parse_issue_from_title(title: str, aliases: list[str]) -> tuple[int, int] | 
     """
     if EXCLUDE_RE.search(title):
         return None
+    title = title.translate(_ZEN_TO_HAN)
     norm = title.replace("・", "").replace(" ", "").replace("　", "").upper()
     if not any(a.replace("・", "").replace(" ", "").upper() in norm for a in aliases):
         return None
