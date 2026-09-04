@@ -43,20 +43,26 @@ SOLD はヤフオク落札相場より長く残るので、この調査には向
 （i18n のテンプレートしか入っていない HTML が返る）。実ブラウザが要る。
 
 無限スクロールなので `--scroll` で下端まで送らないと最初の数十件しか
-DOM に載らない。誌名だけのブロード検索だと件数が多すぎるので、
-1号ずつ検索する `--mode issue` のほうが確実。
+DOM に載らない。
+
+**`--mode broad` を使うこと。** 実際に叩いてみると、メルカリの検索は
+かなり曖昧で、「ワールドボクシング 1995年2月号」で検索しても
+1996年2月号やボクシングビートが返ってくる。1号ずつ検索しても精度は
+上がらないうえ、168回の検索に1時間以上かかる。
+
+誌名だけで検索してスクロールで件数を稼ぎ、あとからタイトルの
+「◯年◯月号」で号に割り当てるほうが、6リクエストで済むうえ取りこぼしも
+少ない。曖昧検索で混ざった別号は号の照合で落ちる。
 
 ```bash
-# まず1号だけで試す。--keep-unmatched で弾かれた行も見る
+# 誌名だけで検索し、下まで送れるだけ送る
 uv run --with playwright src/collect.py \
-    --mode issue --sources mercari_sold --engine playwright \
-    --scroll 10 --limit 2 --keep-unmatched
-
-# 通ったら本番（168号 x 3秒 + スクロールで1時間強かかる）
-uv run --with playwright src/collect.py \
-    --mode issue --sources mercari_sold --engine playwright \
-    --scroll 10 --delay 3 -o data/observations-mercari.csv
+    --mode broad --sources mercari_sold --engine playwright \
+    --scroll 60 --delay 3 -o data/observations-mercari.csv
 ```
+
+`--scroll` はページ高さが増えなくなった時点で打ち切るので、多めに
+指定してかまわない。
 
 **収集の最後に出る `[警告] ... 全件が N 円` は必ず読むこと。**
 駿河屋では57件すべてが 240円（送料案内の金額）になっていた前例がある。

@@ -37,6 +37,9 @@ CONDITION_PATTERNS = [
 
 # 送料はブロック内に混ざるので価格候補から除く
 SHIPPING_RE = re.compile(r"送料[^0-9]{0,4}([0-9][0-9,]*)\s*円")
+# メルカリのカードはリンクのテキストが「¥ 1,000 商品名」の形。
+# 先頭の価格を切り出さないと商品名に混ざる
+LEADING_PRICE_RE = re.compile(r"^\s*[¥￥]\s*([0-9][0-9,]*)\s+(.+)$", re.DOTALL)
 
 @dataclass
 class Listing:
@@ -145,6 +148,14 @@ def _extract_by_item_link(soup, source_cfg, base_url: str) -> list[Listing]:
         if not title:
             continue
 
+        # リンクのテキストが「¥ 1,000 商品名」なら、その価格が商品自身の
+        # 値段。祖先を探るより確実なので優先する
+        price_from_title = None
+        m = LEADING_PRICE_RE.match(title)
+        if m:
+            price_from_title = int(m.group(1).replace(",", ""))
+            title = m.group(2).strip()
+
         # 価格を含む最小の祖先まで遡る
         node, text = titled, ""
         for _ in range(6):
@@ -155,13 +166,13 @@ def _extract_by_item_link(soup, source_cfg, base_url: str) -> list[Listing]:
             if len(t) < 3000 and PRICE_RE.search(t):
                 text = t
                 break
-        if not text:
+        if not text and price_from_title is None:
             continue
         # 価格が読めない商品も Listing として返す。ページ送りの打ち切り
         # 判定は「商品が並んでいたか」で行う必要があり、「価格が取れたか」
         # と混同すると、価格なしの品切れだけのページで早期終了してしまう
-        price = _price_from_block(text, source_cfg.price_res,
-                                  getattr(source_cfg, "strict_price", False))
+        price = price_from_title or _price_from_block(
+            text, source_cfg.price_res, getattr(source_cfg, "strict_price", False))
         list_price = 0
         lp_re = getattr(source_cfg, "list_price_re", None)
         if lp_re:
