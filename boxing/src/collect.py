@@ -97,10 +97,17 @@ class PlaywrightFetcher:
         self.timeout = timeout * 1000
         self.scroll = scroll
 
-    def fetch(self, url: str) -> str | None:
+    def fetch(self, url: str, ready_selector: str = "") -> str | None:
         try:
             self.page.goto(url, timeout=self.timeout, wait_until="domcontentloaded")
-            self.page.wait_for_timeout(4000)
+            if ready_selector:
+                try:
+                    self.page.wait_for_selector(ready_selector, timeout=self.timeout)
+                except Exception:
+                    # 本当に商品が無いページかもしれないので、ここでは
+                    # 打ち切らず取得を続ける。件数0として上流が判断する
+                    print(f"    描画待ちがタイムアウト: {ready_selector}", file=sys.stderr)
+            self.page.wait_for_timeout(3000)
             # メルカリのような無限スクロールのサイトは、下まで送らないと
             # 最初の数十件しか DOM に載らない
             for _ in range(self.scroll):
@@ -131,13 +138,23 @@ class Collector:
         self.rows = 0
         # (ソース, 誌名) -> 採用した価格。sanity_check で使う
         self.prices: dict[tuple[str, str], list[int]] = {}
+        self.hits = self.fetches = 0
 
-    def get(self, url: str) -> str | None:
+    def get(self, url: str, ready_selector: str = "") -> str | None:
         cp = cache_path(self.cache_dir, url)
         if not self.args.no_cache and cp.exists():
+            self.hits += 1
+            print(f"    [cache] {url[:100]}", file=sys.stderr)
             return cp.read_text(encoding="utf-8", errors="replace")
-        html = self.fetcher.fetch(url) if self.fetcher else fetch_requests(url, self.args.timeout)
-        if html:
+        self.fetches += 1
+        print(f"    [fetch] {url[:100]}", file=sys.stderr)
+        html = (self.fetcher.fetch(url, ready_selector) if self.fetcher
+                else fetch_requests(url, self.args.timeout))
+        if html and ready_selector and self.fetcher and 'href="/item/m' not in html \
+                and "/item/m" not in html:
+            # 描画前の抜け殻をキャッシュすると、以後ずっと0件が返り続ける
+            print("    商品が1件も無いページ。キャッシュしない", file=sys.stderr)
+        elif html:
             cp.write_text(html, encoding="utf-8", errors="replace")
         # 一定間隔＋ゆらぎ。連続アクセスで弾かれないように
         time.sleep(self.args.delay + random.uniform(0, self.args.delay * 0.4))
@@ -177,7 +194,7 @@ class Collector:
         for alias in meta["aliases"]:
             for page in range(1, self.args.max_pages + 1):
                 url = source.url(alias, page)
-                html = self.get(url)
+                html = self.get(url, getattr(source, "ready_selector", ""))
                 if not html:
                     break
                 listings = extract_listings(html, source, base_url=url)
@@ -210,7 +227,7 @@ class Collector:
         """1号ずつ「誌名 + 年月」で検索する。"""
         for n, it in enumerate(issues, 1):
             url = source.url(it.query())
-            html = self.get(url)
+            html = self.get(url, getattr(source, "ready_selector", ""))
             if not html:
                 continue
             listings = extract_listings(html, source, base_url=url)
@@ -327,7 +344,8 @@ def main() -> int:
         finally:
             c.close()
 
-    print(f"\n{c.rows} 行を {out} に書き出しました", file=sys.stderr)
+    print(f"\n{c.rows} 行を {out} に書き出しました "
+          f"（キャッシュから {c.hits} / 新規取得 {c.fetches}）", file=sys.stderr)
     if c.rows == 0:
         print("0件でした。--keep-unmatched --max-pages 1 で生の抽出結果を見て、"
               "パーサが検索結果ページの構造に合っているか確認してください。", file=sys.stderr)

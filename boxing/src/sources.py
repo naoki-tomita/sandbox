@@ -102,6 +102,9 @@ class Source:
     strict_price: bool = False
     # 発売当時の定価。相場ではないので推定には使わないが、参考として残す
     list_price_re: object = None
+    # Playwright でこの要素が出るまで待つ。SPA は描画完了前に HTML を取ると
+    # 商品0件の抜け殻が取れてしまう
+    ready_selector: str = ""
 
     def url(self, query: str, page: int = 1) -> str:
         return self.build(query, page)
@@ -121,7 +124,8 @@ _ALL = [
     Source("aucfan", aucfan, "sold", True, False, "長期の落札履歴。無料は範囲制限あり"),
     Source("mercari_sold", mercari_sold, "sold", True, True,
            "要 --engine playwright。page_token でページ送り",
-           item_link_re=re.compile(r"/item/(m\d+)")),
+           item_link_re=re.compile(r"/item/(m\d+)"),
+           ready_selector='a[href*="/item/m"]'),
     Source("surugaya", surugaya, "asking", True, True,
            "在庫あり＋品切れの両方。Cloudflare のため要 --engine playwright",
            item_link_re=re.compile(r"/product/(?:detail/)?([0-9A-Z]+)"),
