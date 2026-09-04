@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import html as _html
 import re
 from dataclasses import dataclass, field
 
@@ -34,17 +35,8 @@ CONDITION_PATTERNS = [
     ("難あり", r"難あり|傷み|イタミ|折れ|書き込み|書込|破れ|汚れ|シミ|日焼け|ヤケ|水濡れ|ジャンク"),
 ]
 
-# サイト固有セレクタ（当たれば精度が上がる。外れても致命的ではない）
-SITE_SELECTORS = {
-    "yahoo_closed": ["li.Product", ".Product", "li[class*=Product]"],
-    "yahoo_open": ["li.Product", ".Product", "li[class*=Product]"],
-    "aucfan": ["li.item", ".itemlist li", "tr.item"],
-    "surugaya": [".item", ".search_result_item", "div[class*=item]"],
-    "kosho": [".product_item", ".list_item", "li.item"],
-    "toudoukan": [".goods_list li", ".item", "li[class*=goods]"],
-    "mercari_sold": ["li[data-testid=item-cell]", "[data-testid=item-cell]", "mer-item-thumbnail"],
-}
-
+# 送料はブロック内に混ざるので価格候補から除く
+SHIPPING_RE = re.compile(r"送料[^0-9]{0,4}([0-9][0-9,]*)\s*円")
 
 @dataclass
 class Listing:
@@ -106,23 +98,88 @@ def detect_set(title: str) -> tuple[bool, int]:
     return False, 1
 
 
-def _blocks_from_selectors(soup, source: str):
-    for sel in SITE_SELECTORS.get(source, []):
-        try:
-            found = soup.select(sel)
-        except Exception:
+def _price_from_block(text: str, price_res: list) -> int | None:
+    """ブロックのテキストから商品価格を1つ選ぶ。
+
+    「落札 900 円」のようなラベル付きの表記が取れればそれを優先する。
+    取れなければ、送料を除いた価格候補の最小値を採る（税込/税抜、
+    現在価格/即決価格が並ぶことがあるため）。
+    """
+    for pat in price_res:
+        m = pat.search(text)
+        if m:
+            try:
+                return int(m.group(1).replace(",", ""))
+            except ValueError:
+                pass
+    shipping = {int(m.group(1).replace(",", "")) for m in SHIPPING_RE.finditer(text)}
+    cands = [v for v in parse_prices(text) if v not in shipping]
+    return min(cands) if cands else None
+
+
+def _extract_by_item_link(soup, source_cfg, base_url: str) -> list[Listing]:
+    """商品詳細ページへのリンクを起点に1商品ずつ組み立てる。
+
+    検索結果ページのクラス名は styled-components 等でビルドごとに変わる
+    ため、セレクタ頼みだと静かに全滅する。商品URLの形だけは安定して
+    いるので、そちらを軸にする。
+    """
+    item_re = source_cfg.item_link_re
+    groups: dict[str, list] = {}
+    for a in soup.find_all("a", href=True):
+        m = item_re.search(a["href"])
+        if m:
+            groups.setdefault(m.group(1), []).append(a)
+
+    listings = []
+    for item_id, anchors in groups.items():
+        # 同じ商品に画像リンクとタイトルリンクが並ぶ。テキストが長いほうが題名
+        titled = max(anchors, key=lambda a: len(a.get("title") or a.get_text(" ", strip=True)))
+        title = (titled.get("title") or titled.get_text(" ", strip=True)).strip()
+        title = _html.unescape(re.sub(r"\s+", " ", title))[:200]
+        if not title:
             continue
-        if len(found) >= 2:
-            return found
-    return []
+
+        # 価格を含む最小の祖先まで遡る
+        node, text = titled, ""
+        for _ in range(6):
+            node = node.parent
+            if node is None:
+                break
+            t = node.get_text(" ", strip=True)
+            if len(t) < 3000 and PRICE_RE.search(t):
+                text = t
+                break
+        if not text:
+            continue
+        price = _price_from_block(text, source_cfg.price_res)
+        if price is None:
+            continue
+
+        href = titled["href"]
+        if href.startswith("/") and base_url:
+            href = re.sub(r"^(https?://[^/]+).*$", r"\1", base_url) + href
+
+        is_set, size = detect_set(title)
+        listings.append(Listing(
+            title=title, price_jpy=price, url=href,
+            condition=detect_condition(f"{title} {text}"),
+            is_set=is_set, set_size=size,
+            is_extra=bool(EXTRA_RE.search(title)),
+            stock=detect_stock(text), raw=text[:300],
+        ))
+    return listings
 
 
 def _blocks_generic(soup):
-    """価格文字列を持つ最小のブロックを、リンクを含む祖先までさかのぼって集める。"""
+    """商品URLの形が分からないサイト向けの汎用抽出。
+
+    価格文字列を持つ最小のブロックを、リンクを含む祖先までさかのぼって集める。
+    """
     blocks, seen = [], set()
     for a in soup.find_all("a"):
         node = a
-        for _ in range(4):  # 高々4階層さかのぼる
+        for _ in range(4):
             node = node.parent
             if node is None:
                 break
@@ -138,8 +195,12 @@ def _blocks_generic(soup):
     return blocks
 
 
-def extract_listings(html: str, source: str, base_url: str = "") -> list[Listing]:
-    """検索結果 HTML から Listing を取り出す。"""
+def extract_listings(html: str, source_cfg, base_url: str = "") -> list[Listing]:
+    """検索結果 HTML から Listing を取り出す。
+
+    source_cfg は sources.Source。item_link_re があればそれを軸に、
+    無ければ汎用ロジックで抽出する。
+    """
     if BeautifulSoup is None:
         return _extract_regex_only(html)
 
@@ -147,42 +208,38 @@ def extract_listings(html: str, source: str, base_url: str = "") -> list[Listing
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
 
-    blocks = _blocks_from_selectors(soup, source) or _blocks_generic(soup)
+    if getattr(source_cfg, "item_link_re", None):
+        found = _extract_by_item_link(soup, source_cfg, base_url)
+        if found:
+            return found
 
-    listings, seen_titles = [], set()
-    for b in blocks:
+    listings, seen = [], set()
+    price_res = getattr(source_cfg, "price_res", [])
+    for b in _blocks_generic(soup):
         text = b.get_text(" ", strip=True)
-        prices = parse_prices(text)
-        if not prices:
+        price = _price_from_block(text, price_res)
+        if price is None:
             continue
         a = b.find("a")
         title = ""
         if a is not None:
             title = a.get("title") or a.get_text(" ", strip=True)
         if not title or len(title) < 4:
-            # リンクテキストが空（画像リンク等）なら、価格を除いた本文を題名扱いにする
             title = PRICE_RE.sub(" ", text).strip()
         title = re.sub(r"\s+", " ", title)[:200]
-        if not title:
+        if not title or (title, price) in seen:
             continue
-
+        seen.add((title, price))
         href = (a.get("href") if a is not None else "") or ""
         if href.startswith("/") and base_url:
-            href = base_url.rstrip("/") + href
-
-        # 同一ブロックに複数価格（税込/税抜、即決/現在）があれば最小を採る
-        price = min(prices)
+            href = re.sub(r"^(https?://[^/]+).*$", r"\1", base_url) + href
         is_set, size = detect_set(title)
-        key = (title, price)
-        if key in seen_titles:
-            continue
-        seen_titles.add(key)
         listings.append(Listing(
             title=title, price_jpy=price, url=href,
-            condition=detect_condition(f"{title} {text}"), is_set=is_set, set_size=size,
+            condition=detect_condition(f"{title} {text}"),
+            is_set=is_set, set_size=size,
             is_extra=bool(EXTRA_RE.search(title)),
-            stock=detect_stock(text),
-            raw=text[:300],
+            stock=detect_stock(text), raw=text[:300],
         ))
     return listings
 

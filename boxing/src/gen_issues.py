@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
 """号マスタ CSV を生成する。
 
 各号について、主要な中古市場サイトの検索URLを埋め込む。スクレイピングを

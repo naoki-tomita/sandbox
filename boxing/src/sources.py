@@ -11,7 +11,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from typing import Callable
 from urllib.parse import quote
 
@@ -88,22 +89,38 @@ class Source:
     verified: bool     # URL形式を実URLと照合済みか
     paged: bool        # ページ送りに対応しているか
     note: str = ""
+    # 商品詳細ページのURL形。group(1) が商品ID。検索結果ページのクラス名は
+    # styled-components 等でビルドごとに変わるが商品URLの形は安定しているので、
+    # 抽出はこちらを軸にする
+    item_link_re: object = None
+    # ブロック内から商品価格を選ぶためのラベル付き正規表現（順に試す）
+    price_res: tuple = ()
 
     def url(self, query: str, page: int = 1) -> str:
         return self.build(query, page)
 
 
+_YAHOO_ITEM = re.compile(r"/jp/auction/([a-zA-Z0-9]+)")
+
 _ALL = [
     Source("yahoo_closed", yahoo_closed, "sold", True, True,
-           "落札相場。直近4〜6か月分のみ"),
-    Source("yahoo_open", yahoo_open, "asking", True, True, "出品中"),
+           "落札相場。直近4〜6か月分のみ",
+           item_link_re=_YAHOO_ITEM,
+           price_res=(re.compile(r"落札\s*([0-9][0-9,]*)\s*円"),)),
+    Source("yahoo_open", yahoo_open, "asking", True, True, "出品中",
+           item_link_re=_YAHOO_ITEM,
+           price_res=(re.compile(r"現在\s*([0-9][0-9,]*)\s*円"),
+                      re.compile(r"即決\s*([0-9][0-9,]*)\s*円"))),
     Source("aucfan", aucfan, "sold", True, False, "長期の落札履歴。無料は範囲制限あり"),
     Source("mercari_sold", mercari_sold, "sold", True, False,
-           "要 --engine playwright。無限スクロールで1ページ目のみ"),
+           "要 --engine playwright。無限スクロールで1ページ目のみ",
+           item_link_re=re.compile(r"/item/([a-zA-Z0-9]+)")),
     Source("surugaya", surugaya, "asking", True, True,
-           "在庫あり＋品切れの両方。ページ送りパラメータは要確認"),
+           "在庫あり＋品切れの両方。Cloudflare のため要 --engine playwright",
+           item_link_re=re.compile(r"/product/(?:detail/)?([0-9A-Z]+)")),
     Source("kosho", kosho, "asking", False, True, "URL形式が未確認"),
-    Source("toudoukan", toudoukan, "asking", False, True, "URL形式が未確認"),
+    Source("toudoukan", toudoukan, "asking", False, True, "URL形式が未確認",
+           item_link_re=re.compile(r"/goods/\$/id/([0-9]+)")),
 ]
 
 SOURCES = {s.name: s for s in _ALL}

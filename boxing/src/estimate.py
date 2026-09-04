@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
 """観測値（observations.csv）を号単位に集計して、推定価値 CSV を作る。
 
     python3 src/estimate.py -i data/observations.csv -o data/valuation.csv

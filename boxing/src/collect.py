@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["requests>=2.31", "beautifulsoup4>=4.12"]
+# ///
 """各中古市場サイトの検索結果を巡回して、号ごとの価格観測値を集める。
 
 出力は「1出品 = 1行」のロングフォーマット CSV（data/observations.csv）。
@@ -151,15 +155,18 @@ class Collector:
         """誌名だけで検索し、ページ送りで辿ってタイトルから号を割り当てる。"""
         meta = MAGAZINES[mag_key]
         lo, hi = self.args.start_year, self.args.end_year
+        # エイリアス違いの検索は同じ出品を返すので、誌単位で重複を落とす。
+        # ここを分けると同一出品が2〜3回数えられ、件数も信頼度も水増しされる
+        seen: set[str] = set()
         for alias in meta["aliases"]:
-            seen: set[tuple[str, int]] = set()
             for page in range(1, self.args.max_pages + 1):
                 url = source.url(alias, page)
                 html = self.get(url)
                 if not html:
                     break
-                listings = extract_listings(html, source.name, base_url=url)
-                fresh = [l for l in listings if (l.title, l.price_jpy) not in seen]
+                listings = extract_listings(html, source, base_url=url)
+                fresh = [l for l in listings
+                         if (l.url or f"{l.title}|{l.price_jpy}") not in seen]
                 if not fresh:
                     # 同じ結果が返り続けたら最終ページ。ページ送りが効いて
                     # いないケースもここで止まる
@@ -167,7 +174,7 @@ class Collector:
                     break
                 kept = 0
                 for l in fresh:
-                    seen.add((l.title, l.price_jpy))
+                    seen.add(l.url or f"{l.title}|{l.price_jpy}")
                     parsed = parse_issue_from_title(l.title, meta["aliases"])
                     if parsed and lo <= parsed[0] <= hi:
                         self.write(l, source, meta["title"], parsed[0], parsed[1], True)
@@ -187,7 +194,7 @@ class Collector:
             html = self.get(url)
             if not html:
                 continue
-            listings = extract_listings(html, source.name, base_url=url)
+            listings = extract_listings(html, source, base_url=url)
             kept = 0
             for l in listings:
                 matched = title_matches_issue(l.title, it.year, it.month, it.aliases)
