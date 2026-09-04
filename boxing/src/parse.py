@@ -48,6 +48,7 @@ class Listing:
     set_size: int = 1
     is_extra: bool = False   # 増刊・別冊
     stock: str = ""          # "在庫あり" / "品切れ" / "" (不明)
+    list_price_jpy: int = 0  # 発売当時の定価。相場ではない
     raw: str = field(default="", repr=False)
 
     @property
@@ -98,7 +99,7 @@ def detect_set(title: str) -> tuple[bool, int]:
     return False, 1
 
 
-def _price_from_block(text: str, price_res: list) -> int | None:
+def _price_from_block(text: str, price_res, strict: bool = False) -> int | None:
     """ブロックのテキストから商品価格を1つ選ぶ。
 
     「落札 900 円」のようなラベル付きの表記が取れればそれを優先する。
@@ -112,6 +113,10 @@ def _price_from_block(text: str, price_res: list) -> int | None:
                 return int(m.group(1).replace(",", ""))
             except ValueError:
                 pass
+    if strict:
+        # ラベルに一致しなければ価格なしとして扱う。無理に数字を拾うと
+        # 送料案内や定価を商品価格として記録してしまう
+        return None
     shipping = {int(m.group(1).replace(",", "")) for m in SHIPPING_RE.finditer(text)}
     cands = [v for v in parse_prices(text) if v not in shipping]
     return min(cands) if cands else None
@@ -152,9 +157,17 @@ def _extract_by_item_link(soup, source_cfg, base_url: str) -> list[Listing]:
                 break
         if not text:
             continue
-        price = _price_from_block(text, source_cfg.price_res)
-        if price is None:
-            continue
+        # 価格が読めない商品も Listing として返す。ページ送りの打ち切り
+        # 判定は「商品が並んでいたか」で行う必要があり、「価格が取れたか」
+        # と混同すると、価格なしの品切れだけのページで早期終了してしまう
+        price = _price_from_block(text, source_cfg.price_res,
+                                  getattr(source_cfg, "strict_price", False))
+        list_price = 0
+        lp_re = getattr(source_cfg, "list_price_re", None)
+        if lp_re:
+            m = lp_re.search(text)
+            if m:
+                list_price = int(m.group(1).replace(",", ""))
 
         href = titled["href"]
         if href.startswith("/") and base_url:
@@ -162,11 +175,11 @@ def _extract_by_item_link(soup, source_cfg, base_url: str) -> list[Listing]:
 
         is_set, size = detect_set(title)
         listings.append(Listing(
-            title=title, price_jpy=price, url=href,
+            title=title, price_jpy=price or 0, url=href,
             condition=detect_condition(f"{title} {text}"),
             is_set=is_set, set_size=size,
             is_extra=bool(EXTRA_RE.search(title)),
-            stock=detect_stock(text), raw=text[:300],
+            stock=detect_stock(text), list_price_jpy=list_price, raw=text[:300],
         ))
     return listings
 
@@ -209,9 +222,10 @@ def extract_listings(html: str, source_cfg, base_url: str = "") -> list[Listing]
         tag.decompose()
 
     if getattr(source_cfg, "item_link_re", None):
-        found = _extract_by_item_link(soup, source_cfg, base_url)
-        if found:
-            return found
+        # 商品URLの形が分かっているサイトでは、結果が0件でもそれが答え。
+        # ここで汎用ロジックに落とすと、厳格な価格判定をすり抜けて
+        # 送料案内や定価を商品価格として拾ってしまう
+        return _extract_by_item_link(soup, source_cfg, base_url)
 
     listings, seen = [], set()
     price_res = getattr(source_cfg, "price_res", [])

@@ -95,6 +95,11 @@ class Source:
     item_link_re: object = None
     # ブロック内から商品価格を選ぶためのラベル付き正規表現（順に試す）
     price_res: tuple = ()
+    # True なら price_res に一致した価格しか採らない。ラベルの無い金額
+    # （送料案内、定価など）を絶対に拾わせたくないサイト向け
+    strict_price: bool = False
+    # 発売当時の定価。相場ではないので推定には使わないが、参考として残す
+    list_price_re: object = None
 
     def url(self, query: str, page: int = 1) -> str:
         return self.build(query, page)
@@ -117,7 +122,13 @@ _ALL = [
            item_link_re=re.compile(r"/item/([a-zA-Z0-9]+)")),
     Source("surugaya", surugaya, "asking", True, True,
            "在庫あり＋品切れの両方。Cloudflare のため要 --engine playwright",
-           item_link_re=re.compile(r"/product/(?:detail/)?([0-9A-Z]+)")),
+           item_link_re=re.compile(r"/product/(?:detail/)?([0-9A-Z]+)"),
+           # 「中古： ￥380 税込」が中古相場。「定価：￥1,180」は発売当時の
+           # 価格なので相場ではなく、送料案内の「5,000円未満…240円」も
+           # 商品ブロックの内側にある。ラベル付きの中古価格だけを採る
+           price_res=(re.compile(r"中古[：:\s]*[￥¥]\s*([0-9][0-9,]*)"),),
+           strict_price=True,
+           list_price_re=re.compile(r"定価[：:\s]*[￥¥]\s*([0-9][0-9,]*)")),
     Source("kosho", kosho, "asking", False, True, "URL形式が未確認"),
     Source("toudoukan", toudoukan, "asking", False, True, "URL形式が未確認",
            item_link_re=re.compile(r"/goods/\$/id/([0-9]+)")),

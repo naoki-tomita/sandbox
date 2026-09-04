@@ -56,7 +56,7 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
 FIELDS = [
     "issue_id", "magazine", "year", "month", "issue_label", "source", "listing_type",
     "observed_on", "title", "condition", "stock", "price_jpy", "is_set", "set_size",
-    "unit_price_jpy", "is_extra", "matched_issue", "url",
+    "unit_price_jpy", "is_extra", "list_price_jpy", "matched_issue", "url",
 ]
 
 
@@ -148,7 +148,9 @@ class Collector:
             "price_jpy": listing.price_jpy, "is_set": int(listing.is_set),
             "set_size": listing.set_size,
             "unit_price_jpy": listing.unit_price_jpy if listing.set_size else "",
-            "is_extra": int(listing.is_extra), "matched_issue": int(matched),
+            "is_extra": int(listing.is_extra),
+            "list_price_jpy": listing.list_price_jpy or "",
+            "matched_issue": int(matched),
             "url": listing.url,
         })
         self.prices.setdefault((source.name, magazine), []).append(listing.price_jpy)
@@ -178,6 +180,8 @@ class Collector:
                 kept = 0
                 for l in fresh:
                     seen.add(l.url or f"{l.title}|{l.price_jpy}")
+                    if not l.price_jpy:
+                        continue  # 価格が読めない商品（駿河屋の品切れ等）
                     parsed = parse_issue_from_title(l.title, meta["aliases"])
                     if parsed and lo <= parsed[0] <= hi:
                         self.write(l, source, meta["title"], parsed[0], parsed[1], True)
@@ -185,8 +189,9 @@ class Collector:
                     elif self.args.keep_unmatched:
                         y, m = parsed if parsed else (None, None)
                         self.write(l, source, meta["title"], y, m, False)
-                print(f"  {alias} p{page}: {len(fresh)}件中 {kept}件が対象期間の号",
-                      file=sys.stderr)
+                priced = sum(1 for l in fresh if l.price_jpy)
+                print(f"  {alias} p{page}: 商品{len(fresh)}件 / 価格あり{priced}件 "
+                      f"/ 対象期間の号{kept}件", file=sys.stderr)
                 if not source.paged:
                     break
 
@@ -200,6 +205,8 @@ class Collector:
             listings = extract_listings(html, source, base_url=url)
             kept = 0
             for l in listings:
+                if not l.price_jpy:
+                    continue
                 matched = title_matches_issue(l.title, it.year, it.month, it.aliases)
                 if not matched and not self.args.keep_unmatched:
                     continue
