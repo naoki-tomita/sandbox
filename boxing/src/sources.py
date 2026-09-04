@@ -53,9 +53,11 @@ def aucfan(query: str, page: int = 1) -> str:
 def mercari_sold(query: str, page: int = 1) -> str:
     """メルカリ SOLD（実売価格）。JavaScript描画のため Playwright が要る。
 
-    無限スクロールなので page では送れない。1ページ目のみ。
+    無限スクロールに見えるが実際は「次へ」のページャで、page_token=v1:N
+    （0始まり）で送る。スクロールだけでは1ページ目の分しか取れない。
     """
-    return f"https://jp.mercari.com/search?keyword={quote(query)}&status=sold_out"
+    base = f"https://jp.mercari.com/search?keyword={quote(query)}&status=sold_out"
+    return base if page <= 1 else f"{base}&page_token=v1%3A{page - 1}"
 
 
 def surugaya(query: str, page: int = 1) -> str:
@@ -117,9 +119,9 @@ _ALL = [
            price_res=(re.compile(r"現在\s*([0-9][0-9,]*)\s*円"),
                       re.compile(r"即決\s*([0-9][0-9,]*)\s*円"))),
     Source("aucfan", aucfan, "sold", True, False, "長期の落札履歴。無料は範囲制限あり"),
-    Source("mercari_sold", mercari_sold, "sold", True, False,
-           "要 --engine playwright。無限スクロールで1ページ目のみ",
-           item_link_re=re.compile(r"/item/([a-zA-Z0-9]+)")),
+    Source("mercari_sold", mercari_sold, "sold", True, True,
+           "要 --engine playwright。page_token でページ送り",
+           item_link_re=re.compile(r"/item/(m\d+)")),
     Source("surugaya", surugaya, "asking", True, True,
            "在庫あり＋品切れの両方。Cloudflare のため要 --engine playwright",
            item_link_re=re.compile(r"/product/(?:detail/)?([0-9A-Z]+)"),
