@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astel Island</title>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="overlay">
+    <div class="panel">
+      <p class="kicker">OPEN WORLD PROTOTYPE</p>
+      <h1>アステル島</h1>
+      <p id="loadingStatus">読み込み中…</p>
+      <p id="startPrompt"></p>
+      <table class="controls">
+        <tr><td>W A S D</td><td>移動</td></tr>
+        <tr><td>マウス</td><td>視点 / ホイールで距離</td></tr>
+        <tr><td>Shift</td><td>ダッシュ</td></tr>
+        <tr><td>Space</td><td>ジャンプ</td></tr>
+        <tr><td>Esc</td><td>一時停止</td></tr>
+      </table>
+      <table class="controls debug">
+        <tr><td>F3</td><td>デバッグ表示</td></tr>
+        <tr><td>T</td><td>フリーカメラ（Space/C 上下、G でプレイヤーを移動）</td></tr>
+        <tr><td>[ ]</td><td>時刻を 1 時間戻す / 進める</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <pre id="debugHud" class="hidden"></pre>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
