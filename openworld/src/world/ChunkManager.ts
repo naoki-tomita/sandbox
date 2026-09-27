@@ -4,6 +4,8 @@ import { RAPIER, type Physics } from '../physics/Physics.ts';
 import { CATALOG } from '../worldgen/catalog.ts';
 import type { ComposedWorld, PlacedObject } from '../worldgen/compose.ts';
 import { buildTerrainGeometry } from './terrainGeometry.ts';
+import { createTerrainMaterial } from './terrainMaterial.ts';
+import type { TextureSet } from './textureSet.ts';
 
 /**
  * 地形のストリーミング。
@@ -17,23 +19,26 @@ export class ChunkManager {
   private readonly meshes = new Map<number, THREE.Mesh>();
   private readonly colliders = new Map<number, RAPIER.Collider[]>();
   private readonly objectsByChunk = new Map<number, PlacedObject[]>();
-  private readonly material = new THREE.MeshLambertMaterial({ vertexColors: true });
   /**
-   * 遠景用。詳細チャンクが確実に敷き詰められている半径の内側は捨てて、詳細メッシュと重ならないようにする。
+   * 遠景用の穴。詳細チャンクが確実に敷き詰められている半径の内側は遠景を捨て、詳細メッシュと重ならないようにする。
    * （中心が renderRadius 内のチャンクを読むので、半径 renderRadius*size - 対角の半分 までは必ず詳細がある）
    */
   private readonly farUniforms = {
     uFocus: { value: new THREE.Vector2() },
     uHoleRadius: { value: (CONFIG.chunk.renderRadius - 0.75) * CONFIG.chunk.size },
   };
-  private readonly farMaterial = this.createFarMaterial();
+  private readonly material: THREE.Material;
+  private readonly farMaterial: THREE.Material;
   private readonly group = new THREE.Group();
 
   constructor(
     scene: THREE.Scene,
     private readonly physics: Physics,
     private readonly world: ComposedWorld,
+    textures: TextureSet,
   ) {
+    this.material = createTerrainMaterial(textures, null);
+    this.farMaterial = createTerrainMaterial(textures, this.farUniforms);
     const { size, cellSize } = world.def;
     this.perSide = size / CONFIG.chunk.size;
     this.cellsPerChunk = CONFIG.chunk.size / cellSize;
@@ -71,20 +76,6 @@ export class ChunkManager {
     mesh.receiveShadow = true;
     mesh.name = 'terrain-far';
     this.group.add(mesh);
-  }
-
-  private createFarMaterial(): THREE.MeshLambertMaterial {
-    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
-    mat.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, this.farUniforms);
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vFarXZ;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vFarXZ;\nuniform vec2 uFocus;\nuniform float uHoleRadius;')
-        .replace('void main() {', 'void main() {\n  if (distance(vFarXZ, uFocus) < uHoleRadius) discard;');
-    };
-    return mat;
   }
 
   /** マップの外に出られないよう四辺に見えない壁を置く */
@@ -208,7 +199,7 @@ function objectCollider(o: PlacedObject): RAPIER.ColliderDesc | null {
     case 'box': {
       const [w, h, d] = shape.size;
       return RAPIER.ColliderDesc.cuboid((w * s) / 2, (h * s) / 2, (d * s) / 2)
-        .setTranslation(o.x, o.y + (h * s) / 2, o.z)
+        .setTranslation(o.x, o.y + (shape.offsetY ?? h / 2) * s, o.z)
         .setRotation(q);
     }
   }
