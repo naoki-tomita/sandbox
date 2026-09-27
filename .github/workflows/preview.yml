@@ -35,6 +35,7 @@ jobs:
             balatro/package-lock.json
             fps/package-lock.json
             canvas-renderer/package-lock.json
+            openworld/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -63,6 +64,15 @@ jobs:
         run: npm run build -- --base=/canvas-renderer/
         working-directory: canvas-renderer
 
+      - name: Install openworld dependencies
+        run: npm ci
+        working-directory: openworld
+
+      # 同上: /sandbox/openworld/ をルート配信用の /openworld/ に上書き
+      - name: Build openworld
+        run: npm run build -- --base=/openworld/
+        working-directory: openworld
+
       - name: Assemble site
         run: |
           mkdir -p _site
@@ -70,6 +80,7 @@ jobs:
           cp -r balatro/dist _site/balatro
           cp -r fps/dist _site/fps
           cp -r canvas-renderer/dist _site/canvas-renderer
+          cp -r openworld/dist _site/openworld
 
       - name: Deploy to Cloudflare Pages
         id: deploy

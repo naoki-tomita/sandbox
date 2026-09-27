@@ -1,0 +1,31 @@
+{
+  "name": "start_village",
+  "description": "始まりの村。島の中央南寄り。井戸のある広場を 6 軒の家が囲む",
+  "ops": [
+    {"op": "flatten", "note": "村の敷地", "at": [1024, 1180], "radius": 70, "falloff": 35},
+    {"op": "smooth", "at": [1024, 1180], "radius": 80, "falloff": 20, "iterations": 2}
+  ],
+  "paint": [
+    {"surface": "dirt", "note": "広場", "at": [1024, 1180], "radius": 20}
+  ],
+  "objects": [
+    {"type": "house", "at": [1010, 1142], "rotation": 20, "id": "village_house_1"},
+    {"type": "house", "at": [985, 1166], "rotation": 70, "id": "village_house_2"},
+    {"type": "house", "at": [993, 1202], "rotation": 125, "id": "village_house_3"},
+    {"type": "house", "at": [1039, 1221], "rotation": -160, "id": "village_house_4"},
+    {"type": "house", "at": [1062, 1194], "rotation": -110, "id": "village_house_5"},
+    {"type": "house", "at": [1059, 1155], "rotation": -54, "id": "village_house_6"},
+    {"type": "well", "at": [1024, 1180], "id": "village_well"},
+    {"type": "campfire", "at": [1036, 1188]},
+    {
+        "type": "sign",
+        "at": [1030, 1236],
+        "rotation": 0,
+        "id": "village_sign",
+        "props": {"text": "ようこそ アステル村へ"}
+      },
+    {"type": "oak", "at": [975, 1215], "scale": 1.2},
+    {"type": "oak", "at": [1075, 1135], "scale": 1.1},
+    {"type": "marker", "at": [1024, 1180], "id": "village_center"}
+  ]
+}

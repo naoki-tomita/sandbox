@@ -1,4 +1,4 @@
-# balatro / canvas-renderer のユニットテスト (vitest)。PR と main 押し込みの両方で走る。
+# balatro / canvas-renderer / openworld のユニットテスト (vitest)。PR と main 押し込みの両方で走る。
 
 name: Test
 
@@ -7,12 +7,14 @@ on:
     paths:
       - 'balatro/**'
       - 'canvas-renderer/**'
+      - 'openworld/**'
       - '.github/workflows/test.yml'
   push:
     branches: [main]
     paths:
       - 'balatro/**'
       - 'canvas-renderer/**'
+      - 'openworld/**'
 
 concurrency:
   group: test-${{ github.ref }}
@@ -34,6 +36,7 @@ jobs:
           cache-dependency-path: |
             balatro/package-lock.json
             canvas-renderer/package-lock.json
+            openworld/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -53,3 +56,16 @@ jobs:
       - name: Run canvas-renderer unit tests
         run: npm test
         working-directory: canvas-renderer
+
+      - name: Install openworld dependencies
+        run: npm ci
+        working-directory: openworld
+
+      - name: Run openworld unit tests
+        run: npm test
+        working-directory: openworld
+
+      # ワールドデータ（openworld/world/）の検証。AI や人が編集したデータの破綻を検出する
+      - name: Validate openworld world data
+        run: npm run world:validate -- --strict
+        working-directory: openworld

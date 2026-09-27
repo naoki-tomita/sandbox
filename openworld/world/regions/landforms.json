@@ -1,0 +1,18 @@
+{
+  "name": "landforms",
+  "description": "島全体の大地形。北の山脈、西の台地、東の湖の窪地、南の平原",
+  "ops": [
+    { "op": "noise", "note": "北部を全体に荒らす", "rect": [300, 150, 1750, 700], "falloff": 200, "amplitude": 10, "scale": 220 },
+    { "op": "mountain", "note": "西の前山", "at": [560, 520], "radius": 240, "height": 80, "sharpness": 1.6, "roughness": 0.25 },
+    { "op": "mountain", "note": "北西の峰", "at": [830, 400], "radius": 320, "height": 160, "sharpness": 2.0, "roughness": 0.25 },
+    { "op": "mountain", "note": "主峰アステル山（雪をかぶる）", "at": [1180, 340], "radius": 360, "height": 230, "sharpness": 2.3, "roughness": 0.2 },
+    { "op": "mountain", "note": "北東の峰", "at": [1510, 470], "radius": 260, "height": 115, "sharpness": 1.8, "roughness": 0.3 },
+    { "op": "hill", "note": "台地のすそ野", "at": [520, 1060], "radius": 240, "height": 16 },
+    { "op": "plateau", "note": "西の台地（見張り塔が建つ）", "polygon": [[440, 990], [530, 960], [610, 1000], [630, 1080], [570, 1150], [470, 1140], [420, 1070]], "height": 50, "falloff": 22 },
+    { "op": "noise", "note": "台地の崖を荒く", "at": [525, 1060], "radius": 140, "falloff": 30, "amplitude": 6, "scale": 30 },
+    { "op": "flatten", "note": "台地の上面を整える", "polygon": [[470, 1010], [530, 990], [585, 1020], [595, 1075], [555, 1115], [485, 1110], [455, 1065]], "height": 52, "falloff": 10, "strength": 0.8 },
+    { "op": "lower", "note": "東の湖の窪地", "polygon": [[1450, 1040], [1520, 990], [1620, 1000], [1660, 1080], [1630, 1170], [1540, 1190], [1470, 1140]], "amount": 18, "falloff": 70 },
+    { "op": "smooth", "note": "湖岸をなだらかに", "at": [1555, 1090], "radius": 150, "falloff": 40, "iterations": 5 },
+    { "op": "flatten", "note": "南部はなだらかな平原に", "rect": [500, 1350, 1600, 1750], "falloff": 150, "strength": 0.6 }
+  ]
+}
