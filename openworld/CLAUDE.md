@@ -36,8 +36,11 @@ main.ts → Game.ts → { core, physics, world, player, debug } → worldgen →
 | `  checks.ts` | 見た目の破綻の検出（水が浮く、建物が急斜面、id 重複…） |
 | `  catalog.ts` / `surface.ts` | 配置物の種類と寸法・当たり判定 / 地表の種類と色 |
 | `src/world/ChunkManager.ts` | 遠景（全体の低解像度メッシュ）+ 周辺の詳細チャンク + さらに狭い範囲の当たり判定 |
-| `src/world/Props.ts` | 配置物を 256m 区画 × 種類 × パーツで InstancedMesh にまとめて描画（仮のプリミティブモデル） |
-| `src/world/Water.ts` / `Sky.ts` | 水面 / 空・太陽・影・フォグ・昼夜 |
+| `src/world/textures.ts` | テクスチャの手続き生成（地表 8 種 + 配置物の模様 6 種、色ムラ、水の法線）。起動時に Worker (`textureWorker.ts`) で生成 |
+| `src/world/terrainMaterial.ts` | 地形シェーダー。頂点の地表の重み + テクスチャ配列を画素ごとに高さで混ぜる、急斜面は岩（三方向投影）、バンプ |
+| `src/world/Grass.ts` | プレイヤー周辺の草（GPU インスタンシング。高さ・密度テクスチャから配置、風で揺れる、花） |
+| `src/world/Props.ts` | 配置物を 256m 区画 × 種類 × パーツで InstancedMesh にまとめて描画。模様はワールド座標の三方向投影 |
+| `src/world/Water.ts` / `Sky.ts` | 水面（波の法線 + 空の映り込み） / 空・太陽・影・フォグ・昼夜・環境マップ |
 | `src/player/` | Rapier のキネマティック・キャラクターコントローラ、仮アバター、三人称カメラ |
 | `src/debug/` | F3 の HUD、T のフリーカメラ |
 | `scripts/` | Node 用 CLI（validate / preview）。`loadWorld.ts` はテストも使う |
@@ -52,7 +55,8 @@ main.ts → Game.ts → { core, physics, world, player, debug } → worldgen →
 ### URL パラメータ（動作確認用）
 
 `?x=..&z=..` 開始位置、`&facing=度`、`&t=時`、`&debug=1`（HUD と marker）、
-`&free=1&h=高さ&pitch=見下ろす角度`（フリーカメラで開始）、`&autoplay=1`（ポインターロックなしで開始。自動テスト用）。
+`&free=1&h=高さ&pitch=見下ろす角度`（フリーカメラで開始）、`&autoplay=1`（ポインターロックなしで開始。自動テスト用）、
+`&quality=low`（草 1/4・影の解像度半分。Playwright のソフトウェア描画ではこれを付けないと 1 フレームに数十秒かかる）。
 `window.game` から `Game` を参照できる。Playwright で確認する場合はソフトウェア描画なので fps は数フレーム程度になる。
 
 ---
@@ -114,9 +118,11 @@ area の塗りは境界が `jitter`(20m) だけノイズで揺れる（自然な
 **water**: `{ "name": "東の湖", <area>, "level": 5 }`。水面は平面なので、**領域の縁の地面が水位より高くなるよう**
 領域を広めに取る（地面より下の部分だけ見える）。川は `river` オペを使う。
 
-**objects**: `{ "type": "house", "at": [x, z], "rotation": 90, "scale": 1, "y": 0, "id": "…", "props": {…} }`。
-y は地面からのオフセット。`id` はクエスト等から参照するための一意名。種類は `catalog.ts`:
-`pine oak bush rock boulder house tower well sign campfire marker`（marker はゲーム中不可視の目印）。
+**objects**: `{ "type": "house", "at": [x, z], "rotation": 90, "scale": 1, "y": 0, "level": 5, "id": "…", "props": {…} }`。
+y は地面からのオフセット、`level` は絶対高さ（指定すると地面を無視。桟橋・橋に使う）。`id` はクエスト等から参照するための一意名。
+種類と寸法は `catalog.ts`:
+`pine oak bush rock boulder house tower well sign campfire marker lighthouse pier bridge fence ruin_wall ruin_pillar tent barrel crate`
+（marker はゲーム中不可視の目印。pier / bridge は中心に置き +Z 方向に延びる。床の上を歩ける）。
 
 **scatter**: `{ "type": "pine", <area>, "density": 5, "scale": [0.8, 1.25], "maxSlope": 30, "avoid": [...], "onlyOn": [...] }`。
 density は 1000m² あたりの個数。水中・急斜面・`avoid` の地表（既定 road sand rock snow）・個別配置物の周囲は自動で避ける。
@@ -134,6 +140,9 @@ density は 1000m² あたりの個数。水中・急斜面・`avoid` の地表�
 - 大地形（山・湖の窪地）は早い region（`landforms`）、整地・道は後の region に置く。道は地形を削るので最後の方に。
 - 建物は `flatten` した敷地の上に置く（急斜面だと警告が出る）。
 - 何もしないと単なる起伏になるので、山・谷・川・台地・森などの「形」をはっきり作ると地域の個性が出る。
+- paint は region の順に上書きされる。広い塗り（森など）は早い region に、道や広場の塗りは後の region に置く（今は `wilds` を `landforms` の直後に置いている）。
+- 川を横切る道は、川より前の region（`trails`）に置く。橋の両端の高さは川の後の region（`river_crossing`）の path で揃え、`bridge` を `level` 付きで置く。
+  橋は川に直角に架け、取り付け道の falloff は小さく（川床を埋めないように）。
 
 ## three.js / 依存のバージョン
 

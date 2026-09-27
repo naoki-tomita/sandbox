@@ -2,19 +2,49 @@ import * as THREE from 'three';
 import type { ComposedWorld, WaterBody } from '../worldgen/compose.ts';
 import type { Area, Vec2 } from '../worldgen/schema.ts';
 
-/** 海・湖・川の水面。今は平らな半透明面（波などは後で） */
+/**
+ * 海・湖・川の水面。
+ * 波の法線マップを 2 方向にスクロールさせて揺らし、scene.environment（空）を映り込ませる。
+ */
 export class Water {
-  readonly material = new THREE.MeshStandardMaterial({
-    color: 0x2f6f9a,
-    roughness: 0.12,
-    metalness: 0.05,
-    transparent: true,
-    opacity: 0.82,
-    // 水中から見上げたときも水面が見えるように両面描画
-    side: THREE.DoubleSide,
-  });
+  readonly material: THREE.MeshStandardMaterial;
+  private readonly time = { value: 0 };
 
-  constructor(scene: THREE.Scene, world: ComposedWorld) {
+  constructor(scene: THREE.Scene, world: ComposedWorld, normals: THREE.Texture) {
+    this.material = new THREE.MeshStandardMaterial({
+      color: 0x1d5a70,
+      roughness: 0.06,
+      metalness: 0.0,
+      transparent: true,
+      opacity: 0.86,
+      // 水中から見上げたときも水面が見えるように両面描画
+      side: THREE.DoubleSide,
+    });
+    const time = this.time;
+    this.material.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, { uWaves: { value: normals }, uTime: time });
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWWorld;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform sampler2D uWaves;\nuniform float uTime;\nvarying vec3 vWWorld;')
+        .replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+{
+  vec2 p = vWWorld.xz;
+  vec3 a = texture(uWaves, p / 23.0 + vec2(uTime * 0.013, uTime * 0.007)).xyz * 2.0 - 1.0;
+  vec3 b = texture(uWaves, p / 9.0 + vec2(-uTime * 0.011, uTime * 0.017)).xyz * 2.0 - 1.0;
+  vec3 c = texture(uWaves, p / 71.0 + vec2(uTime * 0.004, -uTime * 0.005)).xyz * 2.0 - 1.0;
+  vec2 slope = a.xy * 0.5 + b.xy * 0.35 + c.xy * 0.6;
+  // 遠くほど波を弱めてちらつきを抑える
+  slope *= 1.0 - 0.7 * smoothstep(40.0, 400.0, length(vViewPosition));
+  vec3 nWorld = normalize(vec3(slope.x, 1.0, slope.y));
+  normal = normalize((viewMatrix * vec4(nWorld, 0.0)).xyz);
+}`,
+        );
+    };
+
     const { size, seaLevel } = world.def;
     const sea = new THREE.Mesh(new THREE.PlaneGeometry(size * 6, size * 6).rotateX(-Math.PI / 2), this.material);
     sea.position.set(size / 2, seaLevel, size / 2);
@@ -29,6 +59,10 @@ export class Water {
       mesh.renderOrder = 1;
       scene.add(mesh);
     }
+  }
+
+  update(dt: number): void {
+    this.time.value += dt;
   }
 }
 

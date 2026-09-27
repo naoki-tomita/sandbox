@@ -10,10 +10,16 @@ export class Sky {
   hour: number = CONFIG.time.startHour;
   readonly sun = new THREE.DirectionalLight(0xffffff, 3);
   private readonly moon = new THREE.DirectionalLight(0x8899cc, 0);
-  private readonly hemi = new THREE.HemisphereLight(0xbfd8ff, 0x5a5040, 1);
+  private readonly hemi = new THREE.HemisphereLight(0xbfd8ff, 0x6b6450, 1);
   private readonly sky = new SkyShader();
   private readonly sunDir = new THREE.Vector3();
   private readonly fog: THREE.Fog;
+  /** 映り込み（scene.environment）用。空だけのシーンから PMREM を作る */
+  private readonly pmrem: THREE.PMREMGenerator;
+  private readonly envScene = new THREE.Scene();
+  private readonly envSky = new SkyShader();
+  private envTarget: THREE.WebGLRenderTarget | null = null;
+  private envHour = -99;
 
   constructor(
     scene: THREE.Scene,
@@ -41,6 +47,26 @@ export class Sky {
 
     this.fog = new THREE.Fog(0xbfd4e6, CONFIG.fog.near, CONFIG.fog.far);
     scene.fog = this.fog;
+
+    this.pmrem = new THREE.PMREMGenerator(renderer);
+    this.envSky.scale.setScalar(1000);
+    this.envSky.material.uniforms = this.sky.material.uniforms;
+    this.envScene.add(this.envSky);
+    this.scene = scene;
+  }
+
+  private readonly scene: THREE.Scene;
+
+  /** 時刻が一定以上進んだら映り込み用の環境マップを作り直す */
+  private updateEnvironment(): void {
+    let d = Math.abs(this.hour - this.envHour);
+    d = Math.min(d, 24 - d);
+    if (d < 0.25) return;
+    this.envHour = this.hour;
+    const next = this.pmrem.fromScene(this.envScene, 0, 1, 2000);
+    this.scene.environment = next.texture;
+    this.envTarget?.dispose();
+    this.envTarget = next;
   }
 
   /** 太陽の高さ (-1..1)。正午で最大 */
@@ -61,7 +87,7 @@ export class Sky {
     this.sun.intensity = 3.2 * day;
     this.sun.color.setHSL(0.1, 0.6 * dusk + 0.1, 0.55 + 0.4 * (1 - dusk));
     this.moon.intensity = 0.35 * (1 - day);
-    this.hemi.intensity = 0.25 + 1.1 * day;
+    this.hemi.intensity = 0.3 + 1.5 * day;
 
     // 影はプレイヤー周辺だけ。ライトはフォーカス点から光源方向へ離して置く
     const lightDir = this.sunDir.y > -0.05 ? this.sunDir : this.sunDir.clone().negate();
@@ -79,5 +105,6 @@ export class Sky {
     const c = nightFog.clone().lerp(dayFog, day).lerp(duskFog, dusk * 0.6);
     this.fog.color.copy(c);
     this.renderer.toneMappingExposure = 0.35 + 0.35 * day;
+    this.updateEnvironment();
   }
 }

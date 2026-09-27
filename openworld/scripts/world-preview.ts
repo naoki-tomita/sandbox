@@ -150,12 +150,31 @@ function main(): void {
       for (let dx = -Math.ceil(rr); dx <= Math.ceil(rr); dx++) if (dx * dx + dy * dy <= rr * rr) set(cx + dx, cy + dy, c, a);
     }
   };
+  /** 中心 (cx, cy)、幅 w（ローカル X）・奥行き d（ローカル Z）、向き rot の長方形 */
+  const rect = (cx: number, cy: number, w: number, d: number, rot: number, c: RGB) => {
+    const r = Math.ceil(Math.hypot(w, d) / 2);
+    const cos = Math.cos(rot);
+    const sin = Math.sin(rot);
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        // ワールドの (dx, dz) をローカルへ（rotation は +Z を +X 側へ回す向き）
+        const lx = dx * cos - dy * sin;
+        const lz = dx * sin + dy * cos;
+        if (Math.abs(lx) <= w / 2 && Math.abs(lz) <= d / 2) set(cx + dx, cy + dy, c);
+      }
+    }
+  };
   for (const o of w.objects) {
     if (o.x < bounds.minX || o.z < bounds.minZ || o.x > bounds.maxX || o.z > bounds.maxZ) continue;
     const [px, py] = toPx(o.x, o.z);
     const info = CATALOG[o.type];
     if (o.scattered) {
       disc(px, py, Math.max(0.8, (info.footprint * o.scale * 0.6) / mpp), info.previewColor, 0.8);
+    } else if (info.collider.kind === 'box' && (info.collider.size[0] * o.scale) / mpp >= 3) {
+      // 箱型のもの（家・橋・桟橋など）は向き付きの長方形で描く
+      const [w, , d] = info.collider.size.map((v) => (v * o.scale) / mpp);
+      rect(px, py, w + 2, d + 2, o.rotation, [0, 0, 0]);
+      rect(px, py, w, d, o.rotation, info.previewColor);
     } else {
       const r = Math.max(2.5, (info.footprint * o.scale) / mpp);
       disc(px, py, r + 1, [0, 0, 0]);

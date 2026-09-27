@@ -51,6 +51,13 @@ export const CONFIG = {
     startHour: 9,
   },
 
+  grass: {
+    /** 草の本数（プレイヤー周辺に常にこの数を描く） */
+    count: 60000,
+    /** 草を描く半径 (m) */
+    radius: 32,
+  },
+
   fog: { near: 300, far: 2400 },
   shadow: { size: 2048, extent: 70 },
 } as const;

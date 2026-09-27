@@ -1,17 +1,8 @@
 import * as THREE from 'three';
-import { hashSeed } from '../core/random.ts';
 import type { ComposedWorld } from '../worldgen/compose.ts';
-import { SURFACE_COLORS, SURFACES } from '../worldgen/surface.ts';
 
-const LINEAR_COLORS = SURFACES.map((s) => {
-  const [r, g, b] = SURFACE_COLORS[s];
-  return new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
-});
-
-/** 頂点ごとの小さな色ムラ（0.92..1.08） */
-function jitter(ix: number, iz: number): number {
-  return 0.92 + (hashSeed(ix, iz) % 1000) / 1000 * 0.16;
-}
+/** 近傍の地表を 3x3 でぼかした重み（中心 4, 辺 2, 角 1）。境界を滑らかに混ぜるため */
+const KERNEL = [1, 2, 1, 2, 4, 2, 1, 2, 1].map((k) => k / 16);
 
 /**
  * グリッドの一部から地形メッシュを作る。
@@ -29,7 +20,8 @@ export function buildTerrainGeometry(
   const verts = cells / step + 1;
   const pos = new Float32Array(verts * verts * 3);
   const nor = new Float32Array(verts * verts * 3);
-  const col = new Float32Array(verts * verts * 3);
+  // 地表 8 種の重み。splatA = grass forest dirt road, splatB = sand rock snow riverbed
+  const splat = new Float32Array(verts * verts * 8);
   let k = 0;
   for (let vz = 0; vz < verts; vz++) {
     for (let vx = 0; vx < verts; vx++, k++) {
@@ -47,11 +39,22 @@ export function buildTerrainGeometry(
       nor[k * 3] = -gx * inv;
       nor[k * 3 + 1] = inv;
       nor[k * 3 + 2] = -gz * inv;
-      const c = LINEAR_COLORS[world.surface[grid.index(Math.min(ix, grid.n - 1), Math.min(iz, grid.n - 1))]];
-      const j = jitter(ix, iz);
-      col[k * 3] = c.r * j;
-      col[k * 3 + 1] = c.g * j;
-      col[k * 3 + 2] = c.b * j;
+      const n = grid.n - 1;
+      for (let dz = -1, kk = 0; dz <= 1; dz++) {
+        for (let dx = -1; dx <= 1; dx++, kk++) {
+          const sx = Math.max(0, Math.min(n, ix + dx * step));
+          const sz = Math.max(0, Math.min(n, iz + dz * step));
+          splat[k * 8 + world.surface[grid.index(sx, sz)]] += KERNEL[kk];
+        }
+      }
+    }
+  }
+  const splatA = new Float32Array(verts * verts * 4);
+  const splatB = new Float32Array(verts * verts * 4);
+  for (let i = 0; i < verts * verts; i++) {
+    for (let j = 0; j < 4; j++) {
+      splatA[i * 4 + j] = splat[i * 8 + j];
+      splatB[i * 4 + j] = splat[i * 8 + 4 + j];
     }
   }
   const idx = new Uint32Array((verts - 1) * (verts - 1) * 6);
@@ -69,7 +72,8 @@ export function buildTerrainGeometry(
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('splatA', new THREE.BufferAttribute(splatA, 4));
+  geo.setAttribute('splatB', new THREE.BufferAttribute(splatB, 4));
   geo.setIndex(new THREE.BufferAttribute(idx, 1));
   geo.computeBoundingSphere();
   return geo;

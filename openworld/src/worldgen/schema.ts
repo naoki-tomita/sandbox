@@ -87,6 +87,8 @@ export interface ObjectDef {
   at: Vec2;
   /** 地面からのオフセット (m) */
   y: number;
+  /** 絶対高さ (m)。指定すると地面の高さを無視する（桟橋・橋など） */
+  level: number | null;
   /** 向き (度)。0 = +Z 方向を向く、90 = +X 方向を向く */
   rotation: number;
   scale: number;
@@ -387,12 +389,13 @@ function readWater(c: Checker, raw: unknown, path: string, i: number): WaterDef 
 function readObject(c: Checker, raw: unknown, path: string): ObjectDef | null {
   const o = c.obj(raw, path);
   if (!o) return null;
-  c.keys(o, path, ['type', 'note', 'at', 'y', 'rotation', 'scale', 'id', 'props']);
+  c.keys(o, path, ['type', 'note', 'at', 'y', 'level', 'rotation', 'scale', 'id', 'props']);
   const props = o.props === undefined ? {} : c.obj(o.props, `${path}.props`) ?? {};
   return {
     type: c.oneOf(o, 'type', path, OBJECT_TYPES),
     at: c.vec2(o.at, `${path}.at`),
     y: c.num(o, 'y', path, { def: 0 }),
+    level: o.level === undefined ? null : c.num(o, 'level', path),
     rotation: c.num(o, 'rotation', path, { def: 0 }),
     scale: c.num(o, 'scale', path, { def: 1, min: 0.05 }),
     id: o.id === undefined ? null : c.str(o, 'id', path),

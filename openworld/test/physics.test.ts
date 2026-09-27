@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { initPhysics, Physics } from '../src/physics/Physics.ts';
 import { ChunkManager } from '../src/world/ChunkManager.ts';
+import { TextureSet } from '../src/world/textureSet.ts';
+import { LAYER_COUNT } from '../src/world/textures.ts';
 import { composeWorld } from '../src/worldgen/compose.ts';
 import { parseWorldData } from '../src/worldgen/schema.ts';
 
@@ -22,7 +24,9 @@ describe('ChunkManager の当たり判定', () => {
     );
     const world = composeWorld(d.world, d.regions);
     const physics = new Physics(1 / 60);
-    const chunks = new ChunkManager(new THREE.Scene(), physics, world);
+    const blank = new Uint8Array(256 * 256 * 4 * LAYER_COUNT);
+    const textures = new TextureSet({ layers: blank, macro: blank.slice(0, 256 * 256 * 4), water: blank.slice(0, 256 * 256 * 4) }, 1);
+    const chunks = new ChunkManager(new THREE.Scene(), physics, world, textures);
     chunks.updatePhysics(128, 128);
     physics.step();
     for (const [x, z] of [[70, 90], [100, 150], [150, 110], [180, 175], [127, 129]]) {
