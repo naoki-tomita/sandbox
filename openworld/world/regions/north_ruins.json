@@ -1,0 +1,28 @@
+{
+  "name": "north_ruins",
+  "description": "北の山の肩にある古代の遺跡。石柱が輪になって立ち、崩れた壁が残る",
+  "ops": [
+    {"op": "flatten", "note": "遺跡の基壇", "at": [1015, 470], "radius": 24, "falloff": 18},
+    {"op": "noise", "note": "周囲を少し荒らす", "at": [1015, 470], "radius": 45, "falloff": 20, "amplitude": 1.5, "scale": 12}
+  ],
+  "paint": [
+    {"surface": "rock", "note": "石畳の名残", "at": [1015, 470], "radius": 9, "jitter": 4},
+    {"surface": "dirt", "at": [1015, 470], "radius": 17, "jitter": 6}
+  ],
+  "objects": [
+    {"type": "ruin_pillar", "at": [1015.0, 483.0], "rotation": 0, "scale": 1.0},
+    {"type": "ruin_pillar", "at": [1023.4, 480.0], "rotation": 40, "scale": 0.9},
+    {"type": "ruin_pillar", "at": [1027.8, 472.3], "rotation": 80, "scale": 1.0},
+    {"type": "ruin_pillar", "at": [1019.4, 457.8], "rotation": 160, "scale": 1.0},
+    {"type": "ruin_pillar", "at": [1010.6, 457.8], "rotation": 200, "scale": 0.9},
+    {"type": "ruin_pillar", "at": [1003.7, 463.5], "rotation": 240, "scale": 1.0},
+    {"type": "ruin_pillar", "at": [1006.6, 480.0], "rotation": 320, "scale": 1.0},
+    {"type": "ruin_wall", "at": [1009, 451], "rotation": 10},
+    {"type": "ruin_wall", "at": [1029, 456], "rotation": -50, "scale": 0.8},
+    {"type": "ruin_wall", "at": [997, 475], "rotation": 95, "scale": 0.9},
+    {"type": "boulder", "at": [1018, 472], "scale": 0.6, "note": "中央の祭壇石"},
+    {"type": "rock", "at": [1024, 487]},
+    {"type": "rock", "at": [1003, 461], "scale": 1.3},
+    {"type": "marker", "at": [1015, 470], "id": "ancient_ruins"}
+  ]
+}

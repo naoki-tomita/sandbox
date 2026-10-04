@@ -9,8 +9,10 @@ import { PlayerAvatar } from './player/PlayerAvatar.ts';
 import { PlayerController } from './player/PlayerController.ts';
 import { ThirdPersonCamera } from './player/ThirdPersonCamera.ts';
 import { ChunkManager } from './world/ChunkManager.ts';
+import { Grass } from './world/Grass.ts';
 import { Props } from './world/Props.ts';
 import { Sky } from './world/Sky.ts';
+import { TextureSet, type TextureData } from './world/textureSet.ts';
 import { Water } from './world/Water.ts';
 import type { ComposedWorld } from './worldgen/compose.ts';
 
@@ -22,6 +24,7 @@ import type { ComposedWorld } from './worldgen/compose.ts';
  *   ?debug=1    HUD と marker を表示
  *   ?free=1     フリーカメラで開始（&h=地面からの高さ &pitch=見下ろす角度。向きは facing）
  *   ?autoplay=1 ポインターロックなしで即開始（自動テスト用。マウス視点は無効）
+ *   ?quality=low 軽量モード（草 1/4・影の解像度半分・アンチエイリアスなし）
  */
 export class Game {
   readonly renderer: THREE.WebGLRenderer;
@@ -31,6 +34,9 @@ export class Game {
   readonly physics = new Physics(CONFIG.fixedDt);
   readonly sky: Sky;
   readonly terrain: ChunkManager;
+  readonly textures: TextureSet;
+  private readonly grass: Grass;
+  private readonly water: Water;
   readonly props: Props;
   readonly player: PlayerController;
   private readonly avatar: PlayerAvatar;
@@ -47,10 +53,12 @@ export class Game {
   constructor(
     canvas: HTMLCanvasElement,
     readonly world: ComposedWorld,
+    textureData: TextureData,
     params: URLSearchParams,
   ) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const low = params.get('quality') === 'low';
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !low });
+    this.renderer.setPixelRatio(low ? 1 : Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -60,9 +68,12 @@ export class Game {
 
     this.input = new Input(canvas);
     this.sky = new Sky(this.scene, this.renderer);
-    this.terrain = new ChunkManager(this.scene, this.physics, world);
-    new Water(this.scene, world);
-    this.props = new Props(this.scene, world);
+    this.textures = new TextureSet(textureData, this.renderer.capabilities.getMaxAnisotropy());
+    this.terrain = new ChunkManager(this.scene, this.physics, world, this.textures);
+    this.water = new Water(this.scene, world, this.textures.waterNormal);
+    this.grass = new Grass(this.scene, world, low ? CONFIG.grass.count / 4 : CONFIG.grass.count);
+    if (low) this.sky.sun.shadow.mapSize.set(1024, 1024);
+    this.props = new Props(this.scene, world, this.textures);
     this.player = new PlayerController(this.physics, world);
     this.avatar = new PlayerAvatar(this.scene);
     this.tpc = new ThirdPersonCamera(this.camera, this.physics, world);
@@ -170,6 +181,8 @@ export class Game {
     const focus = this.freeMode ? this.free.position : this.renderPos;
     this.terrain.updateRender(focus.x, focus.z);
     this.sky.update(this.active ? frameDt : 0, focus);
+    this.grass.update(frameDt, focus);
+    this.water.update(frameDt);
 
     const p = this.player.position;
     const h = Math.floor(this.sky.hour);

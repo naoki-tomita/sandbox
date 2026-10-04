@@ -80,9 +80,10 @@ export function checkWorld(w: ComposedWorld): string[] {
   for (const o of w.objects) {
     if (o.scattered) continue;
     const name = `${o.region} の ${o.type}${o.id ? ` "${o.id}"` : ''} (${o.x}, ${o.z})`;
+    const spans = o.type === 'pier' || o.type === 'bridge';
     if (o.y < w.waterLevelAt(o.x, o.z) && o.type !== 'marker') warnings.push(`${name} が水中にあります`);
     const r = CATALOG[o.type].footprint * o.scale;
-    if (r > 2 && Math.atan(w.heights.slopeAt(o.x, o.z)) > (20 * Math.PI) / 180) {
+    if (!spans && r > 2 && Math.atan(w.heights.slopeAt(o.x, o.z)) > (20 * Math.PI) / 180) {
       warnings.push(`${name} の足元が急斜面です（flatten で整地してください）`);
     }
   }

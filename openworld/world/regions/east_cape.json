@@ -1,0 +1,17 @@
+{
+  "name": "east_cape",
+  "description": "東の岬の岩場に建つ灯台",
+  "ops": [
+    {"op": "plateau", "note": "岬の岩場", "at": [1932, 1138], "radius": 20, "height": 11, "falloff": 16},
+    {"op": "noise", "at": [1932, 1138], "radius": 30, "falloff": 15, "amplitude": 2.5, "scale": 9},
+    {"op": "flatten", "at": [1932, 1138], "radius": 7, "height": 11.5, "falloff": 4}
+  ],
+  "paint": [
+    {"surface": "rock", "at": [1932, 1138], "radius": 34, "jitter": 8}
+  ],
+  "objects": [
+    {"type": "lighthouse", "at": [1932, 1138], "id": "east_lighthouse"},
+    {"type": "boulder", "at": [1949, 1128], "scale": 0.8},
+    {"type": "boulder", "at": [1918, 1154], "scale": 0.6}
+  ]
+}

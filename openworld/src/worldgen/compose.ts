@@ -238,7 +238,7 @@ export function composeWorld(def: WorldDef, regions: RegionDef[]): ComposedWorld
       objects.push({
         type: o.type,
         x,
-        y: heights.sample(x, z) + o.y,
+        y: o.level ?? heights.sample(x, z) + o.y,
         z,
         rotation: (o.rotation * Math.PI) / 180,
         scale: o.scale,

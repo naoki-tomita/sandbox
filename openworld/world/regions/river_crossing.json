@@ -1,0 +1,16 @@
+{
+  "name": "river_crossing",
+  "description": "野営地への小道がアステル川を渡る木橋（川に直角）。川を掘った後に、橋の両端の高さをそろえる",
+  "ops": [
+    {"op": "path", "note": "西の取り付け道", "points": [[1305, 880], [1312, 860], [1319.7, 840.9]], "width": 3.5, "falloff": 2, "heights": [25, 23, 21.2]},
+    {"op": "path", "note": "東の取り付け道", "points": [[1336.9, 832.3], [1345, 815], [1360, 790]], "width": 3.5, "falloff": 2, "heights": [21.2, 19.5, 16.7]}
+  ],
+  "paint": [
+    {"surface": "dirt", "points": [[1305, 880], [1312, 860], [1319.7, 840.9]], "width": 2.8},
+    {"surface": "dirt", "points": [[1336.9, 832.3], [1345, 815], [1360, 790]], "width": 2.8}
+  ],
+  "objects": [
+    {"type": "bridge", "at": [1328.3, 836.6], "level": 21.2, "rotation": 116.6, "id": "astel_bridge", "scale": 1.2},
+    {"type": "sign", "at": [1307, 872], "rotation": 151.7, "props": {"text": "→ 森の野営地"}}
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "forest_camp",
+  "description": "北東の森の中の野営地。小道の終点",
+  "ops": [
+    {"op": "flatten", "at": [1480, 722], "radius": 16, "falloff": 14}
+  ],
+  "paint": [
+    {"surface": "dirt", "at": [1480, 722], "radius": 9, "jitter": 5}
+  ],
+  "objects": [
+    {"type": "campfire", "at": [1480, 722]},
+    {"type": "tent", "at": [1473, 718], "rotation": 60},
+    {"type": "tent", "at": [1486, 716], "rotation": -45},
+    {"type": "tent", "at": [1482, 730], "rotation": -166},
+    {"type": "crate", "at": [1477, 727], "rotation": 20},
+    {"type": "crate", "at": [1476.2, 728.2], "rotation": 65, "scale": 0.8},
+    {"type": "barrel", "at": [1488, 724]},
+    {"type": "barrel", "at": [1488.9, 724.8]},
+    {"type": "sign", "at": [1455, 738], "rotation": -45, "props": {"text": "森の野営地"}},
+    {"type": "marker", "at": [1480, 722], "id": "forest_camp"}
+  ]
+}
