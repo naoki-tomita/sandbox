@@ -2,7 +2,8 @@
 #   cp config.example.toml config.toml
 # 相対パスはこのファイルの置き場所が基準。
 
-data_dir = "data"          # 録画(clips/)・一時ファイル(segments/)・DB の保存先
+data_dir = "data"          # 録画(clips/)と DB の保存先
+# segment_dir = "data/segments"  # 録画素材の一時ファイルの置き場所。省略時は /dev/shm(メモリ上)、なければ data/segments
 recorder_workers = 1       # クリップ書き出しの並列数
 
 [web]

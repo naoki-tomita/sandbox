@@ -6,6 +6,7 @@ TOML の `[defaults]` を全カメラの既定値とし、`[[cameras]]` の各�
 
 from __future__ import annotations
 
+import os
 import re
 import tomllib
 from dataclasses import dataclass, field, fields, replace
@@ -88,6 +89,8 @@ class Config:
     web: WebConfig = WebConfig()
     retention: RetentionConfig = RetentionConfig()
     recorder_workers: int = 1
+    # 録画素材(セグメント)の置き場所。None なら default_segment_dir で決める
+    segment_dir: Path | None = None
     # [defaults] の生の値。--url で 1 台構成にするときにも既定値を効かせるために保持する
     camera_defaults: dict[str, Any] = field(default_factory=dict)
 
@@ -123,7 +126,7 @@ def _validate_camera(cam: CameraConfig) -> None:
 
 
 def parse_config(raw: dict[str, Any], base_dir: Path = Path(".")) -> Config:
-    top_keys = {"data_dir", "recorder_workers", "defaults", "cameras", "detector", "web", "retention"}
+    top_keys = {"data_dir", "segment_dir", "recorder_workers", "defaults", "cameras", "detector", "web", "retention"}
     _check_keys("(トップレベル)", raw, top_keys)
 
     defaults = dict(raw.get("defaults", {}))
@@ -153,6 +156,9 @@ def parse_config(raw: dict[str, Any], base_dir: Path = Path(".")) -> Config:
     data_dir = Path(raw.get("data_dir", "data"))
     if not data_dir.is_absolute():
         data_dir = base_dir / data_dir
+    segment_dir = Path(raw["segment_dir"]) if raw.get("segment_dir") else None
+    if segment_dir is not None and not segment_dir.is_absolute():
+        segment_dir = base_dir / segment_dir
 
     return Config(
         data_dir=data_dir,
@@ -161,8 +167,20 @@ def parse_config(raw: dict[str, Any], base_dir: Path = Path(".")) -> Config:
         web=_build(WebConfig, "web", web_raw),
         retention=_build(RetentionConfig, "retention", dict(raw.get("retention", {}))),
         recorder_workers=int(raw.get("recorder_workers", 1)),
+        segment_dir=segment_dir,
         camera_defaults=defaults,
     )
+
+
+def default_segment_dir(data_dir: Path, shm: Path = Path("/dev/shm")) -> Path:
+    """セグメントの既定の置き場所。
+
+    セグメントは数秒ごとに書いては消すだけの一時ファイルなので、使えるならメモリ上の /dev/shm(tmpfs)に置き、
+    SD カードの書き込みを減らす。/dev/shm がない環境(macOS など)では data_dir の下に置く。
+    """
+    if shm.is_dir() and os.access(shm, os.W_OK):
+        return shm / "atom-watch"
+    return data_dir / "segments"
 
 
 def load_config(path: Path | None) -> Config:
