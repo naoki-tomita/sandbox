@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>atom-watch</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <h1 class="brand">atom<span>·</span>watch</h1>
+    <p class="sysline" id="sysline" aria-live="polite"></p>
+  </header>
+
+  <main>
+    <section aria-label="ライブ映像" class="live" id="live"></section>
+
+    <section class="day" aria-label="日付と絞り込み">
+      <div class="daynav">
+        <button type="button" class="iconbtn" id="prevDay" aria-label="前の日">‹</button>
+        <label class="datepick">
+          <span id="dayLabel"></span>
+          <input type="date" id="dateInput" aria-label="日付を選ぶ">
+        </label>
+        <button type="button" class="iconbtn" id="nextDay" aria-label="次の日">›</button>
+        <button type="button" class="textbtn" id="todayBtn">今日</button>
+      </div>
+      <div class="filters">
+        <div class="chips" id="cameraChips" role="group" aria-label="カメラで絞り込む"></div>
+        <div class="chips" id="tagChips" role="group" aria-label="タグで絞り込む"></div>
+        <button type="button" class="chip star-filter" id="starFilter" aria-pressed="false">★ 星付きのみ</button>
+      </div>
+      <div class="timeline" id="timeline" aria-label="この日のイベントの時刻">
+        <div class="track" id="track"></div>
+        <div class="hours" aria-hidden="true">
+          <span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="イベント一覧">
+      <p class="count" id="count"></p>
+      <ol class="grid" id="grid"></ol>
+      <p class="empty" id="empty" hidden></p>
+      <button type="button" class="textbtn more" id="more" hidden>さらに表示</button>
+    </section>
+  </main>
+
+  <dialog id="player" aria-labelledby="playerTitle">
+    <div class="player">
+      <div class="stage">
+        <video id="video" controls playsinline preload="metadata"></video>
+        <canvas id="overlay" aria-hidden="true"></canvas>
+      </div>
+      <div class="meta">
+        <h2 id="playerTitle"></h2>
+        <ul class="tags" id="playerTags"></ul>
+        <div class="actions">
+          <label class="toggle"><input type="checkbox" id="showBoxes" checked> 検出枠を表示</label>
+          <button type="button" class="textbtn" id="starBtn"></button>
+          <a class="textbtn" id="downloadBtn" download>保存</a>
+          <button type="button" class="textbtn danger" id="deleteBtn">削除</button>
+        </div>
+        <div class="actions nav">
+          <button type="button" class="textbtn" id="prevEvent">← 新しい方</button>
+          <button type="button" class="textbtn" id="nextEvent">古い方 →</button>
+          <button type="button" class="textbtn" id="closePlayer">閉じる</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

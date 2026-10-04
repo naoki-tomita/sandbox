@@ -1,0 +1,32 @@
+[project]
+name = "atom-watch"
+version = "0.1.0"
+description = "ATOM Cam などの RTSP カメラを解析し、意味のある動きだけを録画・閲覧する常駐 CLI"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26",
+  "opencv-python-headless>=4.9",
+  "onnxruntime>=1.17",
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+]
+
+[project.scripts]
+atom-watch = "atomwatch.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "httpx2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atomwatch"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

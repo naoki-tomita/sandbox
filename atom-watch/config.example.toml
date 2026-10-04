@@ -1,0 +1,58 @@
+# atom-watch の設定例。config.toml という名前でコピーして使う:
+#   cp config.example.toml config.toml
+# 相対パスはこのファイルの置き場所が基準。
+
+data_dir = "data"          # 録画(clips/)・一時ファイル(segments/)・DB の保存先
+recorder_workers = 1       # クリップ書き出しの並列数
+
+[web]
+host = "0.0.0.0"           # LAN から見るなら 0.0.0.0、このマシンだけなら 127.0.0.1
+port = 8080
+# Tailscale Funnel などで外に出す場合は必ず設定する(設定したときだけ Basic 認証が有効になる)
+# [web.auth]
+# user = "me"
+# password = "change-me"
+
+[detector]
+model = "models/yolox_nano.onnx"  # scripts/fetch_model.py で取得。tiny にすると精度↑・負荷↑
+workers = 1                # 推論スレッド数。Mac なら 2 にしても良い
+threads = 0                # 1 回の推論で使う CPU スレッド数(0 = 自動)
+
+[retention]
+days = 14                  # これより古いイベントは削除
+max_gb = 20                # 合計容量の上限(全カメラ合計)。超えたら古い順に削除
+keep_starred = true        # 星付きのイベントは削除しない
+
+# 全カメラ共通の既定値。各カメラの [[cameras]] で同じキーを書けば上書きできる
+[defaults]
+analysis_width = 640       # 解析用に縮小するサイズ(録画は元の画質のまま)
+analysis_height = 360
+analysis_fps = 5           # 解析する fps。古いラズパイなら 3 程度に
+hwaccel = ""               # デコードの HW 支援。Mac: "videotoolbox"
+record_audio = true
+detect_interval = 0.5      # 動きがある間の推論間隔(秒)。古いラズパイなら 1.0 程度に
+targets = ["person", "cat", "dog", "bird", "car", "bicycle", "motorcycle"]
+min_confidence = 0.4       # この信頼度未満の検出は無視
+min_hits = 2               # 1 イベント中にこの回数以上検出されたら録画として確定
+min_area = 0.003           # 動き領域の最小面積(画面比)。小さな揺れを無視する
+lighting_change_ratio = 0.6 # 画面のこの割合以上が一度に変わったら照明変化とみなして無視
+pre_roll = 5               # 動き始めの何秒前から保存するか
+post_roll = 5              # 動きが止まってから何秒後まで保存するか
+max_event = 300            # 1 クリップの最大長(秒)。超えたら分割
+keep_unclassified = false  # true にすると対象物が写っていない動きも "motion" タグで残す(調整用)
+# ATOM Cam は映像に時刻が焼き込まれる。秒が変わるたびに動きと判定されないよう、その領域を無視する。
+# 位置はウェブ画面のライブ映像で確認して合わせる(例は右下)。[x, y, 幅, 高さ] を画面比(0〜1)で書く
+mask = [[0.70, 0.90, 0.30, 0.10]]
+
+[[cameras]]
+id = "entrance"            # 英数字・_・-。保存先のディレクトリ名になるので後から変えない
+name = "玄関"
+url = "rtsp://user:password@192.168.1.20:8554/live"
+
+[[cameras]]
+id = "garden"
+name = "庭"
+url = "rtsp://user:password@192.168.1.21:8554/live"
+targets = ["person", "cat", "dog", "bird"]   # このカメラだけ対象を変える例
+min_area = 0.005
+# enabled = false          # 一時的に止めたいとき

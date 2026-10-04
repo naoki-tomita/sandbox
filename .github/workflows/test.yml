@@ -1,4 +1,5 @@
-# balatro / canvas-renderer / openworld のユニットテスト (vitest)。PR と main 押し込みの両方で走る。
+# balatro / canvas-renderer / openworld のユニットテスト (vitest) と atom-watch のテスト (pytest)。
+# PR を出したときと、main に push したときに実行する。
 
 name: Test
 
@@ -8,6 +9,7 @@ on:
       - 'balatro/**'
       - 'canvas-renderer/**'
       - 'openworld/**'
+      - 'atom-watch/**'
       - '.github/workflows/test.yml'
   push:
     branches: [main]
@@ -15,6 +17,7 @@ on:
       - 'balatro/**'
       - 'canvas-renderer/**'
       - 'openworld/**'
+      - 'atom-watch/**'
 
 concurrency:
   group: test-${{ github.ref }}
@@ -69,3 +72,21 @@ jobs:
       - name: Validate openworld world data
         run: npm run world:validate -- --strict
         working-directory: openworld
+
+  atom-watch:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: atom-watch
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+          enable-cache: true
+          cache-dependency-glob: atom-watch/uv.lock
+
+      # 物体検出のテストは合成データで後処理だけを検証するので、モデルのダウンロードは不要
+      - name: Run atom-watch tests
+        run: uv run --locked pytest -q
