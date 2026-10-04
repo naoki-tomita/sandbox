@@ -29,7 +29,7 @@ class CameraPipeline:
     def __init__(
         self,
         cam: CameraConfig,
-        data_dir: Path,
+        segment_dir: Path,
         detection: DetectionService | None,
         recorder: Recorder,
         status: CameraStatus,
@@ -40,7 +40,7 @@ class CameraPipeline:
         self.recorder = recorder
         self.status = status
         # 前の余白 + 余裕分だけセグメントを残す
-        self.segments = SegmentStore(data_dir / "segments" / cam.id, keep_seconds=cam.pre_roll + 30)
+        self.segments = SegmentStore(segment_dir / cam.id, keep_seconds=cam.pre_roll + 30)
         self.segments.clear()  # 前回の起動の残りは使わない
         self.source = FfmpegSource(cam, self.segments.directory, ffmpeg)
         self.motion = MotionDetector(

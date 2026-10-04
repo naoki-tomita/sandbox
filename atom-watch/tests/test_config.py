@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from atomwatch.config import ConfigError, parse_config, single_camera
+from atomwatch.config import ConfigError, default_segment_dir, parse_config, single_camera
 
 
 def test_defaults_are_merged_and_overridden(tmp_path):
@@ -57,3 +57,17 @@ def test_example_config_parses():
     path = Path(__file__).parent.parent / "config.example.toml"
     cfg = parse_config(tomllib.loads(path.read_text()), base_dir=path.parent)
     assert len(cfg.cameras) == 2
+
+
+def test_segment_dir_is_relative_to_config(tmp_path):
+    assert parse_config({}, base_dir=tmp_path).segment_dir is None
+    assert parse_config({"segment_dir": "seg"}, base_dir=tmp_path).segment_dir == tmp_path / "seg"
+    assert parse_config({"segment_dir": "/abs/seg"}, base_dir=tmp_path).segment_dir == Path("/abs/seg")
+
+
+def test_default_segment_dir_prefers_shm(tmp_path):
+    shm = tmp_path / "shm"
+    data = tmp_path / "data"
+    assert default_segment_dir(data, shm=shm) == data / "segments"  # /dev/shm がない(macOS など)
+    shm.mkdir()
+    assert default_segment_dir(data, shm=shm) == shm / "atom-watch"

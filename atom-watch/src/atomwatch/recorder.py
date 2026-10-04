@@ -161,7 +161,8 @@ class Recorder:
         )
 
     def _concat(self, paths: list[Path], out: Path) -> None:
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+        # 一覧ファイルもセグメントと同じ場所(既定ではメモリ上の /dev/shm)に置く
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", dir=paths[0].parent, delete=False) as f:
             for p in paths:
                 escaped = str(p.resolve()).replace("'", "'\\''")
                 f.write(f"file '{escaped}'\n")

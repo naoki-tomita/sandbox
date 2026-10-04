@@ -17,6 +17,10 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       # 起動時に表示する URL 用(コンテナの中からはホスト側のポートが分からないため)
       ATOMWATCH_PUBLISHED_PORT: ${ATOMWATCH_PORT:-8080}
+    # 録画素材の一時ファイル(数秒ごとの .ts)はメモリ上の /dev/shm に置く(SD カードの書き込みを減らす)。
+    # Docker の既定は 64MB で足りないので広げる。目安は「カメラ台数 × 最大 6 分ぶんの映像」。
+    # 実際に使った分だけメモリを消費する
+    shm_size: "512m"
     # Ctrl+C のあと、録画中のクリップを保存し終えるまで待つ
     stop_grace_period: 60s
     # ラズパイでハードウェアデコード(input_args = ["-c:v", "h264_v4l2m2m"])を使う場合

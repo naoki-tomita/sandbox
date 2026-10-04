@@ -14,7 +14,7 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-from .config import Config, ConfigError, load_config, single_camera
+from .config import Config, ConfigError, default_segment_dir, load_config, single_camera
 from .db import Database
 from .detection_service import DetectionService
 from .pipeline import CameraPipeline
@@ -59,6 +59,8 @@ def build_config(args: argparse.Namespace) -> Config:
         config = replace(config, cameras=[c for c in config.cameras if c.id in wanted])
     if args.data_dir:
         config = replace(config, data_dir=args.data_dir)
+    if config.segment_dir is None:
+        config = replace(config, segment_dir=default_segment_dir(config.data_dir))
     if args.host or args.port:
         config = replace(
             config, web=replace(config.web, host=args.host or config.web.host, port=args.port or config.web.port)
@@ -144,11 +146,13 @@ def print_banner(config: Config, detector_name: str) -> None:
         # コンテナの中からはホスト側のパスや IP が分からないので、compose.yaml の前提で案内する
         port = int(os.environ.get("ATOMWATCH_PUBLISHED_PORT", port))
         print(f" 保存先: {config.data_dir.resolve()}(compose.yaml と同じ場所の data/)")
+        print(f" 一時ファイル: {config.segment_dir}")
         print(" 閲覧:")
         print(f"   • http://localhost:{port}/")
         print(f"   • LAN からは http://<このマシンの IP アドレス>:{port}/")
     else:
         print(f" 保存先: {config.data_dir.resolve()}")
+        print(f" 一時ファイル: {config.segment_dir}")
         print(" 閲覧:")
         print(f"   • http://localhost:{port}/")
     if config.web.host in ("0.0.0.0", "::") and not in_docker():
@@ -230,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
 
     recorder = Recorder(data_dir, db, workers=config.recorder_workers, on_saved=on_saved)
     pipelines = [
-        CameraPipeline(cam, data_dir, detection, recorder, registry.cameras[cam.id]) for cam in config.cameras
+        CameraPipeline(cam, config.segment_dir, detection, recorder, registry.cameras[cam.id]) for cam in config.cameras
     ]
 
     from .web.app import create_app
@@ -295,6 +299,8 @@ def main(argv: list[str] | None = None) -> int:
         if recorder.pending:
             print(f"録画中のクリップを保存しています({recorder.pending} 件)…", flush=True)
         recorder.stop()
+        for p in pipelines:
+            p.segments.clear()  # メモリ上に置いている場合は、ここで解放する
         if detection is not None:
             detection.stop()
         web.stop()
