@@ -115,7 +115,7 @@ def test_analysis_frames_line_up_with_recorded_clip(tmp_path: Path):
     for first in (0, 1):
         diffs = []
         clip = tmp_path / f"clip{first}.mp4"
-        rec._concat([s.path for s in segs[first:]], clip)
+        rec._concat(segs[first:], clip)
         video_start = segs[first].start
         for ts, n in stamped:
             t_offset = ts - video_start  # recorder が DB に保存する値。再生画面はこの位置に枠を出す

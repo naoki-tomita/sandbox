@@ -22,7 +22,7 @@ import numpy as np
 from .db import Database, NewEvent
 from .detector import Detection
 from .events import FinishedEvent
-from .segments import SegmentStore
+from .segments import Segment, SegmentStore
 
 # 最後のセグメントが書き終わるのを待つ上限(秒)
 SEGMENT_WAIT_SECONDS = 30.0
@@ -149,7 +149,7 @@ class Recorder:
         thumb_rel = rel_dir / f"{stem}.jpg"
         video_path = self.data_dir / video_rel
 
-        self._concat([s.path for s in segments], video_path, job.rotate)
+        self._concat(segments, video_path, job.rotate)
         duration = self._probe_duration(video_path)
         if duration is None:
             duration = segments[-1].end - video_start
@@ -174,12 +174,15 @@ class Recorder:
             )
         )
 
-    def _concat(self, paths: list[Path], out: Path, rotate: int = 0) -> None:
+    def _concat(self, segments: list[Segment], out: Path, rotate: int = 0) -> None:
         # 一覧ファイルもセグメントと同じ場所(既定ではメモリ上の /dev/shm)に置く
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", dir=paths[0].parent, delete=False) as f:
-            for p in paths:
-                escaped = str(p.resolve()).replace("'", "'\\''")
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", dir=segments[0].path.parent, delete=False) as f:
+            for seg in segments:
+                escaped = str(seg.path.resolve()).replace("'", "'\\''")
                 f.write(f"file '{escaped}'\n")
+                # 長さを書かないと、concat は映像と音声の長い方をセグメントの長さとみなす。音声が映像より少し
+                # 長く入っているので、つなぐたびに後ろへずれて、検出時刻と録画の位置が合わなくなる
+                f.write(f"duration {seg.end - seg.start:.6f}\n")
             list_path = Path(f.name)
         tmp_out = out.with_suffix(".part.mp4")
         def run() -> subprocess.CompletedProcess[str]:
