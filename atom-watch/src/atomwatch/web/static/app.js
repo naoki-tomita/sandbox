@@ -279,8 +279,8 @@ function renderTimeline() {
 const video = $("video");
 const overlay = $("overlay");
 // 検出枠を映像に合わせるための遅れ(秒)。録画の開始時刻(セグメントのファイル名)は実際の映像より遅れて付くため、
-// 検出時刻をそのまま使うと枠が先回りする。ATOM Cam の実測で約 0.8 秒
-const BOX_DELAY = 0.8;
+// 検出時刻をそのまま使うと枠が先回りする。ATOM Cam で見た目に合わせて 1.2 秒
+const BOX_DELAY = 1.2;
 // 1 回の検出結果を表示し続ける長さ(秒)。推論間隔(既定 0.5 秒)より少し長く
 const BOX_HOLD = 0.7;
 
