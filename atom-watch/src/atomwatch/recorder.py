@@ -26,6 +26,9 @@ from .segments import Segment, SegmentStore
 
 # 最後のセグメントが書き終わるのを待つ上限(秒)
 SEGMENT_WAIT_SECONDS = 30.0
+# 解析用フレームの場面は、録画ではストリーム時刻より少し後ろの位置に映っている(ffmpeg の中の処理の違いによる一定のずれ)。
+# 検出の録画上の位置をこの分だけ後ろにして、再生画面の検出枠を映像に合わせる。ATOM Cam のクリップ 4 本で実測して 0.2〜0.25 秒
+ANALYSIS_LAG = 0.2
 
 
 @dataclass
@@ -170,7 +173,7 @@ class Recorder:
                 size_bytes=video_path.stat().st_size,
                 peak_motion=ev.peak_motion,
                 tags=tags,
-                detections=[(ts - video_start, d.label, d.conf, d.box) for ts, d in ev.detections],
+                detections=[(ts - video_start + ANALYSIS_LAG, d.label, d.conf, d.box) for ts, d in ev.detections],
             )
         )
 
