@@ -1,0 +1,34 @@
+{
+  "name": "v4",
+  "description": "森の村リンデ: 南西の森の中の村。木こりの野営地",
+  "ops": [
+    {"op": "flatten", "note": "村の敷地", "at": [950, 4150], "radius": 70, "falloff": 90},
+    {"op": "smooth", "at": [950, 4150], "radius": 110, "falloff": 40, "iterations": 3}
+  ],
+  "paint": [
+    {"surface": "dirt", "note": "広場", "at": [950, 4150], "radius": 16, "jitter": 5}
+  ],
+  "objects": [
+    {"type": "well", "at": [950, 4150], "id": "v4_well"},
+    {"type": "marker", "at": [950, 4150], "id": "v4_center", "note": "森の村リンデ"},
+    {"type": "campfire", "at": [959, 4156]},
+    {"type": "house", "at": [950.0, 4184.0], "rotation": 180, "id": "v4_house_1"},
+    {"type": "barrel", "at": [947.2, 4179.8], "rotation": 37},
+    {"type": "house", "at": [967.0, 4179.4], "rotation": -150, "id": "v4_house_2"},
+    {"type": "crate", "at": [962.5, 4177.2], "rotation": 74},
+    {"type": "house", "at": [979.4, 4167.0], "rotation": -120, "id": "v4_house_3"},
+    {"type": "barrel", "at": [974.4, 4167.3], "rotation": 111},
+    {"type": "house", "at": [967.0, 4120.6], "rotation": -30, "id": "v4_house_4"},
+    {"type": "crate", "at": [967.3, 4125.6], "rotation": 148},
+    {"type": "house", "at": [920.6, 4133.0], "rotation": 60, "id": "v4_house_5"},
+    {"type": "barrel", "at": [925.6, 4132.7], "rotation": 185},
+    {"type": "house", "at": [916.0, 4150.0], "rotation": 90, "id": "v4_house_6"},
+    {"type": "crate", "at": [920.2, 4147.2], "rotation": 222},
+    {"type": "sign", "at": [1009.8, 4133.6], "rotation": 98, "props": {"text": "森の村リンデ"}},
+    {"type": "sign", "at": [933.1, 4090.4], "rotation": -171, "props": {"text": "森の村リンデ"}},
+    {"type": "tent", "at": [895, 4180], "rotation": 60},
+    {"type": "tent", "at": [888, 4190], "rotation": 80},
+    {"type": "tent", "at": [902, 4194], "rotation": 100},
+    {"type": "campfire", "at": [895, 4185]}
+  ]
+}

@@ -115,3 +115,48 @@ export function areaWeight(area: Area, x: number, z: number, falloff: number): n
   if (falloff <= 0 || d >= falloff) return 0;
   return 1 - smoothstep(0, falloff, d);
 }
+
+/**
+ * 折れ線から reach (m) 以内の格子点ごとに、最寄り区間・区間内位置・距離を求めて fn を呼ぶ。
+ * 区間ごとの近傍だけを走査するので、長い道や川でも速い。
+ */
+export function forEachNearPolyline(
+  cellSize: number,
+  maxIndex: number,
+  pts: Vec2[],
+  reach: number,
+  fn: (ix: number, iz: number, d: number, seg: number, t: number) => void,
+): void {
+  const b = pointsBounds(pts, reach);
+  const x0 = Math.max(0, Math.floor(b.minX / cellSize));
+  const z0 = Math.max(0, Math.floor(b.minZ / cellSize));
+  const x1 = Math.min(maxIndex, Math.ceil(b.maxX / cellSize));
+  const z1 = Math.min(maxIndex, Math.ceil(b.maxZ / cellSize));
+  if (x1 < x0 || z1 < z0) return;
+  const w = x1 - x0 + 1;
+  const n = w * (z1 - z0 + 1);
+  const best = new Float32Array(n).fill(Infinity);
+  const bestSeg = new Int32Array(n);
+  const bestT = new Float32Array(n);
+  for (let s = 0; s < pts.length - 1; s++) {
+    const sb = pointsBounds([pts[s], pts[s + 1]], reach);
+    const sx0 = Math.max(x0, Math.floor(sb.minX / cellSize));
+    const sz0 = Math.max(z0, Math.floor(sb.minZ / cellSize));
+    const sx1 = Math.min(x1, Math.ceil(sb.maxX / cellSize));
+    const sz1 = Math.min(z1, Math.ceil(sb.maxZ / cellSize));
+    for (let iz = sz0; iz <= sz1; iz++) {
+      for (let ix = sx0; ix <= sx1; ix++) {
+        const r = segmentDistance(ix * cellSize, iz * cellSize, pts[s], pts[s + 1]);
+        const k = (iz - z0) * w + (ix - x0);
+        if (r.d < best[k]) {
+          best[k] = r.d;
+          bestSeg[k] = s;
+          bestT[k] = r.t;
+        }
+      }
+    }
+  }
+  for (let k = 0; k < n; k++) {
+    if (best[k] <= reach) fn(x0 + (k % w), z0 + Math.floor(k / w), best[k], bestSeg[k], bestT[k]);
+  }
+}

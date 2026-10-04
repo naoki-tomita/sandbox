@@ -1,0 +1,39 @@
+{
+  "name": "v6",
+  "description": "東の町オステン: 南東のいちばん大きな町。二重の家並み",
+  "ops": [
+    {"op": "flatten", "note": "村の敷地", "at": [4250, 4250], "radius": 90, "falloff": 90},
+    {"op": "smooth", "at": [4250, 4250], "radius": 130, "falloff": 40, "iterations": 3}
+  ],
+  "paint": [
+    {"surface": "dirt", "note": "広場", "at": [4250, 4250], "radius": 16, "jitter": 5}
+  ],
+  "objects": [
+    {"type": "well", "at": [4250, 4250], "id": "v6_well"},
+    {"type": "marker", "at": [4250, 4250], "id": "v6_center", "note": "東の町オステン"},
+    {"type": "campfire", "at": [4259, 4256]},
+    {"type": "house", "at": [4250.0, 4284.0], "rotation": 180, "id": "v6_house_1"},
+    {"type": "barrel", "at": [4247.2, 4279.8], "rotation": 37},
+    {"type": "house", "at": [4267.0, 4279.4], "rotation": -150, "id": "v6_house_2"},
+    {"type": "crate", "at": [4262.5, 4277.2], "rotation": 74},
+    {"type": "house", "at": [4279.4, 4267.0], "rotation": -120, "id": "v6_house_3"},
+    {"type": "barrel", "at": [4274.4, 4267.3], "rotation": 111},
+    {"type": "house", "at": [4284.0, 4250.0], "rotation": -90, "id": "v6_house_4"},
+    {"type": "crate", "at": [4279.8, 4252.8], "rotation": 148},
+    {"type": "house", "at": [4279.4, 4233.0], "rotation": -60, "id": "v6_house_5"},
+    {"type": "barrel", "at": [4277.2, 4237.5], "rotation": 185},
+    {"type": "house", "at": [4241.2, 4217.2], "rotation": 15, "id": "v6_house_6"},
+    {"type": "crate", "at": [4245.0, 4220.5], "rotation": 222},
+    {"type": "house", "at": [4226.0, 4226.0], "rotation": 45, "id": "v6_house_7"},
+    {"type": "barrel", "at": [4230.9, 4226.9], "rotation": 259},
+    {"type": "house", "at": [4250.0, 4308.0], "rotation": 180, "id": "v6_house_8"},
+    {"type": "crate", "at": [4247.2, 4303.8], "rotation": 296},
+    {"type": "house", "at": [4308.0, 4250.0], "rotation": -90, "id": "v6_house_9"},
+    {"type": "barrel", "at": [4303.8, 4252.8], "rotation": 333},
+    {"type": "house", "at": [4209.0, 4209.0], "rotation": 45, "id": "v6_house_10"},
+    {"type": "crate", "at": [4213.9, 4210.0], "rotation": 370},
+    {"type": "sign", "at": [4254.4, 4168.1], "rotation": 170, "props": {"text": "東の町オステン"}},
+    {"type": "sign", "at": [4168.8, 4238.9], "rotation": -105, "props": {"text": "東の町オステン"}},
+    {"type": "tower", "at": [4250, 4170], "id": "osten_tower", "note": "町の見張り塔"}
+  ]
+}

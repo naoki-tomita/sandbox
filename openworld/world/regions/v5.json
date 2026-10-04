@@ -1,0 +1,30 @@
+{
+  "name": "v5",
+  "description": "川辺の村ソラ: 南の村。東へ行くには川を橋で渡る",
+  "ops": [
+    {"op": "flatten", "note": "村の敷地", "at": [2450, 4250], "radius": 70, "falloff": 90},
+    {"op": "smooth", "at": [2450, 4250], "radius": 110, "falloff": 40, "iterations": 3}
+  ],
+  "paint": [
+    {"surface": "dirt", "note": "広場", "at": [2450, 4250], "radius": 16, "jitter": 5}
+  ],
+  "objects": [
+    {"type": "well", "at": [2450, 4250], "id": "v5_well"},
+    {"type": "marker", "at": [2450, 4250], "id": "v5_center", "note": "川辺の村ソラ"},
+    {"type": "campfire", "at": [2459, 4256]},
+    {"type": "house", "at": [2450.0, 4284.0], "rotation": 180, "id": "v5_house_1"},
+    {"type": "barrel", "at": [2447.2, 4279.8], "rotation": 37},
+    {"type": "house", "at": [2474.0, 4274.0], "rotation": -135, "id": "v5_house_2"},
+    {"type": "crate", "at": [2469.1, 4273.1], "rotation": 74},
+    {"type": "house", "at": [2474.0, 4226.0], "rotation": -45, "id": "v5_house_3"},
+    {"type": "barrel", "at": [2473.1, 4230.9], "rotation": 111},
+    {"type": "house", "at": [2450.0, 4216.0], "rotation": 0, "id": "v5_house_4"},
+    {"type": "crate", "at": [2452.8, 4220.2], "rotation": 148},
+    {"type": "house", "at": [2426.0, 4226.0], "rotation": 45, "id": "v5_house_5"},
+    {"type": "barrel", "at": [2430.9, 4226.9], "rotation": 185},
+    {"type": "house", "at": [2426.0, 4274.0], "rotation": 135, "id": "v5_house_6"},
+    {"type": "crate", "at": [2426.9, 4269.1], "rotation": 222},
+    {"type": "sign", "at": [2508.2, 4228.7], "rotation": 103, "props": {"text": "川辺の村ソラ"}},
+    {"type": "sign", "at": [2389.4, 4237.1], "rotation": -109, "props": {"text": "川辺の村ソラ"}}
+  ]
+}

@@ -105,6 +105,8 @@ export interface ScatterDef {
   maxSlope: number;
   avoid: Surface[];
   onlyOn: Surface[] | null;
+  /** この領域の中には置かない（村の敷地など） */
+  exclude: Area[];
 }
 
 export interface RegionDef {
@@ -406,7 +408,7 @@ function readObject(c: Checker, raw: unknown, path: string): ObjectDef | null {
 function readScatter(c: Checker, raw: unknown, path: string): ScatterDef | null {
   const o = c.obj(raw, path);
   if (!o) return null;
-  c.keys(o, path, ['type', 'note', ...AREA_KEYS, 'density', 'scale', 'maxSlope', 'avoid', 'onlyOn']);
+  c.keys(o, path, ['type', 'note', ...AREA_KEYS, 'density', 'scale', 'maxSlope', 'avoid', 'onlyOn', 'exclude']);
   return {
     type: c.oneOf(o, 'type', path, OBJECT_TYPES),
     area: readArea(c, o, path),
@@ -415,6 +417,11 @@ function readScatter(c: Checker, raw: unknown, path: string): ScatterDef | null 
     maxSlope: c.num(o, 'maxSlope', path, { def: 30, min: 0, max: 90 }),
     avoid: o.avoid === undefined ? ['road', 'sand', 'rock', 'snow'] : c.surfaces(o.avoid, `${path}.avoid`),
     onlyOn: o.onlyOn === undefined ? null : c.surfaces(o.onlyOn, `${path}.onlyOn`),
+    exclude: c.array(o, 'exclude', path).map((e, i) => {
+      const ex = c.obj(e, `${path}.exclude[${i}]`) ?? {};
+      c.keys(ex, `${path}.exclude[${i}]`, AREA_KEYS);
+      return readArea(c, ex, `${path}.exclude[${i}]`);
+    }),
   };
 }
 
