@@ -90,3 +90,12 @@ jobs:
       # 物体検出のテストは合成データで後処理だけを検証するので、モデルのダウンロードは不要
       - name: Run atom-watch tests
         run: uv run --locked pytest -q
+
+  # Dockerfile が壊れていないかの確認(ビルドだけ。push はしない)
+  atom-watch-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build atom-watch image
+        run: docker build -t atom-watch atom-watch

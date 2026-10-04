@@ -1,0 +1,26 @@
+# 使い方:
+#   cp config.example.toml config.toml   # カメラの URL などを書く
+#   docker compose up --build            # 起動(Ctrl+C で終了)
+services:
+  atom-watch:
+    build: .
+    image: atom-watch
+    init: true          # ffmpeg などの子プロセスを確実に回収する
+    restart: "no"       # 人が起動して、人が止める前提
+    ports:
+      # 左側がこのマシンで開くポート。変えたいときは ATOMWATCH_PORT=9000 docker compose up
+      - "${ATOMWATCH_PORT:-8080}:8080"
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+      - ./data:/app/data
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      # 起動時に表示する URL 用(コンテナの中からはホスト側のポートが分からないため)
+      ATOMWATCH_PUBLISHED_PORT: ${ATOMWATCH_PORT:-8080}
+    # Ctrl+C のあと、録画中のクリップを保存し終えるまで待つ
+    stop_grace_period: 60s
+    # ラズパイでハードウェアデコード(input_args = ["-c:v", "h264_v4l2m2m"])を使う場合
+    # devices:
+    #   - /dev/video10
+    #   - /dev/video11
+    #   - /dev/video12

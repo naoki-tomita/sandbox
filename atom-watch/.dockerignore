@@ -1,0 +1,7 @@
+.venv/
+**/__pycache__/
+data/
+models/
+test-media/
+config.toml
+tests/
