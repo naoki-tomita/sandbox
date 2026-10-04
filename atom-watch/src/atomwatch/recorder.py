@@ -130,9 +130,9 @@ class Recorder:
     def process(self, job: RecordJob) -> int | None:
         ev = job.event
         store = job.segments
-        # クリップ終端を含むセグメントが書き終わる(= 次のセグメントが始まる)まで待つ
+        # クリップ終端を含むセグメントが書き終わる(= ffmpeg の一覧に載る)まで待つ
         deadline = time.monotonic() + SEGMENT_WAIT_SECONDS
-        while not store.closed and not store.has_segment_after(ev.clip_end) and time.monotonic() < deadline:
+        while not store.closed and not store.covers(ev.clip_end) and time.monotonic() < deadline:
             time.sleep(0.5)
         segments = store.select(ev.clip_start, ev.clip_end)
         if not segments:
@@ -152,8 +152,7 @@ class Recorder:
         self._concat([s.path for s in segments], video_path, job.rotate)
         duration = self._probe_duration(video_path)
         if duration is None:
-            last = segments[-1]
-            duration = (last.end if last.end is not None else ev.clip_end) - video_start
+            duration = segments[-1].end - video_start
 
         thumb_ok = self._write_thumbnail(ev, video_path, video_start, self.data_dir / thumb_rel)
 

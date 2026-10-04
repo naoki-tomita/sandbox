@@ -278,9 +278,6 @@ function renderTimeline() {
 
 const video = $("video");
 const overlay = $("overlay");
-// 検出枠を映像に合わせるための遅れ(秒)。録画の開始時刻(セグメントのファイル名)は実際の映像より遅れて付くため、
-// 検出時刻をそのまま使うと枠が先回りする。ATOM Cam の実測で約 0.8 秒
-const BOX_DELAY = 0.8;
 // 1 回の検出結果を表示し続ける長さ(秒)。推論間隔(既定 0.5 秒)より少し長く
 const BOX_HOLD = 0.7;
 
@@ -331,8 +328,7 @@ function drawOverlay() {
   const scale = Math.min(cw / video.videoWidth, ch / video.videoHeight);
   const vw = video.videoWidth * scale, vh = video.videoHeight * scale;
   const ox = (cw - vw) / 2, oy = (ch - vh) / 2;
-  // 検出時刻は録画より少し早く記録されるので、その分遅らせて合わせる
-  const t = video.currentTime - BOX_DELAY;
+  const t = video.currentTime;
   // 直前の 1 回分の推論結果だけを、次の推論まで(最大 BOX_HOLD 秒)表示する。先の結果は出さない
   let latest = -Infinity;
   for (const d of ev.detections) {

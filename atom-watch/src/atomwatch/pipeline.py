@@ -42,7 +42,7 @@ class CameraPipeline:
         # 前の余白 + 余裕分だけセグメントを残す
         self.segments = SegmentStore(segment_dir / cam.id, keep_seconds=cam.pre_roll + 30)
         self.segments.clear()  # 前回の起動の残りは使わない
-        self.source = FfmpegSource(cam, self.segments.directory, ffmpeg)
+        self.source = FfmpegSource(cam, self.segments, ffmpeg)
         self.motion = MotionDetector(
             cam.analysis_size[::-1],
             mask_regions=cam.mask,

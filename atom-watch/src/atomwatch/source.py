@@ -3,6 +3,9 @@
 1. 録画用: 映像は再エンコードせずに(-c:v copy)短いセグメントファイルへ書き出す
 2. 解析用: 縮小・間引きした生フレーム(bgr24)を stdout に流す
 
+どちらも同じ ffmpeg の中の同じストリーム時刻に乗っているので、フレームの時刻とセグメントの時刻は
+ストリーム時刻から決める(StreamClock)。受信した時刻をそのまま使うと、録画側の時刻とずれる。
+
 切断やフレームの途絶を検知したら、待ち時間を伸ばしながら(指数バックオフ)再起動する。
 """
 
@@ -20,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 from .config import CameraConfig
-from .segments import FILENAME_FORMAT, SUFFIX
+from .segments import SegmentStore
 
 STALL_SECONDS = 15.0  # この間フレームが来なければ ffmpeg を再起動する
 MAX_BACKOFF = 60.0
@@ -51,7 +54,8 @@ def mask_url(url: str) -> str:
     return re.sub(r"(://[^:/@]+:)[^@]*@", r"\1***@", url)
 
 
-def build_command(cam: CameraConfig, segment_dir: Path, ffmpeg: str = "ffmpeg") -> list[str]:
+def build_command(cam: CameraConfig, segment_pattern: Path, segment_list: Path, ffmpeg: str = "ffmpeg") -> list[str]:
+    """segment_pattern: セグメントのファイル名(%06d に連番が入る)。segment_list: 書き終えたセグメントの一覧(CSV)。"""
     cmd = [ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin"]
     if cam.hwaccel:
         cmd += ["-hwaccel", cam.hwaccel]
@@ -77,23 +81,47 @@ def build_command(cam: CameraConfig, segment_dir: Path, ffmpeg: str = "ffmpeg") 
         "-segment_time", str(cam.segment_seconds),
         "-segment_format", "mpegts",
         "-reset_timestamps", "1",
-        "-strftime", "1",
-        str(segment_dir / f"{FILENAME_FORMAT}{SUFFIX}"),
+        # 「ファイル名,開始,終了」をストリーム時刻(秒)で追記する
+        "-segment_list", str(segment_list),
+        "-segment_list_type", "csv",
+        str(segment_pattern),
     ]
-    # 出力 2: 解析用の生フレーム
-    vf = f"fps={cam.analysis_fps},scale={cam.analysis_width}:{cam.analysis_height}"
+    # 出力 2: 解析用の生フレーム。start_time=0 で、k 枚目のフレームがストリーム時刻 k / fps ちょうどになる
+    vf = f"fps={cam.analysis_fps}:start_time=0,scale={cam.analysis_width}:{cam.analysis_height}"
     if cam.rotate:
         vf += "," + ROTATE_FILTERS[cam.rotate]
     cmd += ["-map", "0:v:0", "-an", "-vf", vf, "-pix_fmt", "bgr24", "-f", "rawvideo", "pipe:1"]
     return cmd
 
 
+class StreamClock:
+    """解析用フレームの番号(ffmpeg の起動ごとに 0 から)を実時刻に直す。
+
+    k 枚目のフレームのストリーム時刻は k / fps。実時刻との対応(アンカー = ストリーム時刻 0 の実時刻)は
+    「受信時刻 - ストリーム時刻」の最小値、つまり一番遅れずに届いたフレームから決める。
+    接続直後はフレームがまとめて届くので、アンカーは最初の数秒で下がって落ち着く。
+    """
+
+    def __init__(self, fps: float) -> None:
+        self.fps = fps
+        self.anchor: float | None = None
+
+    def stamp(self, index: int, received_at: float) -> tuple[float, bool]:
+        """(フレームの実時刻, アンカーが変わったか) を返す。"""
+        stream_time = index / self.fps
+        candidate = received_at - stream_time
+        changed = self.anchor is None or candidate < self.anchor
+        if changed:
+            self.anchor = candidate
+        return self.anchor + stream_time, changed
+
+
 class FfmpegSource:
     """フレームを読み続けるスレッドを持ち、常に「最新の 1 枚」だけを保持する。"""
 
-    def __init__(self, cam: CameraConfig, segment_dir: Path, ffmpeg: str = "ffmpeg") -> None:
+    def __init__(self, cam: CameraConfig, segments: SegmentStore, ffmpeg: str = "ffmpeg") -> None:
         self.cam = cam
-        self.segment_dir = segment_dir
+        self.segments = segments
         self.ffmpeg = ffmpeg
         self._w, self._h = cam.analysis_size
         self._frame_bytes = self._w * self._h * 3
@@ -165,8 +193,10 @@ class FfmpegSource:
             backoff = min(MAX_BACKOFF, backoff * 2)
 
     def _run_once(self) -> None:
-        self.segment_dir.mkdir(parents=True, exist_ok=True)
-        cmd = build_command(self.cam, self.segment_dir, self.ffmpeg)
+        self.segments.directory.mkdir(parents=True, exist_ok=True)
+        run = self.segments.new_run()
+        clock = StreamClock(self.cam.analysis_fps)
+        cmd = build_command(self.cam, self.segments.segment_pattern(run), self.segments.list_path(run), self.ffmpeg)
         self._stderr_tail.clear()
         try:
             proc = subprocess.Popen(
@@ -199,19 +229,24 @@ class FfmpegSource:
 
         threading.Thread(target=watchdog, daemon=True).start()
         assert proc.stdout is not None
+        index = 0
         try:
             while not self._stop.is_set():
                 buf = _read_exact(proc.stdout, self._frame_bytes)
                 if buf is None:
                     break
                 last_frame[0] = time.monotonic()
+                ts, anchor_changed = clock.stamp(index, time.time())
+                index += 1
+                if anchor_changed:
+                    self.segments.set_anchor(run, clock.anchor)
                 frame = np.frombuffer(buf, dtype=np.uint8).reshape(self._h, self._w, 3)
                 if not self.connected:
                     self.connected = True
                     self.last_error = ""
                 with self._cond:
                     self._seq += 1
-                    self._latest = (time.time(), frame)
+                    self._latest = (ts, frame)
                     self._cond.notify_all()
         finally:
             watchdog_stop.set()
