@@ -86,3 +86,19 @@ h1 {
   pointer-events: none;
 }
 #debugHud.hidden { display: none; }
+
+#prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 9%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  background: var(--panel);
+  border: 1px solid rgba(232, 183, 92, 0.35);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+#prompt:empty { display: none; }
+#prompt kbd { color: var(--accent); font-family: ui-monospace, monospace; margin-right: 0.3em; }

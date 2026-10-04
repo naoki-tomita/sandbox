@@ -28,6 +28,8 @@
     {"type": "barrel", "at": [4507.5, 972.8], "rotation": 259},
     {"type": "house", "at": [4490.6, 983.0], "rotation": 60, "id": "v3_house_8"},
     {"type": "crate", "at": [4495.6, 982.7], "rotation": 296},
+    {"type": "stable", "at": [4483.2, 1036.8], "rotation": 135, "id": "v3_stable"},
+    {"type": "horse", "at": [4486.2, 1031.8], "rotation": 315, "id": "v3_horse_1", "props": {"coat": "chestnut"}},
     {"type": "sign", "at": [4448.3, 1006.5], "rotation": -92, "props": {"text": "港町ノルン"}},
     {"type": "sign", "at": [4522.1, 1072.0], "rotation": -5, "props": {"text": "港町ノルン"}}
   ]

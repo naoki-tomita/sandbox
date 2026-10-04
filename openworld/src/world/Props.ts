@@ -315,6 +315,51 @@ function buildModels(): Record<ObjectType, Part[]> {
         color: C.darkWood,
       },
     ],
+    stable: [
+      {
+        geo: merge(
+          at(box(7, 2.5, 0.15), 0, 1.25, -1.95), // 奥の壁
+          at(box(0.15, 2.5, 3.9), 3.45, 1.25, 0),
+          at(box(0.15, 2.5, 3.9), -3.45, 1.25, 0),
+          at(box(0.1, 1.3, 2.6), 1.15, 0.65, -0.6), // 仕切り
+          at(box(0.1, 1.3, 2.6), -1.15, 0.65, -0.6),
+          at(box(1.8, 0.5, 0.5), -2.1, 0.25, 3.0), // 水桶
+        ),
+        color: C.wood,
+        pattern: 'wood',
+        tile: 1.5,
+        vary: 0.08,
+      },
+      {
+        geo: merge(
+          ...[-3.45, -1.15, 1.15, 3.45].map((x) => at(box(0.22, 2.9, 0.22), x, 1.45, 1.95)),
+          at(box(7.1, 0.25, 0.25), 0, 2.85, 1.95),
+          // 馬つなぎの横木
+          at(box(0.15, 1.1, 0.15), 1.2, 0.55, 3.2),
+          at(box(0.15, 1.1, 0.15), 3.2, 0.55, 3.2),
+          at(cyl(0.06, 0.06, 2.3, 6).rotateZ(Math.PI / 2), 2.2, 1.0, 3.2),
+        ),
+        color: C.darkWood,
+        pattern: 'wood',
+        tile: 1,
+      },
+      { geo: at(box(7.8, 0.14, 5).rotateX(0.14), 0, 3.15, 0.15), color: C.roof, pattern: 'rooftile', tile: 2, vary: 0.06 },
+      {
+        geo: merge(
+          at(box(1.1, 0.5, 0.6), -2.3, 0.25, -1.4),
+          at(box(1.1, 0.5, 0.6), 2.3, 0.25, -1.4),
+          at(box(1.1, 0.5, 0.6), 2.3, 0.75, -1.4),
+          at(lump(0.6, 0, 31).scale(1.3, 0.5, 1), 0, 0.2, -1.2),
+        ),
+        color: 0xd2b866,
+        pattern: 'plaster',
+        tile: 0.8,
+        vary: 0.1,
+      },
+      { geo: at(box(1.6, 0.05, 0.36), -2.1, 0.42, 3.0), color: C.water },
+    ],
+    // 馬は src/mount/ が描く
+    horse: [],
   };
 }
 

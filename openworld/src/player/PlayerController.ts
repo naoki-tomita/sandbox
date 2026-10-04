@@ -17,6 +17,8 @@ export class PlayerController {
   /** 見た目の向き (ラジアン)。0 = +Z */
   facing = 0;
   mode: MoveMode = 'air';
+  /** 馬に乗っている（当たり判定を切り、位置は馬に合わせる） */
+  mounted = false;
 
   private readonly body: RAPIER.RigidBody;
   private readonly collider: RAPIER.Collider;
@@ -43,14 +45,30 @@ export class PlayerController {
     return this.collider;
   }
 
-  /** 地面の上に置き直す（スポーン・テレポート） */
-  teleport(x: number, z: number, facing = this.facing): void {
-    const y = this.world.heights.sample(x, z) + 0.2;
+  /** 地面の上（y を指定すればその高さ）に置き直す（スポーン・テレポート・下馬） */
+  teleport(x: number, z: number, facing = this.facing, y = this.world.heights.sample(x, z) + 0.2): void {
     this.position.set(x, y, z);
     this.prev.copy(this.position);
     this.velocity.set(0, 0, 0);
     this.facing = facing;
     this.body.setTranslation({ x, y: y + this.centerOffset, z }, true);
+  }
+
+  /** 馬に乗る / 降りる */
+  setMounted(mounted: boolean): void {
+    this.mounted = mounted;
+    this.collider.setEnabled(!mounted);
+    this.velocity.set(0, 0, 0);
+    this.mode = mounted ? 'ground' : 'air';
+  }
+
+  /** 乗馬中: 位置を馬の足元に合わせる（HUD・当たり判定の範囲・カメラの基準になる） */
+  follow(pos: THREE.Vector3, velocity: THREE.Vector3, facing: number): void {
+    this.prev.copy(this.position);
+    this.position.copy(pos);
+    this.velocity.copy(velocity);
+    this.facing = facing;
+    this.body.setTranslation({ x: pos.x, y: pos.y + this.centerOffset, z: pos.z }, true);
   }
 
   /** 固定ステップ 1 回分。cameraYaw はカメラの向き（移動方向の基準） */

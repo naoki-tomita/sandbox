@@ -24,6 +24,8 @@
     {"type": "barrel", "at": [2652.8, 790.2], "rotation": 185},
     {"type": "house", "at": [2633.0, 790.6], "rotation": 30, "id": "v2_house_6"},
     {"type": "crate", "at": [2637.5, 792.8], "rotation": 222},
+    {"type": "stable", "at": [2618.3, 861.3], "rotation": 142, "id": "v2_stable"},
+    {"type": "horse", "at": [2620.6, 856.0], "rotation": 322, "id": "v2_horse_1", "props": {"coat": "black"}},
     {"type": "sign", "at": [2591.9, 841.6], "rotation": -77, "props": {"text": "峠の村ハイデ"}},
     {"type": "sign", "at": [2710.0, 835.7], "rotation": 68, "props": {"text": "峠の村ハイデ"}},
     {"type": "tower", "at": [2720, 760], "id": "heide_tower", "note": "峠を見張る塔"}
