@@ -6,15 +6,15 @@ data_dir = "data"          # 録画(clips/)・一時ファイル(segments/)・DB
 recorder_workers = 1       # クリップ書き出しの並列数
 
 [web]
-host = "0.0.0.0"           # LAN から見るなら 0.0.0.0、このマシンだけなら 127.0.0.1
-port = 8080
+host = "0.0.0.0"           # LAN から見るなら 0.0.0.0、このマシンだけなら 127.0.0.1(Docker では 0.0.0.0 のまま)
+port = 8080                # Docker ではこのままにして、ホスト側のポートは ATOMWATCH_PORT で変える
 # Tailscale Funnel などで外に出す場合は必ず設定する(設定したときだけ Basic 認証が有効になる)
 # [web.auth]
 # user = "me"
 # password = "change-me"
 
 [detector]
-model = "models/yolox_nano.onnx"  # scripts/fetch_model.py で取得。tiny にすると精度↑・負荷↑
+model = "models/yolox_nano.onnx"  # Docker イメージに同梱。"models/yolox_tiny.onnx" にすると精度↑・負荷↑
 workers = 1                # 推論スレッド数。Mac なら 2 にしても良い
 threads = 0                # 1 回の推論で使う CPU スレッド数(0 = 自動)
 

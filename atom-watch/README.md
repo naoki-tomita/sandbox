@@ -2,7 +2,7 @@
 
 ATOM Cam などの RTSP カメラ映像を常時解析し、**人・動物・車などが動いたときだけ**クリップとして保存する常駐 CLI です。保存したクリップはブラウザで見返せます(localhost / LAN、外からは Tailscale 経由)。
 
-- ターミナルで起動し、**Ctrl+C で止まります**。止めるときは、撮影中のクリップを保存してから終了します(もう一度 Ctrl+C を押すと即座に強制終了)
+- `docker compose up` で起動し、**Ctrl+C で止まります**。止めるときは、撮影中のクリップを保存してから終了します(もう一度 Ctrl+C を押すと即座に強制終了)
 - **複数のカメラ**を 1 つのプロセスでまとめて扱えます
 - 単純な動き検知だけだと、木の揺れや照明の変化ばかり溜まります。そこで、動きがあったときだけ物体検出(YOLOX)を走らせ、対象物が写っていたクリップだけを残します
 
@@ -15,25 +15,35 @@ ATOM Cam などの RTSP カメラ映像を常時解析し、**人・動物・車
                      ウェブ画面(ライブ・タイムライン・タグでの絞り込み・再生)
 ```
 
-## 必要なもの
+## セットアップ(Docker Compose)
 
-- Python 3.11 以上と [uv](https://docs.astral.sh/uv/)
-- ffmpeg
+必要なのは Docker だけです(ffmpeg・Python・物体検出モデルはイメージに入っています)。
 
-Mac の場合:
-
-```bash
-brew install ffmpeg uv
-```
-
-## セットアップ
+- Mac: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- ラズパイ: 64bit 版の Raspberry Pi OS に `curl -fsSL https://get.docker.com | sh`
 
 ```bash
 cd atom-watch
-uv sync                                  # 依存パッケージをインストール
-uv run python scripts/fetch_model.py     # 物体検出モデル(YOLOX-nano, 3.5MB)を models/ に取得
-cp config.example.toml config.toml       # 設定ファイルを作り、カメラの URL を書く
+cp config.example.toml config.toml   # カメラの URL などを書く(先に作っておかないと Docker がディレクトリを作ってしまう)
+docker compose up --build            # 起動。初回はイメージのビルドに数分かかる
 ```
+
+起動すると、カメラの一覧と閲覧用の URL が表示されます。動作中は 10 秒ごとに状態を表示します。
+
+```
+atom-watch-1  | [玄関] 接続中  5.0fps ● 録画中 今日3件
+atom-watch-1  | [庭  ] 接続中  5.0fps 監視中 今日12件
+atom-watch-1  | 21:04:10 推論 22ms 待ち0 | 保存待ち0 | ディスク 1.32GB
+```
+
+**Ctrl+C** で終了します。録画中のクリップを保存してから止まります(もう一度 Ctrl+C を押すと強制終了)。
+
+- ブラウザで `http://localhost:8080/` を開く。LAN の他の端末からは `http://<このマシンの IP>:8080/`
+- ポートを変えるには `ATOMWATCH_PORT=9000 docker compose up`(`config.toml` の `[web] port` は 8080 のままにする)
+- 録画は `compose.yaml` と同じ場所の `data/` に保存されます(`config.toml` の `data_dir` は既定の `"data"` のままにする)
+- Mac はスリープすると止まるので、`caffeinate -i docker compose up` のように起動するとスリープを防げます
+- 設定を変えたら Ctrl+C で止めて、`docker compose up` で起動し直す。コードを更新したら `--build` を付ける
+- 精度重視のモデル(tiny)もイメージに入っています。`config.toml` の `[detector]` に `model = "models/yolox_tiny.onnx"` と書けば切り替わります
 
 ### ATOM Cam で RTSP を有効にする
 
@@ -41,33 +51,29 @@ cp config.example.toml config.toml       # 設定ファイルを作り、カメ�
 2. 表示された `rtsp://ユーザー:パスワード@IPアドレス:8554/live` の形式の URL を、`config.toml` の `url` に書く
 3. カメラの IP アドレスが変わらないよう、ルーター側で固定(DHCP 予約)しておくと安心です
 
-## 起動と終了
-
-```bash
-uv run atom-watch                    # ./config.toml を読んで起動
-uv run atom-watch -c path/to.toml    # 設定ファイルを指定
-uv run atom-watch --url rtsp://...   # 設定ファイルなしで 1 台だけ試す
-uv run atom-watch --camera garden    # 設定のうち、指定した id のカメラだけ起動(調整時に便利)
-```
-
-起動すると、カメラの一覧と閲覧用の URL(localhost / LAN の IP / Tailscale の IP)が表示されます。動作中は 10 秒ごとに状態を表示します。
-
-```
-[玄関] 接続中  5.0fps ● 録画中 今日3件
-[庭  ] 接続中  5.0fps 監視中 今日12件
-21:04:10 推論 22ms 待ち0 | 保存待ち0 | ディスク 1.32GB
-```
-
-**Ctrl+C** で終了します。macOS では、起動中だけスリープしないようにしています(`--no-caffeinate` で無効化)。
-
 ### カメラなしで試す
 
-`url` にはローカルの動画ファイルも指定できます(ループ再生されます)。
+`url` にはローカルの動画ファイルも指定できます(ループ再生されます)。`data/` に置いた動画は、コンテナの中から `data/xxx.mp4` で見えます。
+
+```toml
+[[cameras]]
+id = "test"
+url = "data/sample.mp4"
+```
+
+### Docker を使わずに動かす
+
+Python 3.11 以上・[uv](https://docs.astral.sh/uv/)・ffmpeg が必要です(Mac なら `brew install ffmpeg uv`)。
 
 ```bash
-./scripts/make_test_video.sh           # test-media/ にテスト動画を作る(犬の写真が横切る動画と、ノイズだけの動画)
-uv run atom-watch --url test-media/object.mp4
+uv sync
+uv run python scripts/fetch_model.py       # 物体検出モデルを models/ に取得
+uv run atom-watch                          # ./config.toml を読んで起動
+uv run atom-watch --url rtsp://...         # 設定ファイルなしで 1 台だけ試す
+uv run atom-watch --camera garden          # 指定した id のカメラだけ起動(調整時に便利)
 ```
+
+この場合、macOS では起動中だけ自動でスリープを防ぎます。`./scripts/make_test_video.sh` を実行すると、`test-media/` にテスト動画を作れます。
 
 ## 設定
 
@@ -121,17 +127,19 @@ tailscale serve --bg 8080
 ## ラズパイで動かす
 
 - **64bit OS 必須**です(32bit OS 向けには onnxruntime のパッケージが配布されていません)
-- `sudo apt install ffmpeg` と uv を入れれば、手順は Mac と同じです
+- 手順は Mac と同じく `docker compose up --build` です。イメージはラズパイの上でビルドします(古い機種だと時間がかかります)
+- Linux では `data/` のファイルが root の所有になります。手で消すときは `sudo` を付けてください
 - 負荷を下げる設定:
   - `[defaults]` で `analysis_fps = 3`、`detect_interval = 1.0` にする
-  - ハードウェアデコードを使う(例: `input_args = ["-c:v", "h264_v4l2m2m"]`)
+  - ハードウェアデコードを使う: `input_args = ["-c:v", "h264_v4l2m2m"]` を書き、`compose.yaml` の `devices` のコメントを外す
   - ATOM アプリで RTSP の画質を下げる
 - 映像のデコードはカメラの台数に比例して重くなります。古いラズパイなら 1〜2 台が目安です(実機での計測はまだしていません)
-- Mac など余裕がある環境では、`scripts/fetch_model.py tiny` で精度の高いモデルに切り替えられます
+- SD カードの書き込み寿命が気になる場合は、`data/` を USB 接続の SSD に置くと安心です
 
 ## 開発
 
 ```bash
+uv sync
 uv run pytest
 ```
 

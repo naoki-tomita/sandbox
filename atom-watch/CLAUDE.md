@@ -44,6 +44,11 @@ main(cli.py) ── シグナル処理・ステータス表示・古いイベン
 - **純粋なロジックは時刻を引数で受け取る**(`EventTracker` など)ので、テストで偽の時計を使える
 - 過剰設計はしない(プラグイン機構・DI コンテナなし)
 
+## 実行環境
+
+利用者向けの起動方法は Docker Compose(`Dockerfile` / `compose.yaml`)。イメージに ffmpeg と物体検出モデル(nano/tiny)を同梱し、
+`config.toml` と `data/` をマウントする。コンテナ内では `/.dockerenv` を見て、起動時の案内を Docker 向けに切り替える(`cli.in_docker`)。
+
 ## 開発
 
 ```bash
@@ -52,4 +57,5 @@ uv run pytest                          # ユニットテスト(モデル不要)
 uv run python scripts/fetch_model.py   # 実際に動かすときはモデルが必要
 ./scripts/make_test_video.sh           # カメラなしで試すためのテスト動画
 uv run atom-watch --url test-media/object.mp4
+docker compose up --build              # Docker での起動確認
 ```

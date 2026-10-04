@@ -127,6 +127,10 @@ class WebServer:
         self.thread.join(timeout=5)
 
 
+def in_docker() -> bool:
+    return Path("/.dockerenv").exists()
+
+
 def print_banner(config: Config, detector_name: str) -> None:
     port = config.web.port
     print("━" * 60)
@@ -136,10 +140,18 @@ def print_banner(config: Config, detector_name: str) -> None:
     for cam in config.cameras:
         print(f"   • {cam.display_name} [{cam.id}]  {mask_url(cam.url)}")
     print(f" 物体検出: {detector_name or 'なし(動き検知のみ)'}")
-    print(f" 保存先: {config.data_dir.resolve()}")
-    print(" 閲覧:")
-    print(f"   • http://localhost:{port}/")
-    if config.web.host in ("0.0.0.0", "::"):
+    if in_docker():
+        # コンテナの中からはホスト側のパスや IP が分からないので、compose.yaml の前提で案内する
+        port = int(os.environ.get("ATOMWATCH_PUBLISHED_PORT", port))
+        print(f" 保存先: {config.data_dir.resolve()}(compose.yaml と同じ場所の data/)")
+        print(" 閲覧:")
+        print(f"   • http://localhost:{port}/")
+        print(f"   • LAN からは http://<このマシンの IP アドレス>:{port}/")
+    else:
+        print(f" 保存先: {config.data_dir.resolve()}")
+        print(" 閲覧:")
+        print(f"   • http://localhost:{port}/")
+    if config.web.host in ("0.0.0.0", "::") and not in_docker():
         if ip := lan_ip():
             print(f"   • http://{ip}:{port}/  (LAN)")
         if ts := tailscale_ip():
