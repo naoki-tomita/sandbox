@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from atomwatch.config import CameraConfig
 from atomwatch.source import build_command, is_stream_url, mask_url
 
@@ -32,3 +34,14 @@ def test_build_command_file_loops_without_audio():
     s = " ".join(build_command(cam, Path("/seg")))
     assert "-re -stream_loop -1" in s
     assert "-an" in s and "-c:a" not in s
+
+
+@pytest.mark.parametrize(
+    "rotate,expected",
+    [(0, "scale=640:360 "), (90, "scale=640:360,transpose=clock "), (270, "scale=640:360,transpose=cclock ")],
+)
+def test_build_command_rotates_analysis_frames(rotate, expected):
+    cam = CameraConfig(id="a", url="rtsp://h/live", rotate=rotate)
+    s = " ".join(build_command(cam, Path("/seg")))
+    assert expected in s
+    assert "-c:v copy" in s  # 録画は回転しても再エンコードしない

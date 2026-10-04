@@ -44,7 +44,7 @@ class CameraPipeline:
         self.segments.clear()  # 前回の起動の残りは使わない
         self.source = FfmpegSource(cam, self.segments.directory, ffmpeg)
         self.motion = MotionDetector(
-            (cam.analysis_height, cam.analysis_width),
+            cam.analysis_size[::-1],
             mask_regions=cam.mask,
             min_area=cam.min_area,
             lighting_change_ratio=cam.lighting_change_ratio,
@@ -150,4 +150,4 @@ class CameraPipeline:
             token = self.segments.hold(ev.clip_start)
             labels = ", ".join(sorted(ev.tags)) or "motion"
             print(f"[{self.cam.display_name}] イベント検出: {labels}({ev.ended_at - ev.started_at:.0f} 秒)", flush=True)
-            self.recorder.submit(RecordJob(self.cam.id, self.segments, ev, token))
+            self.recorder.submit(RecordJob(self.cam.id, self.segments, ev, token, rotate=self.cam.rotate))

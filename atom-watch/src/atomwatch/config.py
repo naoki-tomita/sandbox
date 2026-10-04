@@ -30,6 +30,9 @@ class CameraConfig:
     analysis_width: int = 640
     analysis_height: int = 360
     analysis_fps: float = 5.0
+    # 映像を時計回りに回す角度(0/90/180/270)。縦置き・逆さ付けのカメラ用。解析・ライブ・録画のすべてに効く
+    # analysis_width/height は回転前(カメラの向きのまま)のサイズ、mask は回転後の画面での位置
+    rotate: int = 0
     # ffmpeg 入力まわり
     hwaccel: str = ""  # "videotoolbox"(Mac) / "v4l2m2m" 系(ラズパイ)など。空なら使わない
     rtsp_transport: str = "tcp"
@@ -56,6 +59,13 @@ class CameraConfig:
     @property
     def display_name(self) -> str:
         return self.name or self.id
+
+    @property
+    def analysis_size(self) -> tuple[int, int]:
+        """回転後の解析フレームの (幅, 高さ)。"""
+        if self.rotate in (90, 270):
+            return self.analysis_height, self.analysis_width
+        return self.analysis_width, self.analysis_height
 
 
 @dataclass(frozen=True)
@@ -123,6 +133,8 @@ def _validate_camera(cam: CameraConfig) -> None:
         raise ConfigError(f"カメラ '{cam.id}' の解析解像度/fps が不正です")
     if cam.analysis_width % 2 or cam.analysis_height % 2:
         raise ConfigError(f"カメラ '{cam.id}' の解析解像度は偶数にしてください")
+    if cam.rotate not in (0, 90, 180, 270):
+        raise ConfigError(f"カメラ '{cam.id}' の rotate は 0・90・180・270 のどれかにしてください")
 
 
 def parse_config(raw: dict[str, Any], base_dir: Path = Path(".")) -> Config:

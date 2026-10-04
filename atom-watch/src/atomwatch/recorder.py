@@ -34,6 +34,20 @@ class RecordJob:
     segments: SegmentStore
     event: FinishedEvent
     hold_token: int
+    rotate: int = 0  # 時計回りの回転角。再エンコードせず、mp4 に回転情報だけ付ける
+
+
+def rotation_args(rotate: int, legacy: bool) -> tuple[list[str], list[str]]:
+    """mp4 に時計回り rotate 度の回転情報を付ける ffmpeg 引数(入力側, 出力側)。
+
+    ffmpeg 6 以降は入力オプション -display_rotation(反時計回り)、5 以前は出力の rotate メタデータで付ける。
+    どちらも同じ回転行列になる(5.1 の rotate メタデータは反時計回りに解釈される)。
+    """
+    if not rotate:
+        return [], []
+    if legacy:
+        return [], ["-metadata:s:v:0", f"rotate={(360 - rotate) % 360}"]
+    return ["-display_rotation:v:0", str(-rotate)], []
 
 
 def time_of_day_tag(frame: np.ndarray | None, ts: float) -> str:
@@ -76,6 +90,7 @@ class Recorder:
         self.ffmpeg = ffmpeg
         self.ffprobe = shutil.which("ffprobe")
         self.on_saved = on_saved
+        self._legacy_rotation = False  # -display_rotation がない古い ffmpeg なら True にする
         self._queue: queue.Queue[RecordJob | None] = queue.Queue()
         self._threads = [
             threading.Thread(target=self._run, name=f"recorder-{i}", daemon=True) for i in range(max(1, workers))
@@ -134,7 +149,7 @@ class Recorder:
         thumb_rel = rel_dir / f"{stem}.jpg"
         video_path = self.data_dir / video_rel
 
-        self._concat([s.path for s in segments], video_path)
+        self._concat([s.path for s in segments], video_path, job.rotate)
         duration = self._probe_duration(video_path)
         if duration is None:
             last = segments[-1]
@@ -160,7 +175,7 @@ class Recorder:
             )
         )
 
-    def _concat(self, paths: list[Path], out: Path) -> None:
+    def _concat(self, paths: list[Path], out: Path, rotate: int = 0) -> None:
         # 一覧ファイルもセグメントと同じ場所(既定ではメモリ上の /dev/shm)に置く
         with tempfile.NamedTemporaryFile("w", suffix=".txt", dir=paths[0].parent, delete=False) as f:
             for p in paths:
@@ -168,13 +183,20 @@ class Recorder:
                 f.write(f"file '{escaped}'\n")
             list_path = Path(f.name)
         tmp_out = out.with_suffix(".part.mp4")
-        try:
+        def run() -> subprocess.CompletedProcess[str]:
+            in_args, out_args = rotation_args(rotate, self._legacy_rotation)
             cmd = [
                 self.ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
-                "-f", "concat", "-safe", "0", "-i", str(list_path),
-                "-c", "copy", "-movflags", "+faststart", str(tmp_out),
+                *in_args, "-f", "concat", "-safe", "0", "-i", str(list_path),
+                "-c", "copy", *out_args, "-movflags", "+faststart", str(tmp_out),
             ]
-            res = subprocess.run(cmd, capture_output=True, text=True, start_new_session=True)
+            return subprocess.run(cmd, capture_output=True, text=True, start_new_session=True)
+
+        try:
+            res = run()
+            if res.returncode != 0 and rotate and not self._legacy_rotation and "display_rotation" in res.stderr:
+                self._legacy_rotation = True
+                res = run()
             if res.returncode != 0:
                 raise RuntimeError(f"ffmpeg concat 失敗: {res.stderr.strip()[-300:]}")
             tmp_out.replace(out)

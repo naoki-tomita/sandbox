@@ -53,6 +53,7 @@ url = "rtsp://user:password@192.168.1.20:8554/live"
 [[cameras]]
 id = "garden"
 name = "庭"
+# rotate = 90              # 縦置き・逆さ付けのカメラは時計回りの回転角(90/180/270)を書く。mask は回転後の画面で指定する
 url = "rtsp://user:password@192.168.1.21:8554/live"
 targets = ["person", "cat", "dog", "bird"]   # このカメラだけ対象を変える例
 min_area = 0.005

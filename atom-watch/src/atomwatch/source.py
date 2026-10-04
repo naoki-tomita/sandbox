@@ -24,6 +24,8 @@ from .segments import FILENAME_FORMAT, SUFFIX
 
 STALL_SECONDS = 15.0  # この間フレームが来なければ ffmpeg を再起動する
 MAX_BACKOFF = 60.0
+# 時計回りの回転角 → 解析用フレームに掛ける ffmpeg フィルタ(縮小してから回すので軽い)
+ROTATE_FILTERS = {90: "transpose=clock", 180: "hflip,vflip", 270: "transpose=cclock"}
 
 # 起動中の ffmpeg。強制終了時に取り残さないよう、まとめて kill できるようにしておく
 _active_procs: set[subprocess.Popen[bytes]] = set()
@@ -80,6 +82,8 @@ def build_command(cam: CameraConfig, segment_dir: Path, ffmpeg: str = "ffmpeg") 
     ]
     # 出力 2: 解析用の生フレーム
     vf = f"fps={cam.analysis_fps},scale={cam.analysis_width}:{cam.analysis_height}"
+    if cam.rotate:
+        vf += "," + ROTATE_FILTERS[cam.rotate]
     cmd += ["-map", "0:v:0", "-an", "-vf", vf, "-pix_fmt", "bgr24", "-f", "rawvideo", "pipe:1"]
     return cmd
 
@@ -91,7 +95,7 @@ class FfmpegSource:
         self.cam = cam
         self.segment_dir = segment_dir
         self.ffmpeg = ffmpeg
-        self._w, self._h = cam.analysis_width, cam.analysis_height
+        self._w, self._h = cam.analysis_size
         self._frame_bytes = self._w * self._h * 3
         self._cond = threading.Condition()
         self._latest: tuple[float, np.ndarray] | None = None
