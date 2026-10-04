@@ -1,0 +1,24 @@
+{
+  "name": "norn_harbor",
+  "description": "港町ノルンの浜と桟橋、北東の岬の灯台",
+  "ops": [
+    {"op": "flatten", "note": "浜", "polygon": [[4740, 940], [4860, 930], [4900, 1000], [4860, 1070], [4740, 1060]], "height": 1.3, "falloff": 60},
+    {"op": "path", "note": "村から浜へ下る道", "points": [[4590, 1000], [4680, 1000], [4760, 1000]], "width": 4, "falloff": 12},
+    {"op": "plateau", "note": "灯台の岬", "at": [4820, 760], "radius": 26, "height": 18, "falloff": 18},
+    {"op": "noise", "at": [4820, 760], "radius": 40, "falloff": 20, "amplitude": 2.5, "scale": 9},
+    {"op": "flatten", "note": "灯台の土台", "at": [4820, 760], "radius": 9, "falloff": 8}
+  ],
+  "paint": [
+    {"surface": "sand", "polygon": [[4740, 940], [4860, 930], [4900, 1000], [4860, 1070], [4740, 1060]], "jitter": 12},
+    {"surface": "road", "points": [[4590, 1000], [4680, 1000], [4760, 1000]], "width": 3.5},
+    {"surface": "rock", "at": [4820, 760], "radius": 40, "jitter": 8}
+  ],
+  "objects": [
+    {"type": "lighthouse", "at": [4820, 760], "id": "norn_lighthouse"},
+    {"type": "pier", "at": [4925, 1000], "level": 1.6, "rotation": 90, "id": "norn_pier", "note": "浜から東の海へ延びる桟橋"},
+    {"type": "marker", "at": [4933, 1000], "level": 1.6, "id": "norn_pier_end"},
+    {"type": "crate", "at": [4800, 985]},
+    {"type": "barrel", "at": [4802, 1012]},
+    {"type": "barrel", "at": [4806, 1014]}
+  ]
+}

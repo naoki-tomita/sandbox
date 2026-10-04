@@ -1,0 +1,31 @@
+{
+  "name": "v2",
+  "description": "峠の村ハイデ: 山脈の東のふもと。峠を越えた先の村。見張り塔がある",
+  "ops": [
+    {"op": "flatten", "note": "村の敷地", "at": [2650, 820], "radius": 70, "falloff": 90},
+    {"op": "smooth", "at": [2650, 820], "radius": 110, "falloff": 40, "iterations": 3}
+  ],
+  "paint": [
+    {"surface": "dirt", "note": "広場", "at": [2650, 820], "radius": 16, "jitter": 5}
+  ],
+  "objects": [
+    {"type": "well", "at": [2650, 820], "id": "v2_well"},
+    {"type": "marker", "at": [2650, 820], "id": "v2_center", "note": "峠の村ハイデ"},
+    {"type": "campfire", "at": [2659, 826]},
+    {"type": "house", "at": [2650.0, 854.0], "rotation": 180, "id": "v2_house_1"},
+    {"type": "barrel", "at": [2647.2, 849.8], "rotation": 37},
+    {"type": "house", "at": [2667.0, 849.4], "rotation": -150, "id": "v2_house_2"},
+    {"type": "crate", "at": [2662.5, 847.2], "rotation": 74},
+    {"type": "house", "at": [2679.4, 803.0], "rotation": -60, "id": "v2_house_3"},
+    {"type": "barrel", "at": [2677.2, 807.5], "rotation": 111},
+    {"type": "house", "at": [2667.0, 790.6], "rotation": -30, "id": "v2_house_4"},
+    {"type": "crate", "at": [2667.3, 795.6], "rotation": 148},
+    {"type": "house", "at": [2650.0, 786.0], "rotation": 0, "id": "v2_house_5"},
+    {"type": "barrel", "at": [2652.8, 790.2], "rotation": 185},
+    {"type": "house", "at": [2633.0, 790.6], "rotation": 30, "id": "v2_house_6"},
+    {"type": "crate", "at": [2637.5, 792.8], "rotation": 222},
+    {"type": "sign", "at": [2591.9, 841.6], "rotation": -77, "props": {"text": "峠の村ハイデ"}},
+    {"type": "sign", "at": [2710.0, 835.7], "rotation": 68, "props": {"text": "峠の村ハイデ"}},
+    {"type": "tower", "at": [2720, 760], "id": "heide_tower", "note": "峠を見張る塔"}
+  ]
+}

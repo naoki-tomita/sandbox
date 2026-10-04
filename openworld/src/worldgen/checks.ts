@@ -3,7 +3,7 @@
  * AI がデータを編集したあと world:validate で確認できるようにする。
  */
 import { CATALOG } from './catalog.ts';
-import type { ComposedWorld, WaterBody } from './compose.ts';
+import { waterBodyLevel, type ComposedWorld, type WaterBody } from './compose.ts';
 import type { Area, Vec2 } from './schema.ts';
 
 function outline(area: Area): Vec2[] {
@@ -34,8 +34,15 @@ function walk(points: Vec2[], closed: boolean, step: number, fn: (x: number, z: 
 
 function waterLeaks(w: ComposedWorld, body: WaterBody): Vec2[] {
   const leaks: Vec2[] = [];
+  const others = w.waters.filter((b) => b !== body);
   const check = (x: number, z: number, level: number) => {
-    if (w.heights.sample(x, z) < level - 0.2) leaks.push([Math.round(x), Math.round(z)]);
+    if (w.heights.sample(x, z) >= level - 0.2) return;
+    // 隣の水域（池から流れ出す川など）がほぼ同じ水位で続いていれば漏れではない
+    for (const o of others) {
+      const l = waterBodyLevel(o, x, z);
+      if (l !== null && l >= level - 0.5) return;
+    }
+    leaks.push([Math.round(x), Math.round(z)]);
   };
   if (body.kind === 'area') {
     walk(outline(body.area), true, 4, (x, z) => check(x, z, body.level));

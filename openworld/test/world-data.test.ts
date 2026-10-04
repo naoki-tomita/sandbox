@@ -9,5 +9,5 @@ describe('world/ のデータ', () => {
     const { world, regions } = loadWorldFiles();
     const w = composeWorld(world, regions);
     expect(checkWorld(w)).toEqual([]);
-  });
+  }, 60_000);
 });

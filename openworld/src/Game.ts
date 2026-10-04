@@ -184,6 +184,7 @@ export class Game {
     this.terrain.updateRender(focus.x, focus.z);
     this.sky.update(this.active ? frameDt : 0, focus);
     this.grass.update(frameDt, focus);
+    this.props.update(focus);
     this.water.update(frameDt);
 
     const p = this.player.position;

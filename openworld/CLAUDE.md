@@ -82,7 +82,7 @@ main.ts → Game.ts → { core, physics, world, player, debug } → worldgen →
 
 ### 座標系
 
-- 地図は x, z ともに `0..size`（既定 2048m）。y は上。単位はメートル。
+- 地図は x, z ともに `0..size`（現在 5120m）。y は上。単位はメートル。左上（北西）が始まりの村。
 - プレビュー画像は **左上が (0, 0)、右へ +x、下へ +z**。目盛りの数字はワールド座標。
 - 向き（`rotation` / `facing`、度）: **0 = +Z を向く、90 = +X を向く**。建物の正面（扉）は +Z 側。
 - 海面は `seaLevel`（既定 0）。外周 `border.width` の範囲は海へ沈む。
@@ -138,8 +138,24 @@ y は地面からのオフセット、`level` は絶対高さ（指定すると�
 `pine oak bush rock boulder house tower well sign campfire marker lighthouse pier bridge fence ruin_wall ruin_pillar tent barrel crate`
 （marker はゲーム中不可視の目印。pier / bridge は中心に置き +Z 方向に延びる。床の上を歩ける）。
 
-**scatter**: `{ "type": "pine", <area>, "density": 5, "scale": [0.8, 1.25], "maxSlope": 30, "avoid": [...], "onlyOn": [...] }`。
+**scatter**: `{ "type": "pine", <area>, "density": 5, "scale": [0.8, 1.25], "maxSlope": 30, "avoid": [...], "onlyOn": [...], "exclude": [<area>, ...] }`。
 density は 1000m² あたりの個数。水中・急斜面・`avoid` の地表（既定 road sand rock snow）・個別配置物の周囲は自動で避ける。
+`exclude` の領域（村の敷地など）には置かない。マップが広いので密度は控えめに（配置物の合計は数万個まで）。
+
+### 現在のワールド構成（アステル島）
+
+| region | 内容 |
+|---|---|
+| `landforms` | 中央の高台、南北の山脈（v1 と v2 を隔てる）と峠の鞍部、なだらかな丘、池の湖底 |
+| `wilds` | 森の塗り（広い塗りなので早い順番）と植生の scatter（村の敷地は exclude） |
+| `roads` | 6 つの村を環状に結ぶ街道（v1→v2 は峠越え）。川より前に置く |
+| `waterways` | 中央の池と、池の南岸から南の海へ流れる唯一の川 |
+| `river_crossing` | 南の街道（v5↔v6）が川を渡る橋と取り付け道 |
+| `v1`〜`v6` | 村（アステル村・峠の村ハイデ・港町ノルン・森の村リンデ・川辺の村ソラ・東の町オステン） |
+| `norn_harbor` | 港町ノルンの浜・桟橋・灯台 |
+
+村は「整地（falloff を大きく取って周囲となだらかにつなぐ）→ 広場 → 道の方向を避けて家を円周に並べる → 井戸・看板・樽」の形。
+道は数十 m 間隔の点列にすると地形に沿う（間隔が粗いと切り通し・盛り土が大きくなる）。
 
 ### 編集の手順
 

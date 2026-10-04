@@ -7,6 +7,7 @@ import {
   areaBounds,
   areaDistance,
   areaWeight,
+  forEachNearPolyline,
   pointsBounds,
   polylineDistance,
   smoothstep,
@@ -52,25 +53,44 @@ export interface ComposedWorld {
   surfaceAt(x: number, z: number): Surface;
 }
 
+/** 下地ノイズの計算間隔（セル数）。最小の波長より十分細かいので、粗く計算して補間する */
+const BASE_STEP = 4;
+
 function fillBase(grid: HeightGrid, def: WorldDef): void {
   const noise = makeNoise(def.seed);
   const { base, border, size } = def;
   const cs = grid.cellSize;
+  const height = (x: number, z: number) => {
+    let h = base.height + fbm(noise, x, z, base) * base.amplitude;
+    if (border.width > 0) {
+      // 角を丸めた正方形からの距離を低周波ノイズで揺らし、自然な海岸線にする
+      const half = size / 2;
+      const r = border.width * 2;
+      const qx = Math.max(Math.abs(x - half) - (half - r), 0);
+      const qz = Math.max(Math.abs(z - half) - (half - r), 0);
+      const edge = r - Math.hypot(qx, qz) + noise(x / 380 + 50, z / 380 - 50) * border.width * 0.45;
+      h = border.depth + (h - border.depth) * smoothstep(0, border.width, edge);
+    }
+    return h;
+  };
+  const cn = Math.ceil((grid.n - 1) / BASE_STEP) + 1;
+  const coarse = new Float32Array(cn * cn);
+  for (let cz = 0; cz < cn; cz++) {
+    for (let cx = 0; cx < cn; cx++) coarse[cz * cn + cx] = height(cx * BASE_STEP * cs, cz * BASE_STEP * cs);
+  }
   for (let iz = 0; iz < grid.n; iz++) {
+    const fz = iz / BASE_STEP;
+    const cz = Math.min(cn - 2, Math.floor(fz));
+    const tz = fz - cz;
     for (let ix = 0; ix < grid.n; ix++) {
-      const x = ix * cs;
-      const z = iz * cs;
-      let h = base.height + fbm(noise, x, z, base) * base.amplitude;
-      if (border.width > 0) {
-        // 角を丸めた正方形からの距離を低周波ノイズで揺らし、自然な海岸線にする
-        const half = size / 2;
-        const r = border.width * 2;
-        const qx = Math.max(Math.abs(x - half) - (half - r), 0);
-        const qz = Math.max(Math.abs(z - half) - (half - r), 0);
-        const edge = r - Math.hypot(qx, qz) + noise(x / 380 + 50, z / 380 - 50) * border.width * 0.45;
-        h = border.depth + (h - border.depth) * smoothstep(0, border.width, edge);
-      }
-      grid.data[grid.index(ix, iz)] = h;
+      const fx = ix / BASE_STEP;
+      const cx = Math.min(cn - 2, Math.floor(fx));
+      const tx = fx - cx;
+      const a = coarse[cz * cn + cx];
+      const b = coarse[cz * cn + cx + 1];
+      const c = coarse[(cz + 1) * cn + cx];
+      const d = coarse[(cz + 1) * cn + cx + 1];
+      grid.data[grid.index(ix, iz)] = (a + (b - a) * tx) * (1 - tz) + (c + (d - c) * tx) * tz;
     }
   }
 }
@@ -98,16 +118,20 @@ function paintSurfaces(grid: HeightGrid, def: WorldDef, regions: RegionDef[]): U
     for (const p of paints) {
       const s = SURFACE_INDEX[p.surface];
       const pad = p.jitter;
-      const b = 'area' in p ? areaBounds(p.area, pad) : pointsBounds(p.points, p.width / 2 + pad);
+      const jit = (x: number, z: number) => (p.jitter > 0 ? fbm(edgeNoise, x, z, EDGE_NOISE) * p.jitter : 0);
+      if ('points' in p) {
+        forEachNearPolyline(cs, grid.n - 1, p.points, p.width / 2 + pad, (ix, iz, dist) => {
+          if (dist + jit(ix * cs, iz * cs) <= p.width / 2) surface[grid.index(ix, iz)] = s;
+        });
+        continue;
+      }
+      const b = areaBounds(p.area, pad);
       const [x0, z0, x1, z1] = grid.indexRange(b.minX, b.minZ, b.maxX, b.maxZ);
       for (let iz = z0; iz <= z1; iz++) {
         for (let ix = x0; ix <= x1; ix++) {
           const x = ix * cs;
           const z = iz * cs;
-          const j = p.jitter > 0 ? fbm(edgeNoise, x, z, EDGE_NOISE) * p.jitter : 0;
-          const inside =
-            'area' in p ? areaDistance(p.area, x, z) + j <= 0 : polylineDistance(x, z, p.points).d + j <= p.width / 2;
-          if (inside) surface[grid.index(ix, iz)] = s;
+          if (areaDistance(p.area, x, z) + jit(x, z) <= 0) surface[grid.index(ix, iz)] = s;
         }
       }
     }
@@ -186,6 +210,7 @@ function scatter(
       const surf = world.surfaceAt(x, z);
       if (s.avoid.includes(surf)) continue;
       if (s.onlyOn && !s.onlyOn.includes(surf)) continue;
+      if (s.exclude.some((a) => areaDistance(a, x, z) <= 0)) continue;
       if (footprints.blocked(x, z, r * scale * 0.5)) continue;
       out.push({ type: s.type, x, y, z, rotation: rot, scale, id: null, props: {}, region, scattered: true });
     }

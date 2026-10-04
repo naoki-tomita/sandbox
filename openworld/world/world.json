@@ -1,25 +1,25 @@
 {
   "name": "アステル島",
-  "note": "座標は x, z ともに 0..size (m)。y は上方向。リージョンは regions の順に適用される",
-  "size": 2048,
+  "note": "座標は x, z ともに 0..size (m)。y は上方向。左上（北西）が始まりの村。リージョンは regions の順に適用される",
+  "size": 5120,
   "cellSize": 2,
-  "seed": 20260926,
+  "seed": 20261004,
   "seaLevel": 0,
   "base": {
-    "height": 20,
-    "amplitude": 22,
-    "scale": 520,
-    "octaves": 5,
-    "persistence": 0.48,
+    "height": 26,
+    "amplitude": 30,
+    "scale": 1100,
+    "octaves": 6,
+    "persistence": 0.5,
     "lacunarity": 2.1
   },
   "border": {
-    "width": 260,
-    "depth": -24
+    "width": 420,
+    "depth": -30
   },
   "spawn": {
-    "at": [1024, 1252],
-    "facing": 180
+    "at": [930, 925],
+    "facing": 90
   },
-  "regions": ["landforms", "wilds", "trails", "waterways", "river_crossing", "north_ruins", "forest_camp", "south_coast", "east_cape", "start_village", "roads"]
+  "regions": ["landforms", "wilds", "roads", "waterways", "river_crossing", "v1", "v2", "v3", "v4", "v5", "v6", "norn_harbor"]
 }

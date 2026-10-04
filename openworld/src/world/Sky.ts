@@ -80,6 +80,8 @@ export class Sky {
     const a = ((this.hour - 6) / 24) * Math.PI * 2;
     this.sunDir.set(Math.cos(a), Math.sin(a), 0.35).normalize();
     this.sky.material.uniforms.sunPosition.value.copy(this.sunDir);
+    // 空の箱は有限サイズなので、マップのどこにいても箱の中に入るよう視点に追従させる
+    this.sky.position.copy(focus);
 
     const day = THREE.MathUtils.smoothstep(this.sunDir.y, -0.08, 0.25);
     const dusk = 1 - THREE.MathUtils.smoothstep(Math.abs(this.sunDir.y - 0.05), 0, 0.22);

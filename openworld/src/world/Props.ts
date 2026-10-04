@@ -377,8 +377,13 @@ varying vec3 vPNormal;`,
   return mat;
 }
 
+/** これより遠い区画の配置物は描かない (m)。霧でほぼ見えない距離 */
+const DRAW_DISTANCE = 1600;
+
 export class Props {
   private readonly markers: THREE.InstancedMesh[] = [];
+  private readonly sectors: { mesh: THREE.InstancedMesh; x: number; z: number }[] = [];
+  private markersVisible = false;
   readonly count: number;
 
   constructor(scene: THREE.Scene, world: ComposedWorld, tex: TextureSet) {
@@ -418,6 +423,8 @@ export class Props {
           mesh.visible = false;
           this.markers.push(mesh);
         }
+        const [sx, sz] = key.split(':')[1].split(',').map(Number);
+        this.sectors.push({ mesh, x: (sx + 0.5) * SECTOR, z: (sz + 0.5) * SECTOR });
         scene.add(mesh);
       }
     }
@@ -425,6 +432,14 @@ export class Props {
 
   /** marker（イベント用の目印）の表示切り替え（デバッグ用） */
   setMarkersVisible(v: boolean): void {
-    this.markers.forEach((m) => (m.visible = v));
+    this.markersVisible = v;
+  }
+
+  /** 遠い区画を隠す。marker はデバッグ表示中だけ */
+  update(focus: THREE.Vector3): void {
+    for (const s of this.sectors) {
+      const near = Math.hypot(s.x - focus.x, s.z - focus.z) < DRAW_DISTANCE;
+      s.mesh.visible = near && (!this.markers.includes(s.mesh) || this.markersVisible);
+    }
   }
 }

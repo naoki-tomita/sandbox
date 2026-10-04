@@ -1,7 +1,7 @@
 /**
  * 地形編集オペレーション。すべてグリッドをその場で書き換える純粋な処理（three/Rapier 非依存）。
  */
-import { areaBounds, areaWeight, pointsBounds, polylineDistance, smoothstep } from './area.ts';
+import { areaBounds, areaWeight, forEachNearPolyline, smoothstep } from './area.ts';
 import type { HeightGrid } from './grid.ts';
 import { fbm, makeNoise, ridged } from './noise.ts';
 import type { Area, TerrainOp, Vec2 } from './schema.ts';
@@ -68,22 +68,21 @@ export function applyRiver(grid: HeightGrid, op: RiverOp): number[] {
   const d = grid.data;
   const half = op.width / 2;
   const bank = 0.4;
-  forEachIn(grid, pointsBounds(op.points, half + op.falloff), (i, x, z) => {
-    const r = polylineDistance(x, z, op.points);
-    if (r.d > half + op.falloff) return;
-    const level = levels[r.seg] + (levels[r.seg + 1] - levels[r.seg]) * r.t;
-    if (r.d <= half) {
-      const k = r.d / half;
+  forEachNearPolyline(grid.cellSize, grid.n - 1, op.points, half + op.falloff, (ix, iz, dist, seg, t) => {
+    const i = grid.index(ix, iz);
+    const level = levels[seg] + (levels[seg + 1] - levels[seg]) * t;
+    if (dist <= half) {
+      const k = dist / half;
       d[i] = level + bank - (op.depth + bank) * (1 - k * k);
       return;
     }
-    const w = 1 - smoothstep(0, op.falloff, r.d - half);
+    const w = 1 - smoothstep(0, op.falloff, dist - half);
     if (d[i] < level + bank) {
       // 岸が水面より低ければ土手を盛る
       d[i] += (level + bank - d[i]) * w;
     } else {
       // 岸が高ければ最大 35° 程度の斜面に削る（垂直な峡谷にしない）
-      const cap = level + bank + (r.d - half) * 0.7;
+      const cap = level + bank + (dist - half) * 0.7;
       if (d[i] > cap) d[i] += (cap - d[i]) * w;
     }
   });
@@ -138,12 +137,12 @@ export function applyOp(grid: HeightGrid, op: TerrainOp, ctx: OpContext): void {
     case 'path': {
       const hs = pathHeights(grid, op.points, op.heights);
       const half = op.width / 2;
-      forEachIn(grid, pointsBounds(op.points, half + op.falloff), (i, x, z) => {
-        const r = polylineDistance(x, z, op.points);
-        const over = r.d - half;
+      forEachNearPolyline(grid.cellSize, grid.n - 1, op.points, half + op.falloff, (ix, iz, dist, seg, t) => {
+        const i = grid.index(ix, iz);
+        const over = dist - half;
         if (over > 0 && over >= op.falloff) return;
         const w = over <= 0 ? 1 : 1 - smoothstep(0, op.falloff, over);
-        const target = hs[r.seg] + (hs[r.seg + 1] - hs[r.seg]) * r.t - op.depth;
+        const target = hs[seg] + (hs[seg + 1] - hs[seg]) * t - op.depth;
         const h = d[i] + (target - d[i]) * w;
         d[i] = op.mode === 'carve' ? Math.min(d[i], h) : h;
       });
