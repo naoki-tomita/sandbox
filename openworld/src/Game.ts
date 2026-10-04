@@ -24,6 +24,7 @@ import type { ComposedWorld } from './worldgen/compose.ts';
  *   ?debug=1    HUD と marker を表示
  *   ?free=1     フリーカメラで開始（&h=地面からの高さ &pitch=見下ろす角度。向きは facing）
  *   ?autoplay=1 ポインターロックなしで即開始（自動テスト用。マウス視点は無効）
+ *   ?camDist=m  三人称カメラの距離
  *   ?quality=low 軽量モード（草 1/4・影の解像度半分・アンチエイリアスなし）
  */
 export class Game {
@@ -39,7 +40,7 @@ export class Game {
   private readonly water: Water;
   readonly props: Props;
   readonly player: PlayerController;
-  private readonly avatar: PlayerAvatar;
+  readonly avatar: PlayerAvatar;
   private readonly tpc: ThirdPersonCamera;
   private readonly free: FreeCamera;
   private readonly hud = new DebugHud();
@@ -85,6 +86,7 @@ export class Game {
     this.teleport(num('x') ?? sx, num('z') ?? sz, facing);
     this.tpc.yaw = facing + Math.PI; // プレイヤーの背後から見る
     if (num('t') !== null) this.sky.hour = num('t')! % 24;
+    if (num('camDist') !== null) this.tpc.distance = num('camDist')!;
     if (params.get('debug') === '1') this.setDebug(true);
     this.autoplay = params.get('autoplay') === '1';
 
@@ -171,7 +173,7 @@ export class Game {
     else this.tpc.look(look.dx, look.dy, look.wheel);
 
     this.player.interpolated(alpha, this.renderPos);
-    this.avatar.set(this.renderPos, this.player.facing);
+    this.avatar.update(this.active ? frameDt : 0, this.renderPos, this.player.facing, this.player.velocity, this.player.mode);
     if (this.freeMode) {
       if (this.active) this.free.update(frameDt, input);
     } else {

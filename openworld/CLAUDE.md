@@ -41,7 +41,8 @@ main.ts → Game.ts → { core, physics, world, player, debug } → worldgen →
 | `src/world/Grass.ts` | プレイヤー周辺の草（GPU インスタンシング。高さ・密度テクスチャから配置、風で揺れる、花） |
 | `src/world/Props.ts` | 配置物を 256m 区画 × 種類 × パーツで InstancedMesh にまとめて描画。模様はワールド座標の三方向投影 |
 | `src/world/Water.ts` / `Sky.ts` | 水面（波の法線 + 空の映り込み） / 空・太陽・影・フォグ・昼夜・環境マップ |
-| `src/player/` | Rapier のキネマティック・キャラクターコントローラ、仮アバター、三人称カメラ |
+| `src/player/` | Rapier のキネマティック・キャラクターコントローラ、アバター、三人称カメラ |
+| `src/player/character/` | キャラクターのモデル（関節の階層）と手続きアニメーション（下記） |
 | `src/debug/` | F3 の HUD、T のフリーカメラ |
 | `scripts/` | Node 用 CLI（validate / preview）。`loadWorld.ts` はテストも使う |
 
@@ -58,6 +59,19 @@ main.ts → Game.ts → { core, physics, world, player, debug } → worldgen →
 `&free=1&h=高さ&pitch=見下ろす角度`（フリーカメラで開始）、`&autoplay=1`（ポインターロックなしで開始。自動テスト用）、
 `&quality=low`（草 1/4・影の解像度半分。Playwright のソフトウェア描画ではこれを付けないと 1 フレームに数十秒かかる）。
 `window.game` から `Game` を参照できる。Playwright で確認する場合はソフトウェア描画なので fps は数フレーム程度になる。
+
+### キャラクター（モデルとアニメーション）
+
+外部アセットは使わず、プリミティブを関節の階層に組んだモデルを、コードで計算したポーズで動かす。
+
+- `CharacterModel.ts`: 見た目と関節（hips / spine / chest / neck / head / upperArm / lowerArm / hand / thigh / shin / foot / capeU / capeL、左右は L/R）。
+  全高約 1.8m、足元が原点、+Z が正面。`apply(pose)` で関節の回転を設定する。
+- `poses.ts`: 状態ごとのポーズを返す純関数（idle / walk / run / jumpUp / fall / landing / swimStroke / treadWater）。
+  ポーズは「`関節.軸` → ラジアン」の表（ほかに `hipsY`, `rootPitch`, `rootRoll`, `blink`）。符号の約束はファイル先頭のコメント参照。
+- `CharacterAnimator.ts`: 速度・接地・落下速度・泳ぎから重みを滑らかに動かしてポーズを合成する。脚の周期は進んだ距離に合わせる（足が滑らない）。
+  着地の沈み込み、旋回時の傾き、まばたきもここ。
+- 調整は `npm run dev` → `/sandbox/openworld/character.html`（全状態を並べるビューア。`?t=秒` で停止、`?yaw=度` で向き、`?slot=番号` で 1 体を拡大）。
+  ゲーム内は `?camDist=4` でカメラを寄せられる。
 
 ---
 
