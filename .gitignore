@@ -3,3 +3,6 @@ fps/node_modules/
 openworld/dist/
 openworld/node_modules/
 openworld/preview/
+
+# macOS
+.DS_Store
