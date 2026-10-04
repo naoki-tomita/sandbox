@@ -1,5 +1,5 @@
 # balatro / canvas-renderer / openworld のユニットテスト (vitest) と atom-watch のテスト (pytest)。
-# PR と main 押し込みの両方で走る。
+# PR を出したときと、main に push したときに実行する。
 
 name: Test
 
