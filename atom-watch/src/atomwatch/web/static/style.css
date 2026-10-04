@@ -87,7 +87,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 0 16px 48px; }
   padding: 0;
   text-align: left;
 }
-.cam img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .cam.offline img { opacity: 0.25; }
 .cam img:not([src]) { visibility: hidden; }
 .cam .label {
@@ -213,7 +213,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 0 16px 48px; }
 }
 .card:hover { border-color: var(--muted); }
 .thumb { position: relative; aspect-ratio: 16 / 9; background: #000; }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .thumb .dur {
   position: absolute; right: 6px; bottom: 6px;
   background: rgba(0, 0, 0, 0.7); color: #fff;

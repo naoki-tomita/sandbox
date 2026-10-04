@@ -36,12 +36,20 @@ def test_defaults_are_merged_and_overridden(tmp_path):
         {"cameras": [{"id": "a", "url": "x", "unknown_key": 1}]},  # 綴り間違い
         {"cameras": [{"id": "a", "url": "x", "mask": [[0, 0, 2, 1]]}]},  # mask の範囲外
         {"defaults": {"url": "x"}},  # defaults に url は書けない
+        {"cameras": [{"id": "a", "url": "x", "rotate": 45}]},  # rotate は 90 度単位
         {"typo": 1},
     ],
 )
 def test_invalid_configs(raw):
     with pytest.raises(ConfigError):
         parse_config(raw)
+
+
+def test_rotate_swaps_analysis_size():
+    cfg = parse_config({"cameras": [{"id": "a", "url": "x", "rotate": 90}, {"id": "b", "url": "y", "rotate": 180}]})
+    a, b = cfg.cameras
+    assert a.analysis_size == (360, 640)
+    assert b.analysis_size == (640, 360)
 
 
 def test_single_camera_uses_defaults():
