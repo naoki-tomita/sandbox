@@ -22,10 +22,13 @@ import numpy as np
 from .db import Database, NewEvent
 from .detector import Detection
 from .events import FinishedEvent
-from .segments import SegmentStore
+from .segments import Segment, SegmentStore
 
 # 最後のセグメントが書き終わるのを待つ上限(秒)
 SEGMENT_WAIT_SECONDS = 30.0
+# 解析用フレームの場面は、録画ではストリーム時刻より少し後ろの位置に映っている(ffmpeg の中の処理の違いによる一定のずれ)。
+# 検出の録画上の位置をこの分だけ後ろにして、再生画面の検出枠を映像に合わせる。ATOM Cam のクリップ 4 本で実測して 0.2〜0.25 秒
+ANALYSIS_LAG = 0.2
 
 
 @dataclass
@@ -130,9 +133,9 @@ class Recorder:
     def process(self, job: RecordJob) -> int | None:
         ev = job.event
         store = job.segments
-        # クリップ終端を含むセグメントが書き終わる(= 次のセグメントが始まる)まで待つ
+        # クリップ終端を含むセグメントが書き終わる(= ffmpeg の一覧に載る)まで待つ
         deadline = time.monotonic() + SEGMENT_WAIT_SECONDS
-        while not store.closed and not store.has_segment_after(ev.clip_end) and time.monotonic() < deadline:
+        while not store.closed and not store.covers(ev.clip_end) and time.monotonic() < deadline:
             time.sleep(0.5)
         segments = store.select(ev.clip_start, ev.clip_end)
         if not segments:
@@ -149,11 +152,10 @@ class Recorder:
         thumb_rel = rel_dir / f"{stem}.jpg"
         video_path = self.data_dir / video_rel
 
-        self._concat([s.path for s in segments], video_path, job.rotate)
+        self._concat(segments, video_path, job.rotate)
         duration = self._probe_duration(video_path)
         if duration is None:
-            last = segments[-1]
-            duration = (last.end if last.end is not None else ev.clip_end) - video_start
+            duration = segments[-1].end - video_start
 
         thumb_ok = self._write_thumbnail(ev, video_path, video_start, self.data_dir / thumb_rel)
 
@@ -171,16 +173,19 @@ class Recorder:
                 size_bytes=video_path.stat().st_size,
                 peak_motion=ev.peak_motion,
                 tags=tags,
-                detections=[(ts - video_start, d.label, d.conf, d.box) for ts, d in ev.detections],
+                detections=[(ts - video_start + ANALYSIS_LAG, d.label, d.conf, d.box) for ts, d in ev.detections],
             )
         )
 
-    def _concat(self, paths: list[Path], out: Path, rotate: int = 0) -> None:
+    def _concat(self, segments: list[Segment], out: Path, rotate: int = 0) -> None:
         # 一覧ファイルもセグメントと同じ場所(既定ではメモリ上の /dev/shm)に置く
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", dir=paths[0].parent, delete=False) as f:
-            for p in paths:
-                escaped = str(p.resolve()).replace("'", "'\\''")
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", dir=segments[0].path.parent, delete=False) as f:
+            for seg in segments:
+                escaped = str(seg.path.resolve()).replace("'", "'\\''")
                 f.write(f"file '{escaped}'\n")
+                # 長さを書かないと、concat は映像と音声の長い方をセグメントの長さとみなす。音声が映像より少し
+                # 長く入っているので、つなぐたびに後ろへずれて、検出時刻と録画の位置が合わなくなる
+                f.write(f"duration {seg.end - seg.start:.6f}\n")
             list_path = Path(f.name)
         tmp_out = out.with_suffix(".part.mp4")
         def run() -> subprocess.CompletedProcess[str]:
