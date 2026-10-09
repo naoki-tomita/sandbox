@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .avsync import MAX_AV_OFFSET, av_offset
 from .config import CameraConfig
 from .detection_service import DetectionService
 from .detector import Detection
@@ -23,6 +24,7 @@ from .source import FfmpegSource
 from .status import CameraStatus
 
 PRUNE_INTERVAL = 5.0
+AV_CHECK_INTERVAL = 60.0  # 録画素材の音声と映像のずれを調べる間隔(秒)
 
 
 class CameraPipeline:
@@ -64,6 +66,7 @@ class CameraPipeline:
         )
         self._in_flight = False
         self._last_request = 0.0
+        self._last_av_checked: Path | None = None
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, name=f"pipeline-{cam.id}", daemon=True)
 
@@ -84,6 +87,7 @@ class CameraPipeline:
         seq = 0
         fps_count, fps_since = 0, time.monotonic()
         last_prune = 0.0
+        last_av_check = time.time()
         while not self._stop.is_set():
             got = self.source.get_frame(seq, timeout=1.0)
             now = time.time()
@@ -122,10 +126,27 @@ class CameraPipeline:
             if now - last_prune >= PRUNE_INTERVAL:
                 self.segments.prune(now, protect_since=self.tracker.clip_start)
                 last_prune = now
+            if self.cam.record_audio and now - last_av_check >= AV_CHECK_INTERVAL:
+                self._check_av_sync()
+                last_av_check = now
 
         self._drain_results()
         self._handle(self.tracker.flush(time.time()))
         self.status.state = "idle"
+
+    def _check_av_sync(self) -> None:
+        """最新のセグメントで音声の時刻が映像からずれていたら、ffmpeg を接続し直して揃え直す。
+
+        カメラから届く音声の時刻は、長く接続していると映像から大きくずれることがある。接続し直すと揃う。
+        """
+        segments = self.segments.list()
+        if not segments or segments[-1].path == self._last_av_checked:
+            return  # 接続し直したあと、まだ新しいセグメントがない(古いものを見て何度も接続し直さない)
+        latest = segments[-1].path
+        self._last_av_checked = latest
+        offset = av_offset(latest)
+        if offset is not None and abs(offset) > MAX_AV_OFFSET:
+            self.source.restart(f"音声の時刻が映像から {offset:+.0f} 秒ずれたため接続し直します")
 
     def _drain_results(self) -> None:
         while True:

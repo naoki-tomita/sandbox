@@ -19,6 +19,7 @@ from typing import Callable
 import cv2
 import numpy as np
 
+from .avsync import is_desynced
 from .db import Database, NewEvent
 from .detector import Detection
 from .events import FinishedEvent
@@ -152,7 +153,11 @@ class Recorder:
         thumb_rel = rel_dir / f"{stem}.jpg"
         video_path = self.data_dir / video_rel
 
-        self._concat(segments, video_path, job.rotate)
+        # 音声の時刻がずれた素材をそのままつなぐと、最後のコマが止まったまま何十分も続くクリップになる
+        audio = not (self.ffprobe and any(is_desynced(s.path, self.ffprobe) for s in segments))
+        if not audio:
+            print(f"[{job.camera_id}] 音声の時刻が映像とずれているため、音声なしで保存します", flush=True)
+        self._concat(segments, video_path, job.rotate, audio=audio)
         duration = self._probe_duration(video_path)
         if duration is None:
             duration = segments[-1].end - video_start
@@ -177,7 +182,7 @@ class Recorder:
             )
         )
 
-    def _concat(self, segments: list[Segment], out: Path, rotate: int = 0) -> None:
+    def _concat(self, segments: list[Segment], out: Path, rotate: int = 0, audio: bool = True) -> None:
         # 一覧ファイルもセグメントと同じ場所(既定ではメモリ上の /dev/shm)に置く
         with tempfile.NamedTemporaryFile("w", suffix=".txt", dir=segments[0].path.parent, delete=False) as f:
             for seg in segments:
@@ -193,7 +198,7 @@ class Recorder:
             cmd = [
                 self.ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
                 *in_args, "-f", "concat", "-safe", "0", "-i", str(list_path),
-                "-c", "copy", *out_args, "-movflags", "+faststart", str(tmp_out),
+                "-c", "copy", *([] if audio else ["-an"]), *out_args, "-movflags", "+faststart", str(tmp_out),
             ]
             return subprocess.run(cmd, capture_output=True, text=True, start_new_session=True)
 
