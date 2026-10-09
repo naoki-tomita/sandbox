@@ -31,6 +31,32 @@ export const CONFIG = {
     stepHeight: 0.5,
   },
 
+  horse: {
+    /** 当たり判定のカプセル（縦置き）。馬の胴の長さは覆いきれないので少し太め */
+    radius: 0.62,
+    halfHeight: 0.5,
+    /** 歩法ごとの目標速度 (m/s)。W で速歩、Shift で襲歩 */
+    walkSpeed: 2.2,
+    trotSpeed: 7,
+    gallopSpeed: 15.5,
+    /** 加速・減速 (m/s²) */
+    accel: 5,
+    brake: 11,
+    /** 旋回の速さ (rad/s)。遅いとき / 襲歩のとき */
+    turnSlow: 2.6,
+    turnFast: 1.3,
+    jumpSpeed: 8.5,
+    gravity: 24,
+    maxSlopeDeg: 40,
+    stepHeight: 0.6,
+    /** これより深い水には入らない (m) */
+    maxWadeDepth: 0.9,
+    /** 乗り降りできる距離 (m) */
+    mountRange: 3,
+    /** 指笛が届く距離 (m) */
+    whistleRange: 600,
+  },
+
   camera: {
     fov: 60,
     far: 6000,

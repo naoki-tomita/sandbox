@@ -32,6 +32,9 @@
     {"type": "barrel", "at": [4303.8, 4252.8], "rotation": 333},
     {"type": "house", "at": [4209.0, 4209.0], "rotation": 45, "id": "v6_house_10"},
     {"type": "crate", "at": [4213.9, 4210.0], "rotation": 370},
+    {"type": "stable", "at": [4188.1, 4297.5], "rotation": 127, "id": "v6_stable"},
+    {"type": "horse", "at": [4191.7, 4293.0], "rotation": 307, "id": "v6_horse_1", "props": {"coat": "chestnut"}},
+    {"type": "horse", "at": [4190.7, 4291.6], "rotation": 307, "id": "v6_horse_2", "props": {"coat": "black"}},
     {"type": "sign", "at": [4254.4, 4168.1], "rotation": 170, "props": {"text": "東の町オステン"}},
     {"type": "sign", "at": [4168.8, 4238.9], "rotation": -105, "props": {"text": "東の町オステン"}},
     {"type": "tower", "at": [4250, 4170], "id": "osten_tower", "note": "町の見張り塔"}

@@ -13,6 +13,11 @@ export class ThirdPersonCamera {
   distance: number = CONFIG.camera.distance;
   private currentDistance: number = CONFIG.camera.distance;
   private readonly target = new THREE.Vector3();
+  /** 注視点の高さと、距離の上乗せ（乗馬中は高く・遠くする）。急に変わらないよう滑らかに追う */
+  targetHeight: number = CONFIG.camera.targetHeight;
+  extraDistance = 0;
+  private height: number = CONFIG.camera.targetHeight;
+  private extra = 0;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -28,11 +33,14 @@ export class ThirdPersonCamera {
   }
 
   update(dt: number, playerPos: THREE.Vector3, exclude: RAPIER.Collider): void {
-    this.target.set(playerPos.x, playerPos.y + CONFIG.camera.targetHeight, playerPos.z);
+    const k = 1 - Math.exp(-5 * dt);
+    this.height += (this.targetHeight - this.height) * k;
+    this.extra += (this.extraDistance - this.extra) * k;
+    this.target.set(playerPos.x, playerPos.y + this.height, playerPos.z);
     const cp = Math.cos(this.pitch);
     const dir = new THREE.Vector3(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp);
 
-    let dist = this.distance;
+    let dist = this.distance + this.extra;
     const hit = this.physics.castRay(this.target, dir, dist + 0.3, exclude);
     if (hit !== null) dist = Math.max(0.5, hit - 0.3);
     // 遠ざかるときはゆっくり、近づくときは即座に

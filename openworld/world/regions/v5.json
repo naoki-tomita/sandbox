@@ -24,6 +24,8 @@
     {"type": "barrel", "at": [2430.9, 4226.9], "rotation": 185},
     {"type": "house", "at": [2426.0, 4274.0], "rotation": 135, "id": "v5_house_6"},
     {"type": "crate", "at": [2426.9, 4269.1], "rotation": 222},
+    {"type": "stable", "at": [2399.8, 4263.5], "rotation": 105, "id": "v5_stable"},
+    {"type": "horse", "at": [2404.8, 4260.7], "rotation": 285, "id": "v5_horse_1", "props": {"coat": "grey"}},
     {"type": "sign", "at": [2508.2, 4228.7], "rotation": 103, "props": {"text": "川辺の村ソラ"}},
     {"type": "sign", "at": [2389.4, 4237.1], "rotation": -109, "props": {"text": "川辺の村ソラ"}}
   ]

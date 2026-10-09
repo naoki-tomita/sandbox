@@ -4,7 +4,7 @@
  */
 export const OBJECT_TYPES = [
   'pine', 'oak', 'bush', 'rock', 'boulder', 'house', 'tower', 'well', 'sign', 'campfire', 'marker',
-  'lighthouse', 'pier', 'bridge', 'fence', 'ruin_wall', 'ruin_pillar', 'tent', 'barrel', 'crate',
+  'lighthouse', 'pier', 'bridge', 'fence', 'ruin_wall', 'ruin_pillar', 'tent', 'barrel', 'crate', 'stable', 'horse',
 ] as const;
 export type ObjectType = (typeof OBJECT_TYPES)[number];
 
@@ -45,4 +45,12 @@ export const CATALOG: Record<ObjectType, ObjectInfo> = {
   tent: { description: 'テント（3x4m、入口は +Z 側）', footprint: 2.5, collider: { kind: 'box', size: [3, 2, 4] }, previewColor: [210, 190, 140] },
   barrel: { description: '樽', footprint: 0.6, collider: { kind: 'cylinder', radius: 0.45, height: 1 }, previewColor: [120, 80, 40] },
   crate: { description: '木箱（1m）', footprint: 0.8, collider: { kind: 'box', size: [1, 1, 1] }, previewColor: [150, 110, 60] },
+  stable: { description: '厩舎（7x4m、正面 +Z 側が開いている。前に水桶と馬つなぎの横木）', footprint: 5, collider: { kind: 'box', size: [7.2, 3.2, 4.2] }, previewColor: [120, 75, 40] },
+  horse: {
+    description: '乗れる馬（E で乗り降り）。rotation の向きに立つ。props.coat で毛色: bay / chestnut / black / grey / dun',
+    footprint: 1.6,
+    // 当たり判定は馬自身（src/mount/Horse.ts）が持つ。動くので配置物の当たり判定には入れない
+    collider: { kind: 'none' },
+    previewColor: [200, 140, 60],
+  },
 };

@@ -21,7 +21,7 @@ npm run world:preview   # 俯瞰画像を preview/ に出力（-- --region 名�
 three.js（描画）+ Rapier（`@dimforge/rapier3d-compat`、物理）の上に薄い自作エンジン層を載せている。
 
 ```
-main.ts → Game.ts → { core, physics, world, player, debug } → worldgen → core/random
+main.ts → Game.ts → { core, physics, world, player, mount, debug } → worldgen → core/random
 ```
 
 | 場所 | 責務 |
@@ -43,6 +43,7 @@ main.ts → Game.ts → { core, physics, world, player, debug } → worldgen →
 | `src/world/Water.ts` / `Sky.ts` | 水面（波の法線 + 空の映り込み） / 空・太陽・影・フォグ・昼夜・環境マップ |
 | `src/player/` | Rapier のキネマティック・キャラクターコントローラ、アバター、三人称カメラ |
 | `src/player/character/` | キャラクターのモデル（関節の階層）と手続きアニメーション（下記） |
+| `src/mount/` | 乗れる馬（下記）。`Horses` がワールドの `horse` を生成・更新し、`Game` が乗り降りと入力の受け渡しをする |
 | `src/debug/` | F3 の HUD、T のフリーカメラ |
 | `scripts/` | Node 用 CLI（validate / preview）。`loadWorld.ts` はテストも使う |
 
@@ -72,6 +73,21 @@ main.ts → Game.ts → { core, physics, world, player, debug } → worldgen →
   着地の沈み込み、旋回時の傾き、まばたきもここ。
 - 調整は `npm run dev` → `/sandbox/openworld/character.html`（全状態を並べるビューア。`?t=秒` で停止、`?yaw=度` で向き、`?slot=番号` で 1 体を拡大）。
   ゲーム内は `?camDist=4` でカメラを寄せられる。
+
+### 馬（乗り物）
+
+- 操作: 馬の近くで `E` で乗る / 降りる。乗馬中は `W`（カメラの向き基準）で速歩、`Shift` で襲歩、`Space` で跳躍（柵を越えられる）。
+  `Q` は指笛で、最後に乗った馬（いなければ近くの馬）が駆け寄ってくる（`whistleRange` 以内）。
+- `Horse.ts`: 馬 1 頭。プレイヤーとは別のキネマティック・キャラクターコントローラ（太めの縦カプセル）を持つ。
+  向いている方向へしか進まず、入力の方向へは旋回速度の範囲で向きを変える。**深い水（`maxWadeDepth` 超）の手前で止まる** ので川は橋で渡る。
+  登れる斜面は人より緩い（`maxSlopeDeg`）。当たり判定はプレイヤー周辺にしか無いので、遠くの馬は高さグリッドに沿わせて動かす。
+- 乗馬中はプレイヤーの当たり判定を切り、位置を馬に合わせる（`PlayerController.setMounted / follow`）。
+  描画は 馬のポーズ → 鞍の位置に乗り手（`PlayerAvatar.updateRiding`）→ 手綱を手へ、の順。
+- `HorseModel.ts` / `horsePoses.ts` / `HorseAnimator.ts`: 人型と同じ方式（関節の階層 + 純関数のポーズ）。
+  歩法は常歩（4 拍）・速歩（対角）・襲歩で、速さに応じて重みを移す。乗り手の姿勢 `riderPose` もここ。
+  モデルは関節ごと・材質ごとにジオメトリをまとめて描画呼び出しを減らしている。遠い馬（350m 超）は描かない。
+- 調整は `npm run dev` → `/sandbox/openworld/horse.html`（歩法と乗馬を並べるビューア。`?t=` `?yaw=` `?slot=` は人型と同じ）。
+- 数値は `config.ts` の `horse`（速さ・加速・旋回・跳躍・水深・乗り降りの距離）。
 
 ---
 
@@ -135,8 +151,9 @@ area の塗りは境界が `jitter`(20m) だけノイズで揺れる（自然な
 **objects**: `{ "type": "house", "at": [x, z], "rotation": 90, "scale": 1, "y": 0, "level": 5, "id": "…", "props": {…} }`。
 y は地面からのオフセット、`level` は絶対高さ（指定すると地面を無視。桟橋・橋に使う）。`id` はクエスト等から参照するための一意名。
 種類と寸法は `catalog.ts`:
-`pine oak bush rock boulder house tower well sign campfire marker lighthouse pier bridge fence ruin_wall ruin_pillar tent barrel crate`
-（marker はゲーム中不可視の目印。pier / bridge は中心に置き +Z 方向に延びる。床の上を歩ける）。
+`pine oak bush rock boulder house tower well sign campfire marker lighthouse pier bridge fence ruin_wall ruin_pillar tent barrel crate stable horse`
+（marker はゲーム中不可視の目印。pier / bridge は中心に置き +Z 方向に延びる。床の上を歩ける。
+`horse` は乗れる馬で、`rotation` の向きに立ち、`props.coat` で毛色 `bay chestnut black grey dun` を選ぶ。`stable` は厩舎で、馬はその前に置く）。
 
 **scatter**: `{ "type": "pine", <area>, "density": 5, "scale": [0.8, 1.25], "maxSlope": 30, "avoid": [...], "onlyOn": [...], "exclude": [<area>, ...] }`。
 density は 1000m² あたりの個数。水中・急斜面・`avoid` の地表（既定 road sand rock snow）・個別配置物の周囲は自動で避ける。
@@ -155,6 +172,7 @@ density は 1000m² あたりの個数。水中・急斜面・`avoid` の地表�
 | `norn_harbor` | 港町ノルンの浜・桟橋・灯台 |
 
 村は「整地（falloff を大きく取って周囲となだらかにつなぐ）→ 広場 → 道の方向を避けて家を円周に並べる → 井戸・看板・樽」の形。
+各村に厩舎（道と家から最も離れた方向の外側、開いた面を広場へ向ける）があり、その前に馬が 1〜2 頭いる。
 道は数十 m 間隔の点列にすると地形に沿う（間隔が粗いと切り通し・盛り土が大きくなる）。
 
 ### 編集の手順

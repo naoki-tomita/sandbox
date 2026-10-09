@@ -60,6 +60,16 @@ export class Input {
     return (this.isDown('KeyW') || this.isDown('ArrowUp') ? 1 : 0) - (this.isDown('KeyS') || this.isDown('ArrowDown') ? 1 : 0);
   }
 
+  /** 調べる・乗り降り（押した瞬間） */
+  get interact(): boolean {
+    return this.pressed('KeyE');
+  }
+
+  /** 指笛（押した瞬間） */
+  get whistle(): boolean {
+    return this.pressed('KeyQ');
+  }
+
   get sprint(): boolean {
     return this.isDown('ShiftLeft') || this.isDown('ShiftRight');
   }

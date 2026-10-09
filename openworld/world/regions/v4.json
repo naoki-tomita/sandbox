@@ -24,6 +24,8 @@
     {"type": "barrel", "at": [925.6, 4132.7], "rotation": 185},
     {"type": "house", "at": [916.0, 4150.0], "rotation": 90, "id": "v4_house_6"},
     {"type": "crate", "at": [920.2, 4147.2], "rotation": 222},
+    {"type": "stable", "at": [913.2, 4186.8], "rotation": 135, "id": "v4_stable"},
+    {"type": "horse", "at": [916.2, 4181.8], "rotation": 315, "id": "v4_horse_1", "props": {"coat": "dun"}},
     {"type": "sign", "at": [1009.8, 4133.6], "rotation": 98, "props": {"text": "森の村リンデ"}},
     {"type": "sign", "at": [933.1, 4090.4], "rotation": -171, "props": {"text": "森の村リンデ"}},
     {"type": "tent", "at": [895, 4180], "rotation": 60},

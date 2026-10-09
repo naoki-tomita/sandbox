@@ -32,7 +32,7 @@ const JOINTS = [
 export type Joint = (typeof JOINTS)[number];
 
 /** 腰の高さ (m) */
-const HIP_HEIGHT = 0.965;
+export const HIP_HEIGHT = 0.965;
 
 function mat(color: number, roughness = 0.85): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness: 0 });
