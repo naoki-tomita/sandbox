@@ -3,7 +3,11 @@
 #   docker compose up --build            # 起動(Ctrl+C で終了)
 services:
   atom-watch:
-    build: .
+    build:
+      context: .
+      args:
+        # ラズパイでハードウェアデコードを使うときは 1(ラズパイ公式の ffmpeg を入れる)。.env に RPI_FFMPEG=1 と書く
+        RPI_FFMPEG: ${RPI_FFMPEG:-0}
     image: atom-watch
     init: true          # ffmpeg などの子プロセスを確実に回収する
     restart: "no"       # 人が起動して、人が止める前提
@@ -23,7 +27,7 @@ services:
     shm_size: "512m"
     # Ctrl+C のあと、録画中のクリップを保存し終えるまで待つ
     stop_grace_period: 60s
-    # ラズパイでハードウェアデコード(input_args = ["-c:v", "h264_v4l2m2m"])を使う場合
+    # ラズパイでハードウェアデコード(input_args = ["-c:v", "h264_v4l2m2m"])を使う場合。.env の RPI_FFMPEG=1 も必要
     # devices:
     #   - /dev/video10
     #   - /dev/video11
