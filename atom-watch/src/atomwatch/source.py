@@ -157,6 +157,11 @@ class FfmpegSource:
         self._terminate()
         self._thread.join(timeout=10)
 
+    def restart(self, reason: str) -> None:
+        """ffmpeg を止めて接続し直させる(_run が再接続する)。reason は切断の理由として表示される。"""
+        self._stderr_tail.append(reason)
+        self._terminate()
+
     def _terminate(self) -> None:
         with self._proc_lock:
             proc = self._proc

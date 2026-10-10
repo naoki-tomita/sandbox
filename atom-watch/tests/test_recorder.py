@@ -62,3 +62,22 @@ def test_concat_keeps_segments_on_their_own_times(tmp_path: Path):
     starts = [float(line.split(",")[0]) for line in keyframes.split() if ",K" in line]
     # 音声の長さに引きずられず、セグメントの時刻どおり 2 秒ごとに並ぶ(先頭の音声エンコーダの余白ぶんは除く)
     assert [t - starts[0] for t in starts] == pytest.approx([0.0, 2.0, 4.0, 6.0], abs=0.01)
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None, reason="ffmpeg がない")
+def test_concat_can_drop_audio(tmp_path: Path):
+    seg = tmp_path / "a.ts"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=160x90:rate=20", "-f", "lavfi", "-i", "sine=r=8000",
+         "-t", "1", "-c:v", "libx264", "-c:a", "mp2", "-f", "mpegts", str(seg)],
+        check=True,
+    )
+    out = tmp_path / "out.mp4"
+    rec = Recorder.__new__(Recorder)
+    rec.ffmpeg, rec._legacy_rotation = "ffmpeg", False
+    rec._concat([Segment(seg, 0.0, 1.0)], out, audio=False)
+    streams = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(out)],
+        capture_output=True, text=True, check=True,
+    ).stdout.split()
+    assert streams == ["video"]
