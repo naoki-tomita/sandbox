@@ -136,7 +136,12 @@ tailscale serve --bg 8080
 - Linux では `data/` のファイルが root の所有になります。手で消すときは `sudo` を付けてください
 - 負荷を下げる設定:
   - `[defaults]` で `analysis_fps = 3`、`detect_interval = 1.0` にする
-  - ハードウェアデコードを使う: `input_args = ["-c:v", "h264_v4l2m2m"]` を書き、`compose.yaml` の `devices` のコメントを外す
+  - ハードウェアデコードを使う(ラズパイ 3・4。5 には H.264 のハードウェアデコーダがない):
+    1. `compose.yaml` と同じ場所に `.env` を作り、`RPI_FFMPEG=1` と書く。ラズパイ公式の ffmpeg 入りでイメージを作るようになる
+       (Debian 版の ffmpeg では、ハードウェアデコーダからフレームが出てこないことがある)
+    2. `config.toml` の `[defaults]` に `input_args = ["-c:v", "h264_v4l2m2m"]` を書く
+    3. `compose.yaml` の `devices` のコメントを外す
+    4. `docker compose up --build` でイメージを作り直して起動する
   - ATOM アプリで RTSP の画質を下げる
 - 映像のデコードはカメラの台数に比例して重くなります。古いラズパイなら 1〜2 台が目安です(実機での計測はまだしていません)
 - 一時ファイルはメモリ上(`/dev/shm`)に置くので、SD カードに書き込むのはクリップの保存時だけです。
