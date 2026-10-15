@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- macOS のマイク使用許可ダイアログに表示される説明文。 -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Looper はマイクからの音声をトラックへ録音するためにマイクを使用します。</string>
+</dict>
+</plist>

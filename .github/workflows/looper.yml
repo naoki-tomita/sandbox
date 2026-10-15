@@ -1,0 +1,32 @@
+# looper のリアルタイム DSP コア（engine クレート）のユニットテスト。
+# engine は tauri/cpal 非依存なので、オーディオや webkit のシステム依存無しに走る。
+# ネイティブバイナリの mac/linux バンドルは重いため CI では行わず、engine の検証に絞る。
+
+name: Looper
+
+on:
+  pull_request:
+    paths:
+      - 'looper/**'
+      - '.github/workflows/looper.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'looper/**'
+
+concurrency:
+  group: looper-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  engine-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run engine unit tests
+        run: cargo test -p engine
+        working-directory: looper/src-tauri
