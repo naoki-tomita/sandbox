@@ -33,7 +33,7 @@ def test_build_command_rtsp():
     assert "-hwaccel videotoolbox" in s
     assert "-c:v copy" in s and "-f segment" in s
     assert f"-segment_list {LIST} -segment_list_type csv {SEG}" in s
-    assert "fps=3:start_time=0,scale=640:360" in s
+    assert "fps=3:start_time=0,scale=640:360:flags=area" in s
     assert cmd[-1] == "pipe:1"
     assert "-stream_loop" not in s
 
@@ -47,7 +47,7 @@ def test_build_command_file_loops_without_audio():
 
 @pytest.mark.parametrize(
     "rotate,expected",
-    [(0, "scale=640:360 "), (90, "scale=640:360,transpose=clock "), (270, "scale=640:360,transpose=cclock ")],
+    [(0, "flags=area "), (90, "flags=area,transpose=clock "), (270, "flags=area,transpose=cclock ")],
 )
 def test_build_command_rotates_analysis_frames(rotate, expected):
     cam = CameraConfig(id="a", url="rtsp://h/live", rotate=rotate)
