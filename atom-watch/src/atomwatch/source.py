@@ -87,7 +87,8 @@ def build_command(cam: CameraConfig, segment_pattern: Path, segment_list: Path, 
         str(segment_pattern),
     ]
     # 出力 2: 解析用の生フレーム。start_time=0 で、k 枚目のフレームがストリーム時刻 k / fps ちょうどになる
-    vf = f"fps={cam.analysis_fps}:start_time=0,scale={cam.analysis_width}:{cam.analysis_height}"
+    # scale は既定の bicubic だと Pi 3 でとても重い(1080p→640x360 で area の約 2 倍の CPU)ので area にする
+    vf = f"fps={cam.analysis_fps}:start_time=0,scale={cam.analysis_width}:{cam.analysis_height}:flags=area"
     if cam.rotate:
         vf += "," + ROTATE_FILTERS[cam.rotate]
     cmd += ["-map", "0:v:0", "-an", "-vf", vf, "-pix_fmt", "bgr24", "-f", "rawvideo", "pipe:1"]
