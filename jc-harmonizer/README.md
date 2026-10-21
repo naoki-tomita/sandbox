@@ -5,7 +5,7 @@ Jacob Collier 風ハーモナイザーの実証用最小実装。マイク入力
 ## 動かし方
 
 ```sh
-cd harmonizer
+cd jc-harmonizer
 python3 -m http.server 8000
 ```
 
