@@ -38,7 +38,7 @@ function impulse(ctx, seconds) {
 const CODE_TEMPLATE = `// 128 サンプルごとに呼ばれる。
 // input / output: [L, R] の Float32Array
 // state: 自由に使える保存領域 (コードを適用し直すと空に戻る)
-// sr: サンプルレート / p.a, p.b, p.c: 下のスライダーの値 (0〜1)
+// sr: サンプルレート / p.a, p.b, p.c: 上のノブ A / B / C の値 (0〜1)
 for (let ch = 0; ch < 2; ch++) {
   for (let i = 0; i < output[ch].length; i++) {
     output[ch][i] = Math.tanh(input[ch][i] * (1 + p.a * 20)) * p.b * 2;
