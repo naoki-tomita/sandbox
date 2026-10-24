@@ -8,6 +8,7 @@ on:
       - 'fps/**'
       - 'canvas-renderer/**'
       - 'openworld/**'
+      - 'jc-harmonizer/**'
       - 'index.html'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
@@ -77,6 +78,7 @@ jobs:
           cp -r fps/dist _site/fps
           cp -r canvas-renderer/dist _site/canvas-renderer
           cp -r openworld/dist _site/openworld
+          cp -r jc-harmonizer _site/jc-harmonizer
 
       - uses: actions/upload-pages-artifact@v3
         with:
