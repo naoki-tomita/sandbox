@@ -11,11 +11,16 @@
     .value { color: #8fd48f; }
     label { display: inline-block; width: 6em; }
     small { color: #888; }
+    #keyboard { position: relative; height: 140px; margin-top: 12px; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .key { position: absolute; top: 0; box-sizing: border-box; border: 1px solid #333; border-radius: 0 0 4px 4px; }
+    .key.white { height: 100%; background: #eee; }
+    .key.black { height: 60%; background: #222; z-index: 1; }
+    .key.on { background: #8fd48f; }
   </style>
 </head>
 <body>
   <h1>Harmonizer PoC</h1>
-  <p><small>イヤホン/ヘッドホン推奨 (スピーカーだとハウリングします)。MIDI が無ければ PC キーボード A W S E D F T G Y H U J K で C4〜C5。</small></p>
+  <p><small>イヤホン/ヘッドホン推奨 (スピーカーだとハウリングします)。MIDI が無ければ下の鍵盤 (スマホはマルチタッチで和音可) か、PC キーボード A W S E D F T G Y H U J K で C4〜C5。</small></p>
   <div class="row"><button id="start">Start</button></div>
   <div class="row">状態: <span class="value" id="status">停止中</span></div>
   <div class="row">MIDI: <span class="value" id="midi">-</span></div>
@@ -24,6 +29,8 @@
   <div class="row">遅延 (ブラウザ報告値): <span class="value" id="latency">-</span></div>
   <div class="row"><label>Dry</label><input id="dry" type="range" min="0" max="1" step="0.01" value="0"></div>
   <div class="row"><label>Wet</label><input id="wet" type="range" min="0" max="1" step="0.01" value="1"></div>
+  <div class="row"><button id="octDown">◀</button> <span id="range"></span> <button id="octUp">▶</button></div>
+  <div id="keyboard"></div>
 
   <script>
     const $ = (id) => document.getElementById(id);
@@ -32,15 +39,23 @@
     const held = new Set();
     let node;
 
+    const keyEls = new Map(); // note -> 画面鍵盤の要素
+    function showKey(note, on) {
+      const el = keyEls.get(note);
+      if (el) el.classList.toggle("on", on);
+    }
+
     function noteOn(note, velocity) {
       if (!node) return;
       held.add(note);
+      showKey(note, true);
       node.port.postMessage({ type: "noteOn", note, velocity });
       $("notes").textContent = [...held].sort((a, b) => a - b).map(noteName).join(" ") || "-";
     }
     function noteOff(note) {
       if (!node) return;
       held.delete(note);
+      showKey(note, false);
       node.port.postMessage({ type: "noteOff", note });
       $("notes").textContent = [...held].sort((a, b) => a - b).map(noteName).join(" ") || "-";
     }
@@ -52,9 +67,18 @@
       $("start").disabled = true;
       // latencyHint: 0 で、ブラウザが許す最小のバッファサイズを要求する
       const ctx = new AudioContext({ latencyHint: 0 });
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
-      });
+      // iOS Safari はユーザー操作の中で resume しないと音が出ない
+      ctx.resume();
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
+        });
+      } catch (e) {
+        $("status").textContent = `マイクを使えません (${e.message})`;
+        $("start").disabled = false;
+        return;
+      }
       await ctx.audioWorklet.addModule("harmonizer-worklet.js");
       node = new AudioWorkletNode(ctx, "harmonizer", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
       node.port.onmessage = (e) => {
@@ -73,7 +97,7 @@
       setInterval(showLatency, 1000);
 
       if (!navigator.requestMIDIAccess) {
-        $("midi").textContent = "このブラウザは Web MIDI 非対応 (Chrome / Edge 推奨)";
+        $("midi").textContent = "このブラウザは Web MIDI 非対応 (画面の鍵盤を使ってください)";
         return;
       }
       let access;
@@ -110,6 +134,62 @@
       if (i >= 0) noteOff(60 + i);
     });
     $("dry").oninput = $("wet").oninput = sendParams;
+
+    // 画面鍵盤 (2 オクターブ)。Pointer Events なのでマウスでもマルチタッチでも動き、指を滑らせると隣の鍵盤に移る。
+    let lowNote = 48;
+    const pointers = new Map(); // pointerId -> note
+    function buildKeyboard() {
+      const kb = $("keyboard");
+      for (const note of pointers.values()) noteOff(note);
+      pointers.clear();
+      kb.innerHTML = "";
+      keyEls.clear();
+      const whiteWidth = 100 / 14;
+      let white = 0;
+      for (let note = lowNote; note < lowNote + 24; note++) {
+        const black = NAMES[note % 12].includes("#");
+        const el = document.createElement("div");
+        el.className = `key ${black ? "black" : "white"}`;
+        el.dataset.note = note;
+        el.style.left = `${(black ? white - 0.3 : white) * whiteWidth}%`;
+        el.style.width = `${(black ? 0.6 : 1) * whiteWidth}%`;
+        if (!black) white++;
+        if (held.has(note)) el.classList.add("on");
+        kb.append(el);
+        keyEls.set(note, el);
+      }
+      $("range").textContent = `${noteName(lowNote)}〜${noteName(lowNote + 23)}`;
+    }
+    const noteAt = (x, y) => {
+      const el = document.elementFromPoint(x, y);
+      return el && el.dataset.note ? +el.dataset.note : null;
+    };
+    $("keyboard").addEventListener("pointerdown", (e) => {
+      const note = noteAt(e.clientX, e.clientY);
+      if (note === null) return;
+      $("keyboard").setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, note);
+      noteOn(note, 100);
+    });
+    $("keyboard").addEventListener("pointermove", (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      const note = noteAt(e.clientX, e.clientY);
+      const prev = pointers.get(e.pointerId);
+      if (note === null || note === prev) return;
+      pointers.set(e.pointerId, note);
+      noteOff(prev);
+      noteOn(note, 100);
+    });
+    const release = (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      noteOff(pointers.get(e.pointerId));
+      pointers.delete(e.pointerId);
+    };
+    $("keyboard").addEventListener("pointerup", release);
+    $("keyboard").addEventListener("pointercancel", release);
+    $("octDown").onclick = () => { lowNote = Math.max(24, lowNote - 12); buildKeyboard(); };
+    $("octUp").onclick = () => { lowNote = Math.min(84, lowNote + 12); buildKeyboard(); };
+    buildKeyboard();
   </script>
 </body>
 </html>

@@ -10,7 +10,14 @@ python3 -m http.server 8000
 ```
 
 Chrome / Edge で http://localhost:8000 を開き、Start を押す。マイクと MIDI の許可を求められるので許可する。
-ハウリングするのでイヤホン/ヘッドホンを使うこと。MIDI 機器が無い場合は PC キーボードの `A W S E D F T G Y H U J K` で C4〜C5 が弾ける。
+ハウリングするのでイヤホン/ヘッドホンを使うこと。MIDI 機器が無い場合は画面の鍵盤 (マルチタッチで和音可) か、PC キーボードの `A W S E D F T G Y H U J K` で C4〜C5 が弾ける。
+
+### スマホ
+
+https で開けばスマホでも動く (プレビュー/本番の URL)。
+
+- iPhone (Safari) は Web MIDI 非対応なので画面の鍵盤で弾く。Android の Chrome は USB MIDI 機器も使える。
+- Bluetooth イヤホンは遅延が 100〜200ms 程度増える。
 
 ## 仕組み
 
