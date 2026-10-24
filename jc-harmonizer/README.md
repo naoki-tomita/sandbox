@@ -19,6 +19,24 @@ https で開けばスマホでも動く (プレビュー/本番の URL)。
 - iPhone (Safari) は Web MIDI 非対応なので画面の鍵盤で弾く。Android の Chrome は USB MIDI 機器も使える。
 - Bluetooth イヤホンは遅延が 100〜200ms 程度増える。
 
+## エフェクト
+
+Start 後、画面下の「エフェクト」から追加する。ハーモナイザーの後ろに上から順にかかり、↑↓ で並べ替え、ON で切り替え、✕ で外せる。
+
+- 内蔵: リバーブ / ディレイ / コーラス / 3 バンド EQ / コンプレッサー / ドライブ (`effects.js`)
+- コード (自作): JS を書いて「適用」するとその場で差し替わる (`code-effect-worklet.js` で実行)。
+
+  ```js
+  // 128 サンプルごとに呼ばれる。input / output は [L, R] の Float32Array
+  // state: 自由に使える保存領域, sr: サンプルレート, p.a / p.b / p.c: スライダー (0〜1)
+  for (let ch = 0; ch < 2; ch++)
+    for (let i = 0; i < output[ch].length; i++)
+      output[ch][i] = Math.tanh(input[ch][i] * (1 + p.a * 20));
+  ```
+
+  エラーになったら素通しになり、内容が表示される。無限ループは音声処理ごと止まるのでページを再読み込みする。
+  「名前をつけて保存」でブラウザ (localStorage) に保存され、エフェクトの一覧から呼び出せる。
+
 ## 仕組み
 
 - `index.html`: マイク・Web MIDI の取得と UI。ノートオン/オフを AudioWorklet に送るだけ。
