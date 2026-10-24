@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonizer PoC</title>
+  <style>
+    body { background: #0d0d1a; color: #eee; font-family: 'Courier New', Courier, monospace; padding: 24px; line-height: 1.7; }
+    button { font: inherit; padding: 8px 20px; cursor: pointer; }
+    .row { margin: 8px 0; }
+    .value { color: #8fd48f; }
+    label { display: inline-block; width: 6em; }
+    small { color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Harmonizer PoC</h1>
+  <p><small>イヤホン/ヘッドホン推奨 (スピーカーだとハウリングします)。MIDI が無ければ PC キーボード A W S E D F T G Y H U J K で C4〜C5。</small></p>
+  <div class="row"><button id="start">Start</button></div>
+  <div class="row">状態: <span class="value" id="status">停止中</span></div>
+  <div class="row">MIDI: <span class="value" id="midi">-</span></div>
+  <div class="row">入力ピッチ: <span class="value" id="pitch">-</span></div>
+  <div class="row">ノート: <span class="value" id="notes">-</span></div>
+  <div class="row">遅延 (ブラウザ報告値): <span class="value" id="latency">-</span></div>
+  <div class="row"><label>Dry</label><input id="dry" type="range" min="0" max="1" step="0.01" value="0"></div>
+  <div class="row"><label>Wet</label><input id="wet" type="range" min="0" max="1" step="0.01" value="1"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const noteName = (n) => NAMES[n % 12] + (Math.floor(n / 12) - 1);
+    const held = new Set();
+    let node;
+
+    function noteOn(note, velocity) {
+      if (!node) return;
+      held.add(note);
+      node.port.postMessage({ type: "noteOn", note, velocity });
+      $("notes").textContent = [...held].sort((a, b) => a - b).map(noteName).join(" ") || "-";
+    }
+    function noteOff(note) {
+      if (!node) return;
+      held.delete(note);
+      node.port.postMessage({ type: "noteOff", note });
+      $("notes").textContent = [...held].sort((a, b) => a - b).map(noteName).join(" ") || "-";
+    }
+    function sendParams() {
+      if (node) node.port.postMessage({ type: "params", dry: +$("dry").value, wet: +$("wet").value });
+    }
+
+    $("start").onclick = async () => {
+      $("start").disabled = true;
+      // latencyHint: 0 で、ブラウザが許す最小のバッファサイズを要求する
+      const ctx = new AudioContext({ latencyHint: 0 });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
+      });
+      await ctx.audioWorklet.addModule("harmonizer-worklet.js");
+      node = new AudioWorkletNode(ctx, "harmonizer", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+      node.port.onmessage = (e) => {
+        if (e.data.type === "pitch") $("pitch").textContent = e.data.hz ? `${e.data.hz.toFixed(1)} Hz` : "-";
+      };
+      ctx.createMediaStreamSource(stream).connect(node).connect(ctx.destination);
+      sendParams();
+
+      $("status").textContent = `動作中 (${ctx.sampleRate} Hz)`;
+      const showLatency = () => {
+        const base = ctx.baseLatency * 1000;
+        const output = (ctx.outputLatency || 0) * 1000;
+        $("latency").textContent = `base ${base.toFixed(1)}ms + output ${output.toFixed(1)}ms (+ 入力側とピッチシフト分)`;
+      };
+      showLatency();
+      setInterval(showLatency, 1000);
+
+      if (!navigator.requestMIDIAccess) {
+        $("midi").textContent = "このブラウザは Web MIDI 非対応 (Chrome / Edge 推奨)";
+        return;
+      }
+      let access;
+      try {
+        access = await navigator.requestMIDIAccess();
+      } catch (e) {
+        $("midi").textContent = `使用不可 (${e.message})`;
+        return;
+      }
+      const bind = () => {
+        const names = [];
+        for (const input of access.inputs.values()) {
+          names.push(input.name);
+          input.onmidimessage = ({ data }) => {
+            const [status, note, velocity] = data;
+            const cmd = status & 0xf0;
+            if (cmd === 0x90 && velocity > 0) noteOn(note, velocity);
+            else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) noteOff(note);
+          };
+        }
+        $("midi").textContent = names.join(", ") || "入力デバイスなし";
+      };
+      bind();
+      access.onstatechange = bind;
+    };
+
+    const KEYS = "awsedftgyhujk";
+    addEventListener("keydown", (e) => {
+      const i = KEYS.indexOf(e.key);
+      if (i >= 0 && !e.repeat) noteOn(60 + i, 100);
+    });
+    addEventListener("keyup", (e) => {
+      const i = KEYS.indexOf(e.key);
+      if (i >= 0) noteOff(60 + i);
+    });
+    $("dry").oninput = $("wet").oninput = sendParams;
+  </script>
+</body>
+</html>

@@ -81,6 +81,7 @@ jobs:
           cp -r fps/dist _site/fps
           cp -r canvas-renderer/dist _site/canvas-renderer
           cp -r openworld/dist _site/openworld
+          cp -r jc-harmonizer _site/jc-harmonizer
 
       - name: Deploy to Cloudflare Pages
         id: deploy
