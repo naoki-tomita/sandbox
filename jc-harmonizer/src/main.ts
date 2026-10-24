@@ -1,20 +1,23 @@
 // JC HARMONIZER の起動。音声の準備、固定モジュール (MIC / HARMONIZER / OUTPUT) の配置、
 // 鍵盤・MIDI・電源の結線をする。各部品の中身は同じフォルダの各ファイルにある。
 
-import { $, el } from "./dom.js";
-import { noteName, nearestNote } from "./notes.js";
-import { knob, lcd, meter } from "./widgets.js";
-import { createRack } from "./rack.js";
-import { addEffectModule, moduleOptions } from "./effect-module.js";
-import { createKeyboard, bindPcKeys } from "./keyboard.js";
-import { startMidi } from "./midi.js";
+import { $, el } from "./dom";
+import { noteName, nearestNote } from "./notes";
+import { knob, lcd, meter } from "./widgets";
+import { createRack } from "./rack";
+import { addEffectModule, moduleOptions } from "./effect-module";
+import { createKeyboard, bindPcKeys } from "./keyboard";
+import { startMidi } from "./midi";
+// AudioWorklet は Vite に単体のスクリプトとしてビルドさせ、その URL を addModule に渡す
+import harmonizerUrl from "../worklets/harmonizer?worker&url";
+import codeEffectUrl from "../worklets/code-effect?worker&url";
 
 // ---- 音声 ----
 // AudioContext はページを開いた時点で作り (停止状態)、POWER で動かす。
 // こうしておくと、マイクを許可する前からモジュールを並べてつないでおける。
 const ctx = new AudioContext({ latencyHint: 0 });
-await ctx.audioWorklet.addModule(new URL("../worklets/harmonizer.js", import.meta.url));
-await ctx.audioWorklet.addModule(new URL("../worklets/code-effect.js", import.meta.url));
+await ctx.audioWorklet.addModule(harmonizerUrl);
+await ctx.audioWorklet.addModule(codeEffectUrl);
 const harmonizer = new AudioWorkletNode(ctx, "harmonizer", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
 const micBus = ctx.createGain();
 const micMeter = ctx.createAnalyser();
@@ -25,7 +28,7 @@ let dry = 0, wet = 1;
 const sendMix = () => harmonizer.port.postMessage({ type: "params", dry, wet });
 
 // ---- 固定モジュール ----
-const rack = createRack($("rack"), $("cables"));
+const rack = createRack($("rack"), document.getElementById("cables") as unknown as SVGSVGElement);
 const addPanel = $("add-panel");
 
 const mic = rack.makeModule({ name: "MIC", sub: "マイク入力", role: "source", width: "narrow", output: micBus, before: addPanel });
@@ -40,7 +43,7 @@ mixKnobs.append(
   knob({ label: "WET", min: 0, max: 1, step: 0.01, value: 1, set: (v) => ((wet = v), sendMix()) }),
 );
 voice.body.append(voiceLcd.screen, mixKnobs);
-harmonizer.port.onmessage = (e) => {
+harmonizer.port.onmessage = (e: MessageEvent<{ type: string; hz: number }>) => {
   if (e.data.type !== "pitch") return;
   const hz = e.data.hz;
   voiceLcd.rows[0].textContent = hz ? `IN ${noteName(nearestNote(hz))} ${hz.toFixed(1)}Hz` : "IN —";
@@ -58,23 +61,23 @@ rack.addCable(mic.id, voice.id);
 rack.addCable(voice.id, output.id);
 
 // ---- エフェクトの追加 ----
-const fillModuleTypes = () => $("module-type").replaceChildren(...moduleOptions());
+const fillModuleTypes = () => $<HTMLSelectElement>("module-type").replaceChildren(...moduleOptions());
 fillModuleTypes();
 $("add-module").onclick = () =>
-  addEffectModule({ ctx, rack, value: $("module-type").value, outputModule: output, onPresetSaved: fillModuleTypes });
+  addEffectModule({ ctx, rack, value: $<HTMLSelectElement>("module-type").value, outputModule: output, onPresetSaved: fillModuleTypes });
 
 // ---- 鍵盤と MIDI ----
-const held = new Set();
+const held = new Set<number>();
 function showNotes() {
   voiceLcd.rows[1].textContent = held.size ? [...held].sort((a, b) => a - b).map(noteName).join(" ") : "NOTE —";
 }
-function noteOn(note, velocity) {
+function noteOn(note: number, velocity: number) {
   held.add(note);
   keyboard.show(note, true);
   harmonizer.port.postMessage({ type: "noteOn", note, velocity });
   showNotes();
 }
-function noteOff(note) {
+function noteOff(note: number) {
   held.delete(note);
   keyboard.show(note, false);
   harmonizer.port.postMessage({ type: "noteOff", note });
@@ -83,8 +86,8 @@ function noteOff(note) {
 const keyboard = createKeyboard({
   keybed: $("keyboard"),
   rangeLabel: $("range"),
-  octDown: $("oct-down"),
-  octUp: $("oct-up"),
+  octDown: $<HTMLButtonElement>("oct-down"),
+  octUp: $<HTMLButtonElement>("oct-up"),
   onNoteOn: noteOn,
   onNoteOff: noteOff,
 });
@@ -92,7 +95,7 @@ bindPcKeys({ onNoteOn: noteOn, onNoteOff: noteOff, isHeld: (note) => held.has(no
 showNotes();
 
 const midiLed = $("midi-led");
-let midiBlink;
+let midiBlink: ReturnType<typeof setTimeout> | undefined;
 const midiActivity = () => {
   midiLed.classList.add("is-lit");
   clearTimeout(midiBlink);
@@ -107,13 +110,14 @@ $("power").onclick = async () => {
   if (power.getAttribute("aria-pressed") === "true") return;
   // iOS Safari はユーザー操作の中で resume しないと音が出ない
   ctx.resume();
-  let stream;
+  let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
+      // latency は TypeScript の型定義に無いので、型を広げて渡す
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 } as MediaTrackConstraints,
     });
   } catch (e) {
-    status.textContent = `マイクを使えません: ${e.message}`;
+    status.textContent = `マイクを使えません: ${(e as Error).message}`;
     return;
   }
   const source = ctx.createMediaStreamSource(stream);

@@ -2,20 +2,31 @@
 // コードは new Function で関数にして、128 サンプルのブロックごとに呼ぶ。
 // コンパイルや実行でエラーになったら、エラーをメイン側に知らせて素通しにする。
 
+// ユーザーのコードの形: (input, output, state, sr, p) => void
+type UserCode = (input: Float32Array[], output: Float32Array[], state: object, sr: number, p: Record<string, number>) => void;
+
+type Message = { type: "code"; source: string } | { type: "param"; key: string; value: number };
+
 class CodeEffectProcessor extends AudioWorkletProcessor {
+  fn: UserCode | null;
+  state: object;
+  p: Record<string, number>;
+  input: Float32Array[];
+  silence: Float32Array | null = null;
+
   constructor() {
     super();
     this.fn = null;
     this.state = {};
     this.p = { a: 0.5, b: 0.5, c: 0.5 };
-    this.input = [null, null];
-    this.port.onmessage = (e) => this.onMessage(e.data);
+    this.input = [];
+    this.port.onmessage = (e: MessageEvent<Message>) => this.onMessage(e.data);
   }
 
-  onMessage(msg) {
+  onMessage(msg: Message) {
     if (msg.type === "code") {
       try {
-        this.fn = new Function("input", "output", "state", "sr", "p", msg.source);
+        this.fn = new Function("input", "output", "state", "sr", "p", msg.source) as UserCode;
         this.state = {};
         this.port.postMessage({ type: "ok" });
       } catch (e) {
@@ -27,7 +38,7 @@ class CodeEffectProcessor extends AudioWorkletProcessor {
     }
   }
 
-  process(inputs, outputs) {
+  process(inputs: Float32Array[][], outputs: Float32Array[][]) {
     const out = outputs[0];
     const n = out[0].length;
     const inp = inputs[0];
@@ -52,3 +63,5 @@ class CodeEffectProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor("code-effect", CodeEffectProcessor);
+
+export {};

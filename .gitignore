@@ -3,6 +3,8 @@ fps/node_modules/
 openworld/dist/
 openworld/node_modules/
 openworld/preview/
+jc-harmonizer/dist/
+jc-harmonizer/node_modules/
 
 # macOS
 .DS_Store

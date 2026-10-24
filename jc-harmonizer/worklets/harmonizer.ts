@@ -19,8 +19,27 @@ const GATE_RMS = 0.005;
 const MAX_VOICES = 8;
 const GRAINS_PER_VOICE = 16;
 
+interface Grain {
+  buf: Float32Array;
+  len: number;
+  pos: number;
+  active: boolean;
+}
+
+type Message =
+  | { type: "noteOn"; note: number; velocity: number }
+  | { type: "noteOff"; note: number }
+  | { type: "params"; dry: number; wet: number };
+
 class Voice {
-  constructor(maxGrainLen) {
+  period: number;
+  gain: number;
+  env: number;
+  envTarget: number;
+  countdown: number;
+  grains: Grain[];
+
+  constructor(maxGrainLen: number) {
     this.period = 0; // 目標周期 (サンプル)
     this.gain = 0;
     this.env = 0;
@@ -34,6 +53,27 @@ class Voice {
 }
 
 class HarmonizerProcessor extends AudioWorkletProcessor {
+  sr: number;
+  buf: Float32Array;
+  w: number;
+  dbuf: Float32Array;
+  dw: number;
+  dsr: number;
+  minLag: number;
+  maxLag: number;
+  lin: Float32Array;
+  diff: Float32Array;
+  sinceDetect: number;
+  period: number;
+  voiced: boolean;
+  mark: number;
+  maxGrainLen: number;
+  voices: Map<number, Voice>;
+  pool: Voice[];
+  dry: number;
+  wet: number;
+  sinceReport: number;
+
   constructor() {
     super();
     this.sr = sampleRate;
@@ -63,10 +103,10 @@ class HarmonizerProcessor extends AudioWorkletProcessor {
     this.wet = 1;
     this.sinceReport = 0;
 
-    this.port.onmessage = (e) => this.onMessage(e.data);
+    this.port.onmessage = (e: MessageEvent<Message>) => this.onMessage(e.data);
   }
 
-  onMessage(msg) {
+  onMessage(msg: Message) {
     if (msg.type === "noteOn") {
       let v = this.voices.get(msg.note);
       if (!v) {
@@ -89,7 +129,7 @@ class HarmonizerProcessor extends AudioWorkletProcessor {
     }
   }
 
-  write(input) {
+  write(input: Float32Array) {
     for (let i = 0; i < input.length; i++) {
       this.buf[this.w & (RING - 1)] = input[i];
       if (this.w & 1) {
@@ -156,7 +196,7 @@ class HarmonizerProcessor extends AudioWorkletProcessor {
     while (this.mark + 2 * T <= this.w) this.mark += T;
   }
 
-  spawnGrain(v) {
+  spawnGrain(v: Voice) {
     const g = v.grains.find((g) => !g.active);
     if (!g) return;
     const T = this.period;
@@ -179,7 +219,7 @@ class HarmonizerProcessor extends AudioWorkletProcessor {
     g.active = true;
   }
 
-  process(inputs, outputs) {
+  process(inputs: Float32Array[][], outputs: Float32Array[][]) {
     const input = inputs[0] && inputs[0][0];
     const out = outputs[0][0];
     const n = out.length;
@@ -231,3 +271,5 @@ class HarmonizerProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor("harmonizer", HarmonizerProcessor);
+
+export {};

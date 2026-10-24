@@ -10,7 +10,7 @@ for (let ch = 0; ch < 2; ch++) {
   }
 }`;
 
-export const CODE_EXAMPLES = {
+export const CODE_EXAMPLES: Record<string, string> = {
   "ディストーション": CODE_TEMPLATE,
   "トレモロ": `// p.a: 速さ / p.b: 深さ
 state.phase ??= 0;

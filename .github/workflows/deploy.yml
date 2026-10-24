@@ -37,6 +37,7 @@ jobs:
             fps/package-lock.json
             canvas-renderer/package-lock.json
             openworld/package-lock.json
+            jc-harmonizer/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -70,6 +71,14 @@ jobs:
         run: npm run build
         working-directory: openworld
 
+      - name: Install jc-harmonizer dependencies
+        run: npm ci
+        working-directory: jc-harmonizer
+
+      - name: Build jc-harmonizer
+        run: npm run build
+        working-directory: jc-harmonizer
+
       - name: Assemble site
         run: |
           mkdir -p _site
@@ -78,7 +87,7 @@ jobs:
           cp -r fps/dist _site/fps
           cp -r canvas-renderer/dist _site/canvas-renderer
           cp -r openworld/dist _site/openworld
-          cp -r jc-harmonizer _site/jc-harmonizer
+          cp -r jc-harmonizer/dist _site/jc-harmonizer
 
       - uses: actions/upload-pages-artifact@v3
         with:

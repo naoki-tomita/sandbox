@@ -1,9 +1,19 @@
 // パネルに載せる部品: ノブ、表示窓、レベルメーター。
 
-import { el, clamp } from "./dom.js";
+import { el, clamp } from "./dom";
+
+export interface KnobOptions {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  unit?: string;
+  set(v: number): void;
+}
 
 // 上下ドラッグで回す (Shift で細かく)。矢印キーでも動き、ダブルクリックで初期値に戻る。
-export function knob({ label, min, max, step, value, unit = "", set }) {
+export function knob({ label, min, max, step, value, unit = "", set }: KnobOptions) {
   const initial = value;
   const decimals = step >= 1 ? 0 : Math.ceil(-Math.log10(step));
   const root = el("div", "knob");
@@ -11,23 +21,23 @@ export function knob({ label, min, max, step, value, unit = "", set }) {
   dial.tabIndex = 0;
   dial.setAttribute("role", "slider");
   dial.setAttribute("aria-label", label);
-  dial.setAttribute("aria-valuemin", min);
-  dial.setAttribute("aria-valuemax", max);
+  dial.setAttribute("aria-valuemin", String(min));
+  dial.setAttribute("aria-valuemax", String(max));
   const readout = el("span", "knob-value");
   root.append(el("span", "knob-label", label), dial, readout);
 
-  const update = (v) => {
+  const update = (v: number) => {
     value = clamp(Math.round(v / step) * step, min, max);
     const text = value.toFixed(decimals) + unit;
     dial.style.setProperty("--turn", `${((value - min) / (max - min)) * 270 - 135}deg`);
-    dial.setAttribute("aria-valuenow", value);
+    dial.setAttribute("aria-valuenow", String(value));
     dial.setAttribute("aria-valuetext", text);
     readout.textContent = text;
     set(value);
   };
   update(value);
 
-  let drag = null;
+  let drag: { y: number; value: number } | null = null;
   dial.addEventListener("pointerdown", (e) => {
     dial.setPointerCapture(e.pointerId);
     drag = { y: e.clientY, value };
@@ -43,7 +53,7 @@ export function knob({ label, min, max, step, value, unit = "", set }) {
   dial.addEventListener("dblclick", () => update(initial));
   dial.addEventListener("keydown", (e) => {
     const big = (max - min) / 10;
-    const moves = { ArrowUp: step, ArrowRight: step, ArrowDown: -step, ArrowLeft: -step, PageUp: big, PageDown: -big };
+    const moves: Record<string, number> = { ArrowUp: step, ArrowRight: step, ArrowDown: -step, ArrowLeft: -step, PageUp: big, PageDown: -big };
     if (e.key in moves) update(value + moves[e.key] * (e.shiftKey ? 10 : 1));
     else if (e.key === "Home") update(min);
     else if (e.key === "End") update(max);
@@ -65,7 +75,7 @@ export function meter(segments = 10) {
   const root = el("div", "meter");
   root.setAttribute("aria-hidden", "true");
   const leds = Array.from({ length: segments }, (_, i) => root.appendChild(el("span", i >= segments - 2 ? "seg seg--hot" : "seg")));
-  const show = (db) => {
+  const show = (db: number) => {
     const lit = Math.round(clamp((db + 60) / 60, 0, 1) * leds.length);
     leds.forEach((led, i) => led.classList.toggle("is-lit", i < lit));
   };
