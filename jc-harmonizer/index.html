@@ -3,343 +3,337 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonizer PoC</title>
+  <title>JC Harmonizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Michroma&display=swap" rel="stylesheet">
   <style>
-    body { background: #0d0d1a; color: #eee; font-family: 'Courier New', Courier, monospace; padding: 24px; line-height: 1.7; }
-    button { font: inherit; padding: 8px 20px; cursor: pointer; }
-    .row { margin: 8px 0; }
-    .value { color: #8fd48f; }
-    label { display: inline-block; width: 6em; }
-    small { color: #888; }
-    #keyboard { position: relative; height: 140px; margin-top: 12px; touch-action: none; user-select: none; -webkit-user-select: none; }
-    .key { position: absolute; top: 0; box-sizing: border-box; border: 1px solid #333; border-radius: 0 0 4px 4px; }
-    .key.white { height: 100%; background: #eee; }
-    .key.black { height: 60%; background: #222; z-index: 1; }
-    .key.on { background: #8fd48f; }
-    .fx { border: 1px solid #444; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
-    .fx.off { opacity: 0.5; }
-    .fx header { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .fx header strong { margin-right: auto; }
-    .fx button { padding: 2px 10px; }
-    .fx textarea { width: 100%; box-sizing: border-box; height: 14em; background: #111; color: #eee; font: 12px/1.5 monospace; tab-size: 2; }
-    .fx .error { color: #ff7070; white-space: pre-wrap; }
+    :root {
+      --rack: #1e2126;
+      --rack-edge: #2c3036;
+      --panel: #cdccc4;
+      --panel-hi: #dedcd4;
+      --panel-lo: #b9b8b0;
+      --ink: #17181a;
+      --ink-soft: #55575a;
+      --screen: #14110c;
+      --amber: #ffb347;
+      --amber-dim: #7a5626;
+      --led: #ff3b2f;
+      --focus: #1fa3c7;
+      --role-source: #1fa3c7;
+      --role-voice: #f26b1d;
+      --role-fx: #f5c518;
+      --role-sink: #d9417a;
+      --display: "Michroma", "Eurostile", sans-serif;
+      --label: "Barlow Condensed", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(120% 80% at 50% 0%, #2a2e34, var(--rack) 60%) fixed, var(--rack);
+      color: var(--panel);
+      font: 500 15px/1.4 var(--label);
+      padding: 20px 16px 32px;
+    }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    button, select, textarea { font: inherit; color: inherit; }
+
+    /* ---- 上段のレール: 名前・電源・MIDI ---- */
+    .top {
+      max-width: 1180px;
+      margin: 0 auto 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 24px;
+      border-bottom: 1px solid var(--rack-edge);
+      padding-bottom: 14px;
+    }
+    .brand { margin-right: auto; }
+    .brand h1 {
+      margin: 0;
+      font: 400 clamp(18px, 3.4vw, 26px)/1 var(--display);
+      letter-spacing: 0.12em;
+      color: var(--panel-hi);
+    }
+    .brand p { margin: 6px 0 0; color: #8b8f95; font-size: 13px; letter-spacing: 0.02em; }
+    .midi { display: flex; align-items: center; gap: 8px; color: #8b8f95; font-size: 13px; }
+    .power {
+      display: flex; align-items: center; gap: 10px;
+      background: none; border: 0; padding: 0; cursor: pointer;
+      color: var(--panel); font-weight: 700; letter-spacing: 0.16em; font-size: 13px;
+    }
+    .power .bezel {
+      width: 46px; height: 46px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: radial-gradient(circle at 35% 30%, #5b6068, #2a2d32 70%);
+      box-shadow: 0 2px 0 #0b0c0d, inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+    .power[aria-pressed="true"] .bezel { box-shadow: 0 1px 0 #0b0c0d, inset 0 2px 4px rgba(0, 0, 0, 0.6); }
+    .led {
+      display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+      background: #4a1612; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.6);
+    }
+    .led.is-lit, [aria-pressed="true"] > .led, [aria-pressed="true"] .bezel .led {
+      background: var(--led); box-shadow: 0 0 8px var(--led), 0 0 2px #fff inset;
+    }
+    .status {
+      min-width: 9em;
+      font: 500 13px/1 var(--mono);
+      color: var(--amber);
+      background: var(--screen);
+      padding: 8px 10px; border-radius: 3px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
+    }
+    .hint { max-width: 1180px; margin: 0 auto 16px; color: #8b8f95; font-size: 14px; }
+
+    /* ---- ラック ---- */
+    .rack {
+      position: relative;
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 6px;
+      padding: 10px;
+      background: #121417;
+      border-radius: 4px;
+      box-shadow: inset 0 0 0 1px var(--rack-edge), inset 0 8px 24px rgba(0, 0, 0, 0.6);
+      touch-action: pan-y;
+    }
+    .module {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 184px;
+      min-height: 320px;
+      padding: 18px 12px 16px;
+      color: var(--ink);
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 3px),
+        linear-gradient(180deg, var(--panel-hi), var(--panel) 40%, var(--panel-lo));
+      border-radius: 2px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 0 #000;
+    }
+    .module--narrow { width: 128px; }
+    .module--wide { width: 374px; }
+    /* 固定ネジ */
+    .module::before, .module::after {
+      content: ""; position: absolute; left: 8px; right: 8px; height: 7px;
+      background:
+        radial-gradient(circle at 3.5px 3.5px, #7c7d7a 2px, #3d3e3c 2.5px, transparent 3.5px) left / 7px 7px no-repeat,
+        radial-gradient(circle at 3.5px 3.5px, #7c7d7a 2px, #3d3e3c 2.5px, transparent 3.5px) right / 7px 7px no-repeat;
+    }
+    .module::before { top: 5px; }
+    .module::after { bottom: 5px; }
+    .module-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+    .module-name {
+      margin: 0;
+      font: 400 12px/1.2 var(--display);
+      letter-spacing: 0.1em;
+      word-break: break-all;
+    }
+    .module-sub {
+      flex-basis: 100%;
+      font-size: 12px;
+      color: var(--ink-soft);
+      padding-bottom: 6px;
+      border-bottom: 3px solid var(--role, var(--ink));
+    }
+    .module[data-role="source"] { --role: var(--role-source); }
+    .module[data-role="voice"] { --role: var(--role-voice); }
+    .module[data-role="fx"] { --role: var(--role-fx); }
+    .module[data-role="sink"] { --role: var(--role-sink); }
+    .module-remove {
+      position: absolute; top: 14px; right: 10px;
+      border: 0; background: none; cursor: pointer;
+      font-size: 12px; color: var(--ink-soft); text-decoration: underline;
+    }
+    .module-body { display: flex; flex-direction: column; gap: 10px; }
+    .panel-caption { font-weight: 700; font-size: 11px; letter-spacing: 0.14em; }
+
+    /* 表示窓 */
+    .lcd {
+      font: 500 12px/1.5 var(--mono);
+      color: var(--amber);
+      background: var(--screen);
+      padding: 6px 8px; border-radius: 3px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.5);
+      text-shadow: 0 0 6px rgba(255, 179, 71, 0.45);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* レベルメーター */
+    .meter { display: flex; flex-direction: column-reverse; gap: 3px; width: 18px; }
+    .seg { height: 9px; border-radius: 1px; background: #3a3420; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5); }
+    .seg.is-lit { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+    .seg--hot.is-lit { background: var(--led); box-shadow: 0 0 6px var(--led); }
+
+    /* ノブ */
+    .knobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 6px; }
+    .module--wide .knobs { grid-template-columns: repeat(3, 1fr); }
+    .knob { position: relative; z-index: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .knob-label { font-weight: 700; font-size: 11px; letter-spacing: 0.14em; }
+    .dial {
+      --turn: 0deg;
+      position: relative;
+      width: 48px; height: 48px; border-radius: 50%;
+      cursor: ns-resize; touch-action: none;
+      background: radial-gradient(circle at 40% 30%, #4a4e55, #1c1e21 72%);
+      box-shadow: 0 3px 0 #0c0d0e, 0 4px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+    /* 目盛り */
+    .dial::before {
+      content: ""; position: absolute; inset: -6px; border-radius: 50%; z-index: -1;
+      background: repeating-conic-gradient(from -135deg, var(--ink) 0 1.5deg, transparent 1.5deg 27deg);
+      -webkit-mask: radial-gradient(circle, transparent 28px, #000 28.5px);
+      mask: radial-gradient(circle, transparent 28px, #000 28.5px);
+      clip-path: polygon(50% 50%, 0 100%, 0 0, 100% 0, 100% 100%);
+    }
+    /* 指示線 */
+    .dial::after {
+      content: ""; position: absolute; left: 50%; top: 5px; width: 3px; height: 14px; margin-left: -1.5px;
+      background: var(--panel-hi); border-radius: 2px;
+      transform-origin: 50% 19px; transform: rotate(var(--turn));
+    }
+    .knob-value { font: 500 11px/1 var(--mono); color: var(--ink-soft); }
+
+    /* ON/OFF */
+    .switch {
+      align-self: flex-start;
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 0; border-radius: 3px; padding: 4px 10px; cursor: pointer;
+      background: #2a2d31; color: #7e8187;
+      font-weight: 700; font-size: 12px; letter-spacing: 0.14em;
+      box-shadow: 0 2px 0 #0c0d0e;
+    }
+    .switch[aria-pressed="true"] { color: var(--panel-hi); }
+    .switch:active { transform: translateY(1px); box-shadow: 0 1px 0 #0c0d0e; }
+
+    /* コードエフェクト */
+    .code-screen {
+      background: var(--screen); border-radius: 3px; padding: 8px;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.85), 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+    .code {
+      display: block; width: 100%; height: 15em; resize: vertical;
+      background: transparent; border: 0; color: var(--amber); caret-color: var(--amber);
+      font: 12px/1.55 var(--mono); tab-size: 2;
+      text-shadow: 0 0 5px rgba(255, 179, 71, 0.35);
+    }
+    .code:focus-visible { outline: 1px dashed var(--amber-dim); outline-offset: 2px; }
+    .code-result { min-height: 1.5em; margin-top: 6px; font: 11px/1.5 var(--mono); color: var(--amber); white-space: pre-wrap; }
+    .code-result.is-error { color: var(--led); }
+    .code-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+    .key, .panel-select {
+      border: 0; border-radius: 3px; padding: 6px 12px; cursor: pointer;
+      background: #2a2d31; color: var(--panel-hi);
+      font-weight: 600; font-size: 13px;
+      box-shadow: 0 2px 0 #0c0d0e;
+    }
+    .key:active { transform: translateY(1px); box-shadow: 0 1px 0 #0c0d0e; }
+    .panel-select { padding-right: 8px; max-width: 100%; }
+
+    /* ジャック */
+    .jacks { margin-top: auto; display: flex; justify-content: space-around; gap: 8px; padding-top: 8px; }
+    .jack-wrap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .jack {
+      width: 34px; height: 34px; border-radius: 50%; border: 0; padding: 0; cursor: grab;
+      touch-action: none;
+      background: radial-gradient(circle, #050505 0 32%, #9a9da2 34% 48%, #d4d6da 50% 66%, #74777c 68% 100%);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    .is-patching .jack { cursor: grabbing; }
+    .is-patching .jack:hover { box-shadow: 0 0 0 3px var(--focus); }
+    .jack-label { font-weight: 700; font-size: 11px; letter-spacing: 0.16em; padding: 1px 5px; }
+    /* 出力ジャックはラベルを反転させる (Eurorack の慣習) */
+    .jack-label--out { background: var(--ink); color: var(--panel-hi); border-radius: 2px; }
+
+    /* モジュール追加用の空きスロット */
+    .add-panel {
+      display: flex; flex-direction: column; justify-content: center; gap: 10px;
+      width: 184px; min-height: 320px; padding: 16px 12px;
+      border: 1px dashed #4a4f56; border-radius: 2px; color: #8b8f95;
+    }
+    .add-panel h2 { margin: 0; font: 400 11px/1.3 var(--display); letter-spacing: 0.12em; color: var(--panel); }
+    .add-panel .panel-select, .add-panel .key { width: 100%; }
+
+    /* ケーブル */
+    .cables { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 2; }
+    .cable-wire { fill: none; stroke: var(--c); stroke-width: 5; stroke-linecap: round; opacity: 0.94; }
+    .cable-shadow { fill: none; stroke: rgba(0, 0, 0, 0.35); stroke-width: 7; transform: translate(2px, 4px); }
+    .cable-plug { fill: var(--c); stroke: rgba(0, 0, 0, 0.45); stroke-width: 2; }
+
+    /* ---- 鍵盤 ---- */
+    .keys-wrap { max-width: 1180px; margin: 18px auto 0; }
+    .keys-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; color: #8b8f95; font-size: 13px; }
+    .keys-bar .range { font: 500 13px var(--mono); color: var(--amber); min-width: 5.5em; text-align: center; }
+    .keys-bar .key { padding: 4px 12px; }
+    .keys-bar .pc { margin-left: auto; }
+    #keyboard {
+      position: relative; height: 150px;
+      background: #0c0d0f; border-radius: 3px; padding: 0;
+      box-shadow: inset 0 6px 10px rgba(0, 0, 0, 0.7);
+      touch-action: none; user-select: none; -webkit-user-select: none;
+    }
+    #keyboard .pkey {
+      position: absolute; top: 0; border-radius: 0 0 4px 4px; cursor: pointer;
+    }
+    #keyboard .pkey--white { height: 100%; background: linear-gradient(180deg, #e6e3da, #f4f2ec 85%, #d8d5cc); border: 1px solid #0c0d0f; }
+    #keyboard .pkey--black { height: 60%; z-index: 1; background: linear-gradient(180deg, #2a2c30, #121315 90%); border: 1px solid #000; }
+    #keyboard .pkey.on { background: linear-gradient(180deg, #ffcb7d, var(--amber)); box-shadow: 0 0 14px rgba(255, 179, 71, 0.55); }
+
+    @media (max-width: 600px) {
+      .module, .add-panel { width: calc(50% - 3px); min-height: 0; }
+      .module--wide { width: 100%; }
+      .module--wide .knobs { grid-template-columns: repeat(3, 1fr); }
+      .keys-bar .pc { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
   </style>
 </head>
 <body>
-  <h1>Harmonizer PoC</h1>
-  <p><small>イヤホン/ヘッドホン推奨 (スピーカーだとハウリングします)。MIDI が無ければ下の鍵盤 (スマホはマルチタッチで和音可) か、PC キーボード A W S E D F T G Y H U J K で C4〜C5。</small></p>
-  <div class="row"><button id="start">Start</button></div>
-  <div class="row">状態: <span class="value" id="status">停止中</span></div>
-  <div class="row">MIDI: <span class="value" id="midi">-</span></div>
-  <div class="row">入力ピッチ: <span class="value" id="pitch">-</span></div>
-  <div class="row">ノート: <span class="value" id="notes">-</span></div>
-  <div class="row">遅延 (ブラウザ報告値): <span class="value" id="latency">-</span></div>
-  <div class="row"><label>Dry</label><input id="dry" type="range" min="0" max="1" step="0.01" value="0"></div>
-  <div class="row"><label>Wet</label><input id="wet" type="range" min="0" max="1" step="0.01" value="1"></div>
-  <div class="row"><button id="octDown">◀</button> <span id="range"></span> <button id="octUp">▶</button></div>
-  <div id="keyboard"></div>
+  <header class="top">
+    <div class="brand">
+      <h1>JC HARMONIZER</h1>
+      <p>マイクの声を、鍵盤で押した音程で鳴らすボーカルハーモナイザー</p>
+    </div>
+    <div class="midi"><span class="led" id="midi-led"></span><span>MIDI</span><span id="midi-name">POWER で接続</span></div>
+    <div class="status" id="status" role="status"></div>
+    <button class="power" id="power" type="button" aria-pressed="false">
+      <span class="bezel"><span class="led"></span></span>POWER
+    </button>
+  </header>
+  <p class="hint">POWER を押してマイクを許可し、鍵盤か MIDI で音程を指定します。ジャックからドラッグしてケーブルをつなぎ、IN ジャックから引き抜いて離すと外れます。ハウリングするのでイヤホン推奨。</p>
 
-  <h2>エフェクト</h2>
-  <p><small>ハーモナイザーの後ろに上から順にかかります。Start してから追加してください。</small></p>
-  <div class="row"><select id="fxType"></select> <button id="fxAdd" disabled>追加</button></div>
-  <div id="chain"></div>
+  <main class="rack" id="rack">
+    <section class="add-panel" id="add-panel" aria-label="モジュールを追加">
+      <h2>ADD MODULE</h2>
+      <select class="panel-select" id="module-type" aria-label="追加するモジュール"></select>
+      <button class="key" id="add-module" type="button">追加</button>
+      <span>出力の手前に差し込みます</span>
+    </section>
+    <svg class="cables" id="cables" aria-hidden="true"></svg>
+  </main>
+
+  <section class="keys-wrap" aria-label="鍵盤">
+    <div class="keys-bar">
+      <button class="key" id="oct-down" type="button" aria-label="1 オクターブ下げる">◀</button>
+      <span class="range" id="range"></span>
+      <button class="key" id="oct-up" type="button" aria-label="1 オクターブ上げる">▶</button>
+      <span class="pc">PC キーボード A W S E D F T G Y H U J K でも弾けます (C4–C5)</span>
+    </div>
+    <div id="keyboard"></div>
+  </section>
 
   <script src="effects.js"></script>
-
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    const noteName = (n) => NAMES[n % 12] + (Math.floor(n / 12) - 1);
-    const held = new Set();
-    let ctx, node;
-
-    const keyEls = new Map(); // note -> 画面鍵盤の要素
-    function showKey(note, on) {
-      const el = keyEls.get(note);
-      if (el) el.classList.toggle("on", on);
-    }
-
-    function noteOn(note, velocity) {
-      if (!node) return;
-      held.add(note);
-      showKey(note, true);
-      node.port.postMessage({ type: "noteOn", note, velocity });
-      $("notes").textContent = [...held].sort((a, b) => a - b).map(noteName).join(" ") || "-";
-    }
-    function noteOff(note) {
-      if (!node) return;
-      held.delete(note);
-      showKey(note, false);
-      node.port.postMessage({ type: "noteOff", note });
-      $("notes").textContent = [...held].sort((a, b) => a - b).map(noteName).join(" ") || "-";
-    }
-    function sendParams() {
-      if (node) node.port.postMessage({ type: "params", dry: +$("dry").value, wet: +$("wet").value });
-    }
-
-    $("start").onclick = async () => {
-      $("start").disabled = true;
-      // latencyHint: 0 で、ブラウザが許す最小のバッファサイズを要求する
-      ctx = new AudioContext({ latencyHint: 0 });
-      // iOS Safari はユーザー操作の中で resume しないと音が出ない
-      ctx.resume();
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
-        });
-      } catch (e) {
-        $("status").textContent = `マイクを使えません (${e.message})`;
-        $("start").disabled = false;
-        return;
-      }
-      await ctx.audioWorklet.addModule("harmonizer-worklet.js");
-      await ctx.audioWorklet.addModule("code-effect-worklet.js");
-      chainIn = ctx.createGain();
-      chainOut = ctx.createGain();
-      chainOut.connect(ctx.destination);
-      rewire();
-      $("fxAdd").disabled = false;
-      node = new AudioWorkletNode(ctx, "harmonizer", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
-      node.port.onmessage = (e) => {
-        if (e.data.type === "pitch") $("pitch").textContent = e.data.hz ? `${e.data.hz.toFixed(1)} Hz` : "-";
-      };
-      ctx.createMediaStreamSource(stream).connect(node).connect(chainIn);
-      sendParams();
-
-      $("status").textContent = `動作中 (${ctx.sampleRate} Hz)`;
-      const showLatency = () => {
-        const base = ctx.baseLatency * 1000;
-        const output = (ctx.outputLatency || 0) * 1000;
-        $("latency").textContent = `base ${base.toFixed(1)}ms + output ${output.toFixed(1)}ms (+ 入力側とピッチシフト分)`;
-      };
-      showLatency();
-      setInterval(showLatency, 1000);
-
-      if (!navigator.requestMIDIAccess) {
-        $("midi").textContent = "このブラウザは Web MIDI 非対応 (画面の鍵盤を使ってください)";
-        return;
-      }
-      let access;
-      try {
-        access = await navigator.requestMIDIAccess();
-      } catch (e) {
-        $("midi").textContent = `使用不可 (${e.message})`;
-        return;
-      }
-      const bind = () => {
-        const names = [];
-        for (const input of access.inputs.values()) {
-          names.push(input.name);
-          input.onmidimessage = ({ data }) => {
-            const [status, note, velocity] = data;
-            const cmd = status & 0xf0;
-            if (cmd === 0x90 && velocity > 0) noteOn(note, velocity);
-            else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) noteOff(note);
-          };
-        }
-        $("midi").textContent = names.join(", ") || "入力デバイスなし";
-      };
-      bind();
-      access.onstatechange = bind;
-    };
-
-    const KEYS = "awsedftgyhujk";
-    addEventListener("keydown", (e) => {
-      const i = KEYS.indexOf(e.key);
-      if (i >= 0 && !e.repeat) noteOn(60 + i, 100);
-    });
-    addEventListener("keyup", (e) => {
-      const i = KEYS.indexOf(e.key);
-      if (i >= 0) noteOff(60 + i);
-    });
-    $("dry").oninput = $("wet").oninput = sendParams;
-
-    // 画面鍵盤 (2 オクターブ)。Pointer Events なのでマウスでもマルチタッチでも動き、指を滑らせると隣の鍵盤に移る。
-    let lowNote = 48;
-    const pointers = new Map(); // pointerId -> note
-    function buildKeyboard() {
-      const kb = $("keyboard");
-      for (const note of pointers.values()) noteOff(note);
-      pointers.clear();
-      kb.innerHTML = "";
-      keyEls.clear();
-      const whiteWidth = 100 / 14;
-      let white = 0;
-      for (let note = lowNote; note < lowNote + 24; note++) {
-        const black = NAMES[note % 12].includes("#");
-        const el = document.createElement("div");
-        el.className = `key ${black ? "black" : "white"}`;
-        el.dataset.note = note;
-        el.style.left = `${(black ? white - 0.3 : white) * whiteWidth}%`;
-        el.style.width = `${(black ? 0.6 : 1) * whiteWidth}%`;
-        if (!black) white++;
-        if (held.has(note)) el.classList.add("on");
-        kb.append(el);
-        keyEls.set(note, el);
-      }
-      $("range").textContent = `${noteName(lowNote)}〜${noteName(lowNote + 23)}`;
-    }
-    const noteAt = (x, y) => {
-      const el = document.elementFromPoint(x, y);
-      return el && el.dataset.note ? +el.dataset.note : null;
-    };
-    $("keyboard").addEventListener("pointerdown", (e) => {
-      const note = noteAt(e.clientX, e.clientY);
-      if (note === null) return;
-      $("keyboard").setPointerCapture(e.pointerId);
-      pointers.set(e.pointerId, note);
-      noteOn(note, 100);
-    });
-    $("keyboard").addEventListener("pointermove", (e) => {
-      if (!pointers.has(e.pointerId)) return;
-      const note = noteAt(e.clientX, e.clientY);
-      const prev = pointers.get(e.pointerId);
-      if (note === null || note === prev) return;
-      pointers.set(e.pointerId, note);
-      noteOff(prev);
-      noteOn(note, 100);
-    });
-    const release = (e) => {
-      if (!pointers.has(e.pointerId)) return;
-      noteOff(pointers.get(e.pointerId));
-      pointers.delete(e.pointerId);
-    };
-    $("keyboard").addEventListener("pointerup", release);
-    $("keyboard").addEventListener("pointercancel", release);
-    $("octDown").onclick = () => { lowNote = Math.max(24, lowNote - 12); buildKeyboard(); };
-    $("octUp").onclick = () => { lowNote = Math.min(84, lowNote + 12); buildKeyboard(); };
-    buildKeyboard();
-
-    // エフェクトチェーン: harmonizer → chainIn → [エフェクト...] → chainOut → スピーカー
-    let chainIn, chainOut;
-    const chain = []; // { fx, enabled, el }
-    const PRESET_KEY = "jc-harmonizer.codePresets";
-    const loadPresets = () => {
-      try {
-        return JSON.parse(localStorage.getItem(PRESET_KEY)) || {};
-      } catch {
-        return {};
-      }
-    };
-    const savePresets = (presets) => {
-      try {
-        localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
-      } catch {}
-    };
-
-    function rewire() {
-      chainIn.disconnect();
-      for (const slot of chain) slot.fx.output.disconnect();
-      let last = chainIn;
-      for (const slot of chain) {
-        if (!slot.enabled) continue;
-        last.connect(slot.fx.input);
-        last = slot.fx.output;
-      }
-      last.connect(chainOut);
-      $("chain").replaceChildren(...chain.map((s) => s.el));
-    }
-
-    function fillFxTypes() {
-      const options = Object.entries(EFFECTS).map(([key, def]) => new Option(def.label, key));
-      for (const name of Object.keys(loadPresets())) options.push(new Option(`自作: ${name}`, `preset:${name}`));
-      $("fxType").replaceChildren(...options);
-    }
-
-    function addEffect(value) {
-      let type = value, opts = {}, title;
-      if (value.startsWith("preset:")) {
-        title = value.slice(7);
-        type = "code";
-        opts = { source: loadPresets()[title] };
-      }
-      const fx = EFFECTS[type].create(ctx, opts);
-      const slot = { fx, enabled: true, el: document.createElement("div") };
-      slot.el.className = "fx";
-
-      const header = document.createElement("header");
-      const name = document.createElement("strong");
-      name.textContent = title || EFFECTS[type].label;
-      const onOff = document.createElement("input");
-      onOff.type = "checkbox";
-      onOff.checked = true;
-      onOff.onchange = () => {
-        slot.enabled = onOff.checked;
-        slot.el.classList.toggle("off", !slot.enabled);
-        rewire();
-      };
-      const onLabel = document.createElement("label");
-      onLabel.append(onOff, " ON");
-      const move = (d) => () => {
-        const i = chain.indexOf(slot);
-        const j = i + d;
-        if (j < 0 || j >= chain.length) return;
-        [chain[i], chain[j]] = [chain[j], chain[i]];
-        rewire();
-      };
-      const button = (text, onclick) => Object.assign(document.createElement("button"), { textContent: text, onclick });
-      header.append(
-        name,
-        onLabel,
-        button("↑", move(-1)),
-        button("↓", move(1)),
-        button("✕", () => {
-          chain.splice(chain.indexOf(slot), 1);
-          fx.output.disconnect();
-          fx.dispose();
-          rewire();
-        }),
-      );
-      slot.el.append(header);
-
-      for (const p of fx.params) {
-        const row = document.createElement("div");
-        const label = Object.assign(document.createElement("label"), { textContent: p.label });
-        const range = Object.assign(document.createElement("input"), { type: "range", min: p.min, max: p.max, step: p.step, value: p.value });
-        const shown = Object.assign(document.createElement("span"), { className: "value", textContent: p.value });
-        range.oninput = () => {
-          p.set(+range.value);
-          shown.textContent = range.value;
-        };
-        row.append(label, " ", range, " ", shown);
-        slot.el.append(row);
-      }
-
-      if (fx.code) {
-        const examples = document.createElement("select");
-        examples.append(new Option("例を読み込む…", ""), ...Object.keys(CODE_EXAMPLES).map((k) => new Option(k, k)));
-        const editor = Object.assign(document.createElement("textarea"), { value: fx.code.source, spellcheck: false });
-        examples.onchange = () => {
-          if (examples.value) editor.value = CODE_EXAMPLES[examples.value];
-          examples.value = "";
-        };
-        const result = document.createElement("div");
-        fx.code.onResult = (error) => {
-          result.className = error ? "error" : "value";
-          result.textContent = error ? `エラー (素通しにしています): ${error}` : "適用しました";
-        };
-        const save = () => {
-          const presetName = prompt("保存する名前", title || "");
-          if (!presetName) return;
-          const presets = loadPresets();
-          presets[presetName] = editor.value;
-          savePresets(presets);
-          title = presetName;
-          name.textContent = presetName;
-          fillFxTypes();
-        };
-        const tools = document.createElement("div");
-        tools.append(button("適用", () => fx.code.apply(editor.value)), " ", button("名前をつけて保存", save), " ", examples);
-        slot.el.append(editor, tools, result);
-      }
-
-      chain.push(slot);
-      rewire();
-    }
-
-    fillFxTypes();
-    $("fxAdd").onclick = () => addEffect($("fxType").value);
-  </script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
