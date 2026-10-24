@@ -1,0 +1,23 @@
+/* 鍵盤 */
+
+.keys-wrap { max-width: 1180px; margin: 18px auto 0; }
+.keys-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; color: #8b8f95; font-size: 13px; }
+.keys-bar .range { font: 500 13px var(--mono); color: var(--amber); min-width: 5.5em; text-align: center; }
+.keys-bar .key { padding: 4px 12px; }
+.keys-bar .pc { margin-left: auto; }
+#keyboard {
+  position: relative; height: 150px;
+  background: #0c0d0f; border-radius: 3px; padding: 0;
+  box-shadow: inset 0 6px 10px rgba(0, 0, 0, 0.7);
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+#keyboard .pkey {
+  position: absolute; top: 0; border-radius: 0 0 4px 4px; cursor: pointer;
+}
+#keyboard .pkey--white { height: 100%; background: linear-gradient(180deg, #e6e3da, #f4f2ec 85%, #d8d5cc); border: 1px solid #0c0d0f; }
+#keyboard .pkey--black { height: 60%; z-index: 1; background: linear-gradient(180deg, #2a2c30, #121315 90%); border: 1px solid #000; }
+#keyboard .pkey.on { background: linear-gradient(180deg, #ffcb7d, var(--amber)); box-shadow: 0 0 14px rgba(255, 179, 71, 0.55); }
+
+@media (max-width: 600px) {
+  .keys-bar .pc { display: none; }
+}
