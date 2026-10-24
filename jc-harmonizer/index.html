@@ -16,6 +16,13 @@
     .key.white { height: 100%; background: #eee; }
     .key.black { height: 60%; background: #222; z-index: 1; }
     .key.on { background: #8fd48f; }
+    .fx { border: 1px solid #444; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+    .fx.off { opacity: 0.5; }
+    .fx header { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .fx header strong { margin-right: auto; }
+    .fx button { padding: 2px 10px; }
+    .fx textarea { width: 100%; box-sizing: border-box; height: 14em; background: #111; color: #eee; font: 12px/1.5 monospace; tab-size: 2; }
+    .fx .error { color: #ff7070; white-space: pre-wrap; }
   </style>
 </head>
 <body>
@@ -32,12 +39,19 @@
   <div class="row"><button id="octDown">◀</button> <span id="range"></span> <button id="octUp">▶</button></div>
   <div id="keyboard"></div>
 
+  <h2>エフェクト</h2>
+  <p><small>ハーモナイザーの後ろに上から順にかかります。Start してから追加してください。</small></p>
+  <div class="row"><select id="fxType"></select> <button id="fxAdd" disabled>追加</button></div>
+  <div id="chain"></div>
+
+  <script src="effects.js"></script>
+
   <script>
     const $ = (id) => document.getElementById(id);
     const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     const noteName = (n) => NAMES[n % 12] + (Math.floor(n / 12) - 1);
     const held = new Set();
-    let node;
+    let ctx, node;
 
     const keyEls = new Map(); // note -> 画面鍵盤の要素
     function showKey(note, on) {
@@ -66,7 +80,7 @@
     $("start").onclick = async () => {
       $("start").disabled = true;
       // latencyHint: 0 で、ブラウザが許す最小のバッファサイズを要求する
-      const ctx = new AudioContext({ latencyHint: 0 });
+      ctx = new AudioContext({ latencyHint: 0 });
       // iOS Safari はユーザー操作の中で resume しないと音が出ない
       ctx.resume();
       let stream;
@@ -80,11 +94,17 @@
         return;
       }
       await ctx.audioWorklet.addModule("harmonizer-worklet.js");
+      await ctx.audioWorklet.addModule("code-effect-worklet.js");
+      chainIn = ctx.createGain();
+      chainOut = ctx.createGain();
+      chainOut.connect(ctx.destination);
+      rewire();
+      $("fxAdd").disabled = false;
       node = new AudioWorkletNode(ctx, "harmonizer", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
       node.port.onmessage = (e) => {
         if (e.data.type === "pitch") $("pitch").textContent = e.data.hz ? `${e.data.hz.toFixed(1)} Hz` : "-";
       };
-      ctx.createMediaStreamSource(stream).connect(node).connect(ctx.destination);
+      ctx.createMediaStreamSource(stream).connect(node).connect(chainIn);
       sendParams();
 
       $("status").textContent = `動作中 (${ctx.sampleRate} Hz)`;
@@ -190,6 +210,136 @@
     $("octDown").onclick = () => { lowNote = Math.max(24, lowNote - 12); buildKeyboard(); };
     $("octUp").onclick = () => { lowNote = Math.min(84, lowNote + 12); buildKeyboard(); };
     buildKeyboard();
+
+    // エフェクトチェーン: harmonizer → chainIn → [エフェクト...] → chainOut → スピーカー
+    let chainIn, chainOut;
+    const chain = []; // { fx, enabled, el }
+    const PRESET_KEY = "jc-harmonizer.codePresets";
+    const loadPresets = () => {
+      try {
+        return JSON.parse(localStorage.getItem(PRESET_KEY)) || {};
+      } catch {
+        return {};
+      }
+    };
+    const savePresets = (presets) => {
+      try {
+        localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+      } catch {}
+    };
+
+    function rewire() {
+      chainIn.disconnect();
+      for (const slot of chain) slot.fx.output.disconnect();
+      let last = chainIn;
+      for (const slot of chain) {
+        if (!slot.enabled) continue;
+        last.connect(slot.fx.input);
+        last = slot.fx.output;
+      }
+      last.connect(chainOut);
+      $("chain").replaceChildren(...chain.map((s) => s.el));
+    }
+
+    function fillFxTypes() {
+      const options = Object.entries(EFFECTS).map(([key, def]) => new Option(def.label, key));
+      for (const name of Object.keys(loadPresets())) options.push(new Option(`自作: ${name}`, `preset:${name}`));
+      $("fxType").replaceChildren(...options);
+    }
+
+    function addEffect(value) {
+      let type = value, opts = {}, title;
+      if (value.startsWith("preset:")) {
+        title = value.slice(7);
+        type = "code";
+        opts = { source: loadPresets()[title] };
+      }
+      const fx = EFFECTS[type].create(ctx, opts);
+      const slot = { fx, enabled: true, el: document.createElement("div") };
+      slot.el.className = "fx";
+
+      const header = document.createElement("header");
+      const name = document.createElement("strong");
+      name.textContent = title || EFFECTS[type].label;
+      const onOff = document.createElement("input");
+      onOff.type = "checkbox";
+      onOff.checked = true;
+      onOff.onchange = () => {
+        slot.enabled = onOff.checked;
+        slot.el.classList.toggle("off", !slot.enabled);
+        rewire();
+      };
+      const onLabel = document.createElement("label");
+      onLabel.append(onOff, " ON");
+      const move = (d) => () => {
+        const i = chain.indexOf(slot);
+        const j = i + d;
+        if (j < 0 || j >= chain.length) return;
+        [chain[i], chain[j]] = [chain[j], chain[i]];
+        rewire();
+      };
+      const button = (text, onclick) => Object.assign(document.createElement("button"), { textContent: text, onclick });
+      header.append(
+        name,
+        onLabel,
+        button("↑", move(-1)),
+        button("↓", move(1)),
+        button("✕", () => {
+          chain.splice(chain.indexOf(slot), 1);
+          fx.output.disconnect();
+          fx.dispose();
+          rewire();
+        }),
+      );
+      slot.el.append(header);
+
+      for (const p of fx.params) {
+        const row = document.createElement("div");
+        const label = Object.assign(document.createElement("label"), { textContent: p.label });
+        const range = Object.assign(document.createElement("input"), { type: "range", min: p.min, max: p.max, step: p.step, value: p.value });
+        const shown = Object.assign(document.createElement("span"), { className: "value", textContent: p.value });
+        range.oninput = () => {
+          p.set(+range.value);
+          shown.textContent = range.value;
+        };
+        row.append(label, " ", range, " ", shown);
+        slot.el.append(row);
+      }
+
+      if (fx.code) {
+        const examples = document.createElement("select");
+        examples.append(new Option("例を読み込む…", ""), ...Object.keys(CODE_EXAMPLES).map((k) => new Option(k, k)));
+        const editor = Object.assign(document.createElement("textarea"), { value: fx.code.source, spellcheck: false });
+        examples.onchange = () => {
+          if (examples.value) editor.value = CODE_EXAMPLES[examples.value];
+          examples.value = "";
+        };
+        const result = document.createElement("div");
+        fx.code.onResult = (error) => {
+          result.className = error ? "error" : "value";
+          result.textContent = error ? `エラー (素通しにしています): ${error}` : "適用しました";
+        };
+        const save = () => {
+          const presetName = prompt("保存する名前", title || "");
+          if (!presetName) return;
+          const presets = loadPresets();
+          presets[presetName] = editor.value;
+          savePresets(presets);
+          title = presetName;
+          name.textContent = presetName;
+          fillFxTypes();
+        };
+        const tools = document.createElement("div");
+        tools.append(button("適用", () => fx.code.apply(editor.value)), " ", button("名前をつけて保存", save), " ", examples);
+        slot.el.append(editor, tools, result);
+      }
+
+      chain.push(slot);
+      rewire();
+    }
+
+    fillFxTypes();
+    $("fxAdd").onclick = () => addEffect($("fxType").value);
   </script>
 </body>
 </html>
