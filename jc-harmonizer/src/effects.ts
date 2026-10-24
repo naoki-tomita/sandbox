@@ -4,22 +4,53 @@
 //   params: ノブにする値の一覧 { key, label, min, max, step, value, unit, set(v) }
 //   code:   コードエフェクトだけが持つ、コードの差し替え口
 
-import { CODE_TEMPLATE } from "./code-examples.js";
+import { CODE_TEMPLATE } from "./code-examples";
 
-function param(key, label, min, max, step, value, set, unit = "") {
+export interface Param {
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  unit: string;
+  set(v: number): void;
+}
+
+export interface CodeHandle {
+  source: string;
+  onResult: ((error: string | null) => void) | null;
+  apply(source: string): void;
+}
+
+export interface Effect {
+  input: AudioNode;
+  output: AudioNode;
+  params: Param[];
+  dispose(): void;
+  code?: CodeHandle;
+}
+
+export interface EffectDef {
+  name: string;
+  label: string;
+  create(ctx: BaseAudioContext, opts?: { source?: string }): Effect;
+}
+
+function param(key: string, label: string, min: number, max: number, step: number, value: number, set: (v: number) => void, unit = ""): Param {
   set(value);
   return { key, label, min, max, step, value, unit, set };
 }
 
 // input → (dry) → output と、input → [wet 側の処理] → (wet) → output を並べるミキサー
-function mixer(ctx) {
+function mixer(ctx: BaseAudioContext) {
   const input = ctx.createGain();
   const output = ctx.createGain();
   const dry = ctx.createGain();
   const wet = ctx.createGain();
   input.connect(dry).connect(output);
   wet.connect(output);
-  const setMix = (v) => {
+  const setMix = (v: number) => {
     dry.gain.value = 1 - v;
     wet.gain.value = v;
   };
@@ -27,7 +58,7 @@ function mixer(ctx) {
 }
 
 // 指数的に減衰するノイズでリバーブのインパルス応答を作る
-function impulse(ctx, seconds) {
+function impulse(ctx: BaseAudioContext, seconds: number) {
   const len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
   const buf = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
@@ -37,7 +68,7 @@ function impulse(ctx, seconds) {
   return buf;
 }
 
-export const EFFECTS = {
+export const EFFECTS: Record<string, EffectDef> = {
   reverb: {
     name: "REVERB",
     label: "リバーブ",
@@ -110,11 +141,13 @@ export const EFFECTS = {
     name: "EQ",
     label: "3 バンド EQ",
     create(ctx) {
-      const bands = [
-        ["lowshelf", 200, "LOW"],
-        ["peaking", 1000, "MID"],
-        ["highshelf", 4000, "HIGH"],
-      ].map(([type, freq, label]) => {
+      const bands = (
+        [
+          ["lowshelf", 200, "LOW"],
+          ["peaking", 1000, "MID"],
+          ["highshelf", 4000, "HIGH"],
+        ] as const
+      ).map(([type, freq, label]) => {
         const f = ctx.createBiquadFilter();
         f.type = type;
         f.frequency.value = freq;
@@ -158,7 +191,7 @@ export const EFFECTS = {
       shaper.oversample = "4x";
       const level = ctx.createGain();
       shaper.connect(level);
-      const curve = (amount) => {
+      const curve = (amount: number) => {
         const c = new Float32Array(1024);
         const k = 1 + amount * 50;
         for (let i = 0; i < c.length; i++) c[i] = Math.tanh(((i / (c.length - 1)) * 2 - 1) * k) / Math.tanh(k);
@@ -186,7 +219,7 @@ export const EFFECTS = {
         numberOfOutputs: 1,
         outputChannelCount: [2],
       });
-      const code = {
+      const code: CodeHandle = {
         source,
         onResult: null, // (error: string | null) => void
         apply(src) {
@@ -195,7 +228,7 @@ export const EFFECTS = {
         },
       };
       node.port.onmessage = (e) => code.onResult && code.onResult(e.data.type === "error" ? e.data.message : null);
-      const knob = (key) => param(key, key.toUpperCase(), 0, 1, 0.01, 0.5, (v) => node.port.postMessage({ type: "param", key, value: v }));
+      const knob = (key: string) => param(key, key.toUpperCase(), 0, 1, 0.01, 0.5, (v) => node.port.postMessage({ type: "param", key, value: v }));
       code.apply(source);
       return { input: node, output: node, params: [knob("a"), knob("b"), knob("c")], code, dispose() {} };
     },

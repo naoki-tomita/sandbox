@@ -2,15 +2,18 @@
 
 const PRESET_KEY = "jc-harmonizer.codePresets";
 
-export function loadPresets() {
+// 名前 -> コード
+export type Presets = Record<string, string>;
+
+export function loadPresets(): Presets {
   try {
-    return JSON.parse(localStorage.getItem(PRESET_KEY)) || {};
+    return JSON.parse(localStorage.getItem(PRESET_KEY) ?? "null") || {};
   } catch {
     return {};
   }
 }
 
-export function savePreset(name, source) {
+export function savePreset(name: string, source: string) {
   const presets = loadPresets();
   presets[name] = source;
   try {

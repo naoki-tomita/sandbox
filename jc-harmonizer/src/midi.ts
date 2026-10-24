@@ -1,23 +1,31 @@
 // Web MIDI の入力。つながっている全機器のノートオン / オフを受け取る。
 // 機器の抜き差しにも追従し、状態は onStatus に文字列で知らせる。
 
-export async function startMidi({ onNoteOn, onNoteOff, onActivity, onStatus }) {
+export interface MidiHandlers {
+  onNoteOn(note: number, velocity: number): void;
+  onNoteOff(note: number): void;
+  onActivity(): void;
+  onStatus(text: string): void;
+}
+
+export async function startMidi({ onNoteOn, onNoteOff, onActivity, onStatus }: MidiHandlers) {
   if (!navigator.requestMIDIAccess) {
     onStatus("Web MIDI 非対応 — 画面の鍵盤で弾いてください");
     return;
   }
-  let access;
+  let access: MIDIAccess;
   try {
     access = await navigator.requestMIDIAccess();
   } catch (e) {
-    onStatus(`MIDI を使えません (${e.message})`);
+    onStatus(`MIDI を使えません (${(e as Error).message})`);
     return;
   }
   const bind = () => {
-    const names = [];
+    const names: string[] = [];
     for (const input of access.inputs.values()) {
-      names.push(input.name);
+      names.push(input.name ?? "");
       input.onmidimessage = ({ data }) => {
+        if (!data) return;
         const [status, note, velocity] = data;
         const cmd = status & 0xf0;
         if (cmd === 0x90 && velocity > 0) onNoteOn(note, velocity);
