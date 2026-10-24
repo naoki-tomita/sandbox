@@ -1,11 +1,12 @@
 // エフェクトチェーンに挿せるエフェクトの定義。
+// name はパネルに印刷するモジュール名、label は日本語の説明。
 // create(ctx, opts) は { input, output, params, dispose, code? } を返す。
-//   params: スライダーにする値の一覧 { key, label, min, max, step, value, set(v) }
+//   params: ノブにする値の一覧 { key, label, min, max, step, value, unit, set(v) }
 //   code:   コードエフェクトだけが持つ、コードの差し替え口
 
-function param(key, label, min, max, step, value, set) {
+function param(key, label, min, max, step, value, set, unit = "") {
   set(value);
-  return { key, label, min, max, step, value, set };
+  return { key, label, min, max, step, value, unit, set };
 }
 
 // input → (dry) → output と、input → [wet 側の処理] → (wet) → output を並べるミキサー
@@ -37,7 +38,7 @@ function impulse(ctx, seconds) {
 const CODE_TEMPLATE = `// 128 サンプルごとに呼ばれる。
 // input / output: [L, R] の Float32Array
 // state: 自由に使える保存領域 (コードを適用し直すと空に戻る)
-// sr: サンプルレート / p.a, p.b, p.c: 下のスライダーの値 (0〜1)
+// sr: サンプルレート / p.a, p.b, p.c: 上のノブ A / B / C の値 (0〜1)
 for (let ch = 0; ch < 2; ch++) {
   for (let i = 0; i < output[ch].length; i++) {
     output[ch][i] = Math.tanh(input[ch][i] * (1 + p.a * 20)) * p.b * 2;
@@ -88,6 +89,7 @@ for (let i = 0; i < output[0].length; i++) {
 
 const EFFECTS = {
   reverb: {
+    name: "REVERB",
     label: "リバーブ",
     create(ctx) {
       const m = mixer(ctx);
@@ -97,8 +99,8 @@ const EFFECTS = {
         input: m.input,
         output: m.output,
         params: [
-          param("mix", "ミックス", 0, 1, 0.01, 0.3, m.setMix),
-          param("decay", "長さ (秒)", 0.2, 6, 0.1, 2, (v) => (conv.buffer = impulse(ctx, v))),
+          param("mix", "MIX", 0, 1, 0.01, 0.3, m.setMix),
+          param("decay", "DECAY", 0.2, 6, 0.1, 2, (v) => (conv.buffer = impulse(ctx, v)), "s"),
         ],
         dispose() {},
       };
@@ -106,6 +108,7 @@ const EFFECTS = {
   },
 
   delay: {
+    name: "DELAY",
     label: "ディレイ",
     create(ctx) {
       const m = mixer(ctx);
@@ -117,9 +120,9 @@ const EFFECTS = {
         input: m.input,
         output: m.output,
         params: [
-          param("mix", "ミックス", 0, 1, 0.01, 0.3, m.setMix),
-          param("time", "時間 (ms)", 10, 2000, 1, 350, (v) => (delay.delayTime.value = v / 1000)),
-          param("feedback", "フィードバック", 0, 0.95, 0.01, 0.4, (v) => (fb.gain.value = v)),
+          param("mix", "MIX", 0, 1, 0.01, 0.3, m.setMix),
+          param("time", "TIME", 10, 2000, 1, 350, (v) => (delay.delayTime.value = v / 1000), "ms"),
+          param("feedback", "FDBK", 0, 0.95, 0.01, 0.4, (v) => (fb.gain.value = v)),
         ],
         dispose() {},
       };
@@ -127,6 +130,7 @@ const EFFECTS = {
   },
 
   chorus: {
+    name: "CHORUS",
     label: "コーラス",
     create(ctx) {
       const m = mixer(ctx);
@@ -141,9 +145,9 @@ const EFFECTS = {
         input: m.input,
         output: m.output,
         params: [
-          param("mix", "ミックス", 0, 1, 0.01, 0.5, m.setMix),
-          param("rate", "速さ (Hz)", 0.05, 8, 0.01, 0.8, (v) => (lfo.frequency.value = v)),
-          param("depth", "深さ (ms)", 0, 10, 0.1, 3, (v) => (depth.gain.value = v / 1000)),
+          param("mix", "MIX", 0, 1, 0.01, 0.5, m.setMix),
+          param("rate", "RATE", 0.05, 8, 0.01, 0.8, (v) => (lfo.frequency.value = v), "Hz"),
+          param("depth", "DEPTH", 0, 10, 0.1, 3, (v) => (depth.gain.value = v / 1000), "ms"),
         ],
         dispose() {
           lfo.stop();
@@ -153,12 +157,13 @@ const EFFECTS = {
   },
 
   eq: {
+    name: "EQ",
     label: "3 バンド EQ",
     create(ctx) {
       const bands = [
-        ["lowshelf", 200, "低域 (dB)"],
-        ["peaking", 1000, "中域 (dB)"],
-        ["highshelf", 4000, "高域 (dB)"],
+        ["lowshelf", 200, "LOW"],
+        ["peaking", 1000, "MID"],
+        ["highshelf", 4000, "HIGH"],
       ].map(([type, freq, label]) => {
         const f = ctx.createBiquadFilter();
         f.type = type;
@@ -169,13 +174,14 @@ const EFFECTS = {
       return {
         input: bands[0].f,
         output: bands[2].f,
-        params: bands.map(({ f, label }, i) => param(`band${i}`, label, -18, 18, 0.5, 0, (v) => (f.gain.value = v))),
+        params: bands.map(({ f, label }, i) => param(`band${i}`, label, -18, 18, 0.5, 0, (v) => (f.gain.value = v), "dB")),
         dispose() {},
       };
     },
   },
 
   compressor: {
+    name: "COMP",
     label: "コンプレッサー",
     create(ctx) {
       const comp = ctx.createDynamicsCompressor();
@@ -185,9 +191,9 @@ const EFFECTS = {
         input: comp,
         output: makeup,
         params: [
-          param("threshold", "スレッショルド (dB)", -60, 0, 1, -24, (v) => (comp.threshold.value = v)),
-          param("ratio", "レシオ", 1, 20, 0.5, 4, (v) => (comp.ratio.value = v)),
-          param("makeup", "メイクアップ (dB)", 0, 24, 0.5, 6, (v) => (makeup.gain.value = Math.pow(10, v / 20))),
+          param("threshold", "THRESH", -60, 0, 1, -24, (v) => (comp.threshold.value = v), "dB"),
+          param("ratio", "RATIO", 1, 20, 0.5, 4, (v) => (comp.ratio.value = v), ":1"),
+          param("makeup", "GAIN", 0, 24, 0.5, 6, (v) => (makeup.gain.value = Math.pow(10, v / 20)), "dB"),
         ],
         dispose() {},
       };
@@ -195,6 +201,7 @@ const EFFECTS = {
   },
 
   drive: {
+    name: "DRIVE",
     label: "ドライブ",
     create(ctx) {
       const shaper = ctx.createWaveShaper();
@@ -211,8 +218,8 @@ const EFFECTS = {
         input: shaper,
         output: level,
         params: [
-          param("amount", "歪み", 0, 1, 0.01, 0.3, (v) => (shaper.curve = curve(v))),
-          param("level", "音量", 0, 1.5, 0.01, 0.7, (v) => (level.gain.value = v)),
+          param("amount", "DRIVE", 0, 1, 0.01, 0.3, (v) => (shaper.curve = curve(v))),
+          param("level", "LEVEL", 0, 1.5, 0.01, 0.7, (v) => (level.gain.value = v)),
         ],
         dispose() {},
       };
@@ -221,7 +228,8 @@ const EFFECTS = {
 
   // ユーザーが書いたコードを code-effect-worklet.js の中で実行する
   code: {
-    label: "コード (自作)",
+    name: "CODE",
+    label: "自作コード",
     create(ctx, { source = CODE_TEMPLATE } = {}) {
       const node = new AudioWorkletNode(ctx, "code-effect", {
         numberOfInputs: 1,
@@ -237,7 +245,7 @@ const EFFECTS = {
         },
       };
       node.port.onmessage = (e) => code.onResult && code.onResult(e.data.type === "error" ? e.data.message : null);
-      const knob = (key) => param(key, key, 0, 1, 0.01, 0.5, (v) => node.port.postMessage({ type: "param", key, value: v }));
+      const knob = (key) => param(key, key.toUpperCase(), 0, 1, 0.01, 0.5, (v) => node.port.postMessage({ type: "param", key, value: v }));
       code.apply(source);
       return { input: node, output: node, params: [knob("a"), knob("b"), knob("c")], code, dispose() {} };
     },
