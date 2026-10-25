@@ -12,39 +12,7 @@
   <link rel="stylesheet" href="styles/keyboard.css">
 </head>
 <body>
-  <header class="top">
-    <div class="brand">
-      <h1>JC HARMONIZER</h1>
-      <p>マイクの声を、鍵盤で押した音程で鳴らすボーカルハーモナイザー</p>
-    </div>
-    <div class="midi"><span class="led" id="midi-led"></span><span>MIDI</span><span id="midi-name">POWER で接続</span></div>
-    <div class="status" id="status" role="status"></div>
-    <button class="power" id="power" type="button" aria-pressed="false">
-      <span class="bezel"><span class="led"></span></span>POWER
-    </button>
-  </header>
-  <p class="hint">POWER を押してマイクを許可し、鍵盤か MIDI で音程を指定します。ジャックからドラッグしてケーブルをつなぎ、IN ジャックから引き抜いて離すと外れます。ハウリングするのでイヤホン推奨。</p>
-
-  <main class="rack" id="rack">
-    <section class="add-panel" id="add-panel" aria-label="モジュールを追加">
-      <h2>ADD MODULE</h2>
-      <select class="panel-select" id="module-type" aria-label="追加するモジュール"></select>
-      <button class="key" id="add-module" type="button">追加</button>
-      <span>出力の手前に差し込みます</span>
-    </section>
-    <svg class="cables" id="cables" aria-hidden="true"></svg>
-  </main>
-
-  <section class="keys-wrap" aria-label="鍵盤">
-    <div class="keys-bar">
-      <button class="key" id="oct-down" type="button" aria-label="1 オクターブ下げる">◀</button>
-      <span class="range" id="range"></span>
-      <button class="key" id="oct-up" type="button" aria-label="1 オクターブ上げる">▶</button>
-      <span class="pc">PC キーボード A W S E D F T G Y H U J K でも弾けます (C4–C5)</span>
-    </div>
-    <div id="keyboard"></div>
-  </section>
-
-  <script type="module" src="/src/main.ts"></script>
+  <div id="app"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

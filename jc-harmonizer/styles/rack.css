@@ -1,9 +1,12 @@
 /* ラック、モジュールのパネル、ノブ・表示窓・ジャック、パッチケーブル */
 
-.rack {
+/* ケーブルの座標の基準。ラックとケーブルの層を重ねる */
+.rack-wrap {
   position: relative;
   max-width: 1180px;
   margin: 0 auto;
+}
+.rack {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
@@ -89,7 +92,6 @@
 .knob { position: relative; z-index: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .knob-label { font-weight: 700; font-size: 11px; letter-spacing: 0.14em; }
 .dial {
-  --turn: 0deg;
   position: relative;
   width: 48px; height: 48px; border-radius: 50%;
   cursor: ns-resize; touch-action: none;
@@ -105,10 +107,11 @@
   clip-path: polygon(50% 50%, 0 100%, 0 0, 100% 0, 100% 100%);
 }
 /* 指示線 */
-.dial::after {
-  content: ""; position: absolute; left: 50%; top: 5px; width: 3px; height: 14px; margin-left: -1.5px;
+.dial-pointer {
+  position: absolute; left: 50%; top: 5px; width: 3px; height: 14px; margin-left: -1.5px;
   background: var(--panel-hi); border-radius: 2px;
-  transform-origin: 50% 19px; transform: rotate(var(--turn));
+  transform-origin: 50% 19px;
+  pointer-events: none;
 }
 .knob-value { font: 500 11px/1 var(--mono); color: var(--ink-soft); }
 
@@ -173,6 +176,7 @@
 .add-panel .panel-select, .add-panel .key { width: 100%; }
 
 /* ケーブル */
+.cables-host { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .cables { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 2; }
 .cable-wire { fill: none; stroke: var(--c); stroke-width: 5; stroke-linecap: round; opacity: 0.94; }
 .cable-shadow { fill: none; stroke: rgba(0, 0, 0, 0.35); stroke-width: 7; transform: translate(2px, 4px); }

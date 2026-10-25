@@ -13,6 +13,8 @@ export interface Param {
   max: number;
   step: number;
   value: number;
+  // ダブルクリックで戻す値
+  initial: number;
   unit: string;
   set(v: number): void;
 }
@@ -37,9 +39,9 @@ export interface EffectDef {
   create(ctx: BaseAudioContext, opts?: { source?: string }): Effect;
 }
 
-function param(key: string, label: string, min: number, max: number, step: number, value: number, set: (v: number) => void, unit = ""): Param {
+export function param(key: string, label: string, min: number, max: number, step: number, value: number, set: (v: number) => void, unit = ""): Param {
   set(value);
-  return { key, label, min, max, step, value, unit, set };
+  return { key, label, min, max, step, value, initial: value, unit, set };
 }
 
 // input → (dry) → output と、input → [wet 側の処理] → (wet) → output を並べるミキサー
