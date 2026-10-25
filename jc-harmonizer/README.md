@@ -26,7 +26,7 @@ https で開けばスマホでも動く (プレビュー/本番の URL)。
 
 ## ラックとケーブル
 
-画面はモジュラーシンセのラックになっていて、MIC → HARMONIZER → OUTPUT がケーブルでつながった状態で始まる。音はケーブルのとおりに流れる (`src/rack.ts`)。
+画面はモジュラーシンセのラックになっていて、MIC → HARMONIZER → OUTPUT がケーブルでつながった状態で始まる。音はケーブルのとおりに流れる (`src/patchbay.ts`)。
 
 - ジャックからドラッグして別のジャックで離すとケーブルがつながる (OUT → IN)。1 つの OUT から何本でも出せ、1 つの IN に何本入れても混ざる
 - IN ジャックからドラッグするとケーブルを引き抜ける。別の IN で離すと挿し替え、何もない所で離すと外れる
@@ -52,27 +52,44 @@ https で開けばスマホでも動く (プレビュー/本番の URL)。
 
 ## ファイル
 
+画面は [zheleznaya](https://github.com/naoki-tomita/zheleznaya) のコンポーネント (JSX) で描く。
+
 ```
-index.html               マークアップだけ
-styles/app.css           配色・書体のトークン、ページ全体、上段のレール
-styles/rack.css          ラック・モジュール・ノブ・ジャック・ケーブル
-styles/keyboard.css      鍵盤
-src/main.ts              起動。音声の準備、固定モジュール (MIC / HARMONIZER / OUTPUT)、鍵盤・MIDI・電源の結線
-src/rack.ts              モジュールとパッチケーブル。ケーブルのとおりにノードを接続する
-src/effect-module.ts     エフェクトをモジュールとして組み立てる (ON/OFF・ノブ・コード欄)
-src/effects.ts           内蔵エフェクトの定義
-src/code-examples.ts     自作コードのテンプレートと例
-src/presets.ts           自作コードの保存 (localStorage)
-src/widgets.ts           ノブ・表示窓・レベルメーター
-src/keyboard.ts          画面鍵盤と PC キーボード
-src/midi.ts              Web MIDI 入力
-src/notes.ts, dom.ts     音名の変換、DOM の小道具
-worklets/harmonizer.ts   ハーモナイザーの音声処理 (下記)
-worklets/code-effect.ts  自作コードを実行する音声処理
-tsconfig.json            src/ 用 (DOM の型)
-tsconfig.worklet.json    worklets/ 用 (AudioWorklet の型。DOM の型とぶつかるので分けている)
-vite.config.ts           ビルド設定。worklet は ?worker&url で単体のスクリプトとして出力する
+index.html                 土台 (#app) だけ
+styles/                    配色・書体 (app.css)、ラック (rack.css)、鍵盤 (keyboard.css)
+src/main.tsx               起動。固定モジュール (MIC / HARMONIZER / OUTPUT) を置いてつなぎ、画面を描く
+src/state.ts               アプリの状態と再描画 (update / relayout)
+src/components/App.tsx     画面全体と上段のレール (名前・MIDI・電源)
+src/components/Rack.tsx    ラックとモジュールのパネル、ADD MODULE
+src/components/Knob.tsx    ノブ
+src/components/Keyboard.tsx 画面鍵盤と PC キーボード
+src/actions.ts             画面からの操作 (電源・ノート・エフェクトの追加・保存)
+src/patchbay.ts            モジュールとケーブルの出し入れ。ケーブルのとおりにノードを接続する
+src/cables.ts              ケーブルの描画とドラッグ (SVG を直接 DOM で描く)
+src/display.ts             メーター・入力ピッチ・MIDI の LED (ref で直接書き換える)
+src/audio.ts               AudioContext・ハーモナイザー・マイク
+src/effects.ts             内蔵エフェクトの定義
+src/code-examples.ts       自作コードのテンプレートと例
+src/presets.ts             自作コードの保存 (localStorage)
+src/midi.ts                Web MIDI 入力
+src/notes.ts, util.ts      音名の変換、小さな道具
+worklets/harmonizer.ts     ハーモナイザーの音声処理 (下記)
+worklets/code-effect.ts    自作コードを実行する音声処理
+tsconfig.json              src/ 用 (DOM の型、JSX は zheleznaya の h)
+tsconfig.worklet.json      worklets/ 用 (AudioWorklet の型。DOM の型とぶつかるので分けている)
+vite.config.ts             ビルド設定。worklet は ?worker&url で単体のスクリプトとして出力する
 ```
+
+### zheleznaya (0.3.4) で避けていること
+
+[issue #20](https://github.com/naoki-tomita/zheleznaya/issues/20) の不具合を、アプリ側で次のように避けている。直ったら外せる。
+
+- 状態は普通のオブジェクト (`state`) に持ち、store には再描画のきっかけになる `version` だけを置く。store の Proxy に AudioNode を入れたり配列を入れ替えたりすると壊れるため
+- 配列は必ず親要素の唯一の子にする。後ろに兄弟要素があると更新がずれるため
+- モジュールの出し入れでは `relayout()` でラックを一度文字列に置き換え、丸ごと作り直させる。途中の要素を消すと差分の適用がずれて壊れるため
+- ケーブル (SVG) は子を持たない要素を ref で受け取り、その中に直接 DOM で描く。SVG を描けないため
+- メーター・入力ピッチ・MIDI の LED も ref で直接書き換える。毎フレーム store を変えるとアプリ全体が再描画されるため
+- `{cond && <X />}` ではなく三項演算子で書く。false が「false」と表示されるため
 
 ## 仕組み
 
