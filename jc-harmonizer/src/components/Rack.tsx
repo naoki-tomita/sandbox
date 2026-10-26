@@ -1,6 +1,4 @@
 // ラック: モジュールのパネルと、それをつなぐケーブル。
-// zheleznaya は配列の後ろに兄弟要素があると更新がずれるので (https://github.com/naoki-tomita/zheleznaya/issues/20)、
-// 配列は必ず親要素の唯一の子にする。モジュールの出し入れでは relayout() で丸ごと作り直す。
 
 import { h } from "zheleznaya";
 import { addEffect, moduleOptions, savePresetOf, toggleModule } from "../actions";
@@ -9,7 +7,7 @@ import { CODE_EXAMPLES } from "../code-examples";
 import { attachMeter, attachPitch } from "../display";
 import { noteName } from "../notes";
 import { removeModule } from "../patchbay";
-import { rackHiddenRendered, state, type ModuleState } from "../state";
+import { state, type ModuleState } from "../state";
 import { Knob } from "./Knob";
 
 const Jack = ({ m, dir }: { m: ModuleState; dir: "in" | "out" }) => (
@@ -67,7 +65,8 @@ const CodeTools = ({ m }: { m: ModuleState }) => (
         select.value = "";
       }}
     >
-      {[<option value="">例を読み込む…</option>, ...Object.keys(CODE_EXAMPLES).map((k) => <option value={k}>{k}</option>)]}
+      <option value="">例を読み込む…</option>
+      {Object.keys(CODE_EXAMPLES).map((k) => <option value={k}>{k}</option>)}
     </select>
   </div>
 );
@@ -142,12 +141,12 @@ const AddPanel = () => (
   </section>
 );
 
-export const Rack = () => {
-  if (state.rackHidden) rackHiddenRendered();
-  return (
-    <div class="rack-wrap" ref={attachRack} onpointerdown={onPatchStart} onpointermove={onPatchMove} onpointerup={onPatchEnd} onpointercancel={onPatchEnd}>
-      {state.rackHidden ? "" : <main class="rack">{[...state.modules.map((m) => <ModulePanel m={m} />), <AddPanel />]}</main>}
-      <div class="cables-host" ref={attachCableLayer}></div>
-    </div>
-  );
-};
+export const Rack = () => (
+  <div class="rack-wrap" ref={attachRack} onpointerdown={onPatchStart} onpointermove={onPatchMove} onpointerup={onPatchEnd} onpointercancel={onPatchEnd}>
+    <main class="rack">
+      {state.modules.map((m) => <ModulePanel m={m} />)}
+      <AddPanel />
+    </main>
+    <div class="cables-host" ref={attachCableLayer}></div>
+  </div>
+);
