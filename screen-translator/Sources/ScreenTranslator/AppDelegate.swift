@@ -4,6 +4,7 @@ import Combine
 import Translation
 import TranslatorCore
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var translateHotKey: HotKey?
@@ -104,13 +105,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !isWorking else { return }
         isWorking = true
 
-        Task { @MainActor in
+        Task {
             defer { isWorking = false }
             await translateScreen()
         }
     }
 
-    @MainActor
     private func translateScreen() async {
         guard ScreenCapture.ensurePermission() else {
             alert("「システム設定 > プライバシーとセキュリティ > 画面収録」で Screen Translator を許可してください。許可したあとはアプリの再起動が必要です。")
