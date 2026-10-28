@@ -1,0 +1,46 @@
+# screen-translator (macOS アプリ) のテストとビルド。
+# ビルドした .app は Actions の成果物 (artifact) からダウンロードできる。
+
+name: Screen Translator
+
+on:
+  pull_request:
+    paths:
+      - 'screen-translator/**'
+      - '.github/workflows/screen-translator.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'screen-translator/**'
+      - '.github/workflows/screen-translator.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: screen-translator-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: screen-translator
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build app
+        run: ./scripts/build-app.sh
+
+      - name: Zip app
+        run: ditto -c -k --keepParent "build/Screen Translator.app" build/ScreenTranslator.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ScreenTranslator
+          path: screen-translator/build/ScreenTranslator.zip
