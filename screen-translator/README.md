@@ -1,0 +1,53 @@
+# Screen Translator
+
+画面に表示されている英語を読み取り、日本語訳を元のテキストの上に被せて表示する macOS アプリです。
+日本語訳のないゲームで使うことを想定しています。
+
+- **⌃⌥T (Control + Option + T)** で、マウスカーソルがある画面を翻訳
+- もう一度 ⌃⌥T、Esc、またはクリックで訳を消す
+- 文字認識 (Vision) も翻訳 (Translation) も macOS 内蔵の機能で、**無料・オフライン**で動きます
+
+## 必要なもの
+
+- macOS 15 (Sequoia) 以降
+- Xcode または Command Line Tools (`xcode-select --install`)
+
+## ビルドと起動
+
+```sh
+cd screen-translator
+./scripts/build-app.sh
+open "build/Screen Translator.app"
+```
+
+GitHub Actions の「Screen Translator」ワークフローの成果物から、ビルド済みの .app をダウンロードすることもできます
+(アドホック署名なので、初回は右クリック →「開く」で起動してください)。
+
+## 初回の設定
+
+1. **画面収録の許可**: 初回起動時にダイアログが出ます。「システム設定 > プライバシーとセキュリティ > 画面収録とシステムオーディオ録音」で Screen Translator をオンにし、アプリを再起動してください。
+2. **翻訳モデルのダウンロード**: 英語→日本語のモデルが入っていなければ準備画面が開くので、「ダウンロードする」を押します。メニューバーのアイコン →「翻訳モデルの準備…」からも開けます。
+
+> アドホック署名のため、ビルドし直すと画面収録の許可が外れることがあります。その場合は設定から一度削除して許可し直してください。
+
+## しくみ
+
+| 処理 | 使っているもの |
+| --- | --- |
+| 発動キー | Carbon `RegisterEventHotKey` (アクセシビリティ許可は不要) |
+| 画面キャプチャ | ScreenCaptureKit `SCScreenshotManager` |
+| 文字認識 | Vision `VNRecognizeTextRequest` |
+| 段落まとめ | `TranslatorCore/TextBlockGrouper` (近い行を 1 文にまとめて翻訳精度を上げる) |
+| 翻訳 | Translation フレームワーク (`translationTask`) |
+| 表示 | 透明でクリックが透過する `NSPanel` + SwiftUI |
+
+## 制限
+
+- 専用フルスクリーン (排他フルスクリーン) のゲームではオーバーレイが表示されないことがあります。ゲーム側の設定で「ボーダーレス / ウィンドウ」モードにしてください。
+- 装飾の強いフォントや、背景と区別しにくい文字は読み取れないことがあります。
+
+## テスト
+
+```sh
+swift test
+```

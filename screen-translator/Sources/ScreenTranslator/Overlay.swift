@@ -1,0 +1,146 @@
+import AppKit
+import SwiftUI
+import TranslatorCore
+import Translation
+
+enum Languages {
+    static let source = Locale.Language(identifier: "en")
+    static let target = Locale.Language(identifier: "ja")
+}
+
+struct TranslatedBlock: Identifiable {
+    let id: Int
+    let source: TextBlock
+    var translation: String?
+}
+
+@MainActor
+final class OverlayModel: ObservableObject {
+    enum Phase: Equatable {
+        case translating
+        case done
+        case failed(String)
+    }
+
+    @Published var phase: Phase = .translating
+    @Published var blocks: [TranslatedBlock]
+    /// これが設定されると OverlayView の translationTask が走る
+    @Published var configuration: TranslationSession.Configuration?
+
+    init(blocks: [TextBlock]) {
+        self.blocks = blocks.enumerated().map { TranslatedBlock(id: $0.offset, source: $0.element) }
+        configuration = .init(source: Languages.source, target: Languages.target)
+    }
+
+    func translate(using session: TranslationSession) async {
+        let requests = blocks.map {
+            TranslationSession.Request(sourceText: $0.source.text, clientIdentifier: String($0.id))
+        }
+        do {
+            for try await response in session.translate(batch: requests) {
+                guard let id = response.clientIdentifier.flatMap(Int.init),
+                      let index = blocks.firstIndex(where: { $0.id == id })
+                else { continue }
+                blocks[index].translation = response.targetText
+            }
+            phase = .done
+        } catch {
+            phase = .failed(error.localizedDescription)
+        }
+    }
+}
+
+struct OverlayView: View {
+    @ObservedObject var model: OverlayModel
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.clear
+
+            ForEach(model.blocks) { block in
+                if let translation = block.translation {
+                    TranslationLabel(text: translation, block: block.source)
+                }
+            }
+
+            StatusBadge(phase: model.phase)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, 40)
+                .padding(.trailing, 16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .translationTask(model.configuration) { session in
+            await model.translate(using: session)
+        }
+    }
+}
+
+/// 元のテキストの位置に被せる訳文
+private struct TranslationLabel: View {
+    let text: String
+    let block: TextBlock
+
+    var body: some View {
+        let padding: CGFloat = 4
+        let rect = block.rect.insetBy(dx: -padding, dy: -padding)
+
+        Text(text)
+            .font(.system(size: max(block.lineHeight * 0.8, 10), weight: .medium))
+            .foregroundStyle(.white)
+            .minimumScaleFactor(0.3)
+            .lineSpacing(0)
+            .padding(padding)
+            .frame(width: rect.width, height: rect.height, alignment: .topLeading)
+            .background(.black.opacity(0.85), in: RoundedRectangle(cornerRadius: 4))
+            .offset(x: rect.minX, y: rect.minY)
+    }
+}
+
+private struct StatusBadge: View {
+    let phase: OverlayModel.Phase
+
+    var body: some View {
+        Group {
+            switch phase {
+            case .translating:
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text("翻訳中…")
+                }
+            case .done:
+                Text("Esc / クリックで閉じる")
+            case let .failed(message):
+                Text("翻訳に失敗しました: \(message)")
+            }
+        }
+        .font(.system(size: 12))
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.black.opacity(0.7), in: Capsule())
+    }
+}
+
+/// 画面全体を覆う透明なウィンドウ。マウス操作はその下のゲームにそのまま届く
+final class OverlayWindow: NSPanel {
+    init(screen: NSScreen, model: OverlayModel) {
+        super.init(
+            contentRect: screen.frame,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = false
+        ignoresMouseEvents = true
+        level = .screenSaver
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        isReleasedWhenClosed = false
+        contentView = NSHostingView(rootView: OverlayView(model: model))
+        setFrame(screen.frame, display: false)
+    }
+
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
