@@ -1,5 +1,6 @@
 import AppKit
 import Carbon
+import Combine
 import Translation
 import TranslatorCore
 
@@ -10,29 +11,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clickMonitor: Any?
     private var overlay: OverlayWindow?
     private var isWorking = false
-    private let setup = SetupWindowController()
-
-    /// 発動キー: ⌃⌥T (Control + Option + T)
-    private static let hotKeyCode = kVK_ANSI_T
-    private static let hotKeyModifiers = controlKey | optionKey
-    private static let hotKeyLabel = "⌃⌥T"
+    private let shortcutSettings = ShortcutSettings()
+    private lazy var settingsWindow = SettingsWindowController(shortcutSettings: shortcutSettings)
+    private var translateMenuItem: NSMenuItem!
+    private var recordingObserver: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setUpStatusItem()
 
-        translateHotKey = HotKey(keyCode: Self.hotKeyCode, modifiers: Self.hotKeyModifiers) { [weak self] in
-            self?.toggle()
+        shortcutSettings.register = { [weak self] shortcut in
+            self?.registerTranslateHotKey(shortcut) ?? false
         }
-        if translateHotKey == nil {
-            alert("\(Self.hotKeyLabel) を登録できませんでした。他のアプリが使っている可能性があります。")
+        // 設定画面でキーを入力している間は、今のホットキーが反応しないよう外しておく
+        recordingObserver = shortcutSettings.$isRecording.dropFirst().sink { [weak self] isRecording in
+            guard let self else { return }
+            if isRecording {
+                translateHotKey = nil
+            } else {
+                _ = registerTranslateHotKey(shortcutSettings.shortcut)
+            }
+        }
+        if !registerTranslateHotKey(shortcutSettings.shortcut) {
+            alert("\(shortcutSettings.shortcut.displayString) を登録できませんでした。他のアプリが使っている可能性があります。メニューの「設定…」から別のキーにしてください。")
         }
 
         _ = ScreenCapture.ensurePermission()
 
         Task {
             let status = await LanguageAvailability().status(from: Languages.source, to: Languages.target)
-            if status != .installed { setup.show() }
+            if status != .installed { settingsWindow.show() }
         }
+    }
+
+    private func registerTranslateHotKey(_ shortcut: Shortcut) -> Bool {
+        // 同じ組み合わせを二重に登録すると失敗するので、先に外す
+        translateHotKey = nil
+        translateHotKey = HotKey(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers.rawValue) { [weak self] in
+            self?.toggle()
+        }
+        guard translateHotKey != nil else { return false }
+        translateMenuItem.title = "画面を翻訳 (\(shortcut.displayString))"
+        return true
     }
 
     private func setUpStatusItem() {
@@ -40,12 +59,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: "character.bubble", accessibilityDescription: "Screen Translator")
 
         let menu = NSMenu()
-        let translate = NSMenuItem(title: "画面を翻訳 (\(Self.hotKeyLabel))", action: #selector(translateFromMenu), keyEquivalent: "")
-        translate.target = self
-        menu.addItem(translate)
-        let setupItem = NSMenuItem(title: "翻訳モデルの準備…", action: #selector(showSetup), keyEquivalent: "")
-        setupItem.target = self
-        menu.addItem(setupItem)
+        translateMenuItem = NSMenuItem(title: "画面を翻訳", action: #selector(translateFromMenu), keyEquivalent: "")
+        translateMenuItem.target = self
+        menu.addItem(translateMenuItem)
+        let settingsItem = NSMenuItem(title: "設定…", action: #selector(showSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
@@ -56,8 +75,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self.toggle() }
     }
 
-    @objc private func showSetup() {
-        setup.show()
+    @objc private func showSettings() {
+        settingsWindow.show()
     }
 
     // MARK: - 翻訳
@@ -85,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let status = await LanguageAvailability().status(from: Languages.source, to: Languages.target)
         guard status == .installed else {
-            setup.show()
+            settingsWindow.show()
             return
         }
 
