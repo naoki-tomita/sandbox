@@ -15,6 +15,8 @@ struct SettingsView: View {
                 ShortcutRecorder(settings: shortcutSettings)
             }
             Divider()
+            WatchSection()
+            Divider()
             TranslationModelSection()
         }
         .padding(20)
@@ -110,6 +112,31 @@ private struct ShortcutRecorder: View {
         error = settings.update(shortcut)
             ? nil
             : "\(shortcut.displayString) は他のアプリが使っているため登録できません"
+    }
+}
+
+/// 一定間隔で画面を読み直して訳を更新するモード
+private struct WatchSection: View {
+    @AppStorage(WatchSettings.enabledKey) private var isEnabled = false
+    @AppStorage(WatchSettings.intervalKey) private var interval = WatchSettings.defaultInterval
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("自動翻訳")
+                .font(.headline)
+            Toggle("定期的に画面を読み直して訳を更新する", isOn: $isEnabled)
+            Picker("間隔", selection: $interval) {
+                ForEach(WatchSettings.intervals, id: \.self) { seconds in
+                    Text("\(Int(seconds)) 秒").tag(seconds)
+                }
+            }
+            .frame(width: 160)
+            .disabled(!isEnabled)
+            Text("オンにすると、発動キーで翻訳を始めたあと、もう一度発動キーを押すまで訳を更新し続けます。セリフが次々に変わるゲーム向けです。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

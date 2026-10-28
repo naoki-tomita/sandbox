@@ -4,7 +4,7 @@ import Combine
 import Translation
 import TranslatorCore
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var translateHotKey: HotKey?
     private var escapeHotKey: HotKey?
@@ -15,6 +15,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var settingsWindow = SettingsWindowController(shortcutSettings: shortcutSettings)
     private var translateMenuItem: NSMenuItem!
     private var recordingObserver: AnyCancellable?
+    private var watchMenuItem: NSMenuItem!
+    /// 自動翻訳で画面を読み直し続けるタスク
+    private var watchTask: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setUpStatusItem()
@@ -62,12 +65,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         translateMenuItem = NSMenuItem(title: "画面を翻訳", action: #selector(translateFromMenu), keyEquivalent: "")
         translateMenuItem.target = self
         menu.addItem(translateMenuItem)
+        watchMenuItem = NSMenuItem(title: "自動翻訳 (定期的に更新)", action: #selector(toggleWatch), keyEquivalent: "")
+        watchMenuItem.target = self
+        menu.addItem(watchMenuItem)
         let settingsItem = NSMenuItem(title: "設定…", action: #selector(showSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.delegate = self
         statusItem.menu = menu
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        watchMenuItem.state = WatchSettings.isEnabled ? .on : .off
+    }
+
+    @objc private func toggleWatch() {
+        WatchSettings.isEnabled.toggle()
     }
 
     @objc private func translateFromMenu() {
@@ -113,37 +128,68 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main else { return }
 
         do {
-            let image = try await ScreenCapture.capture(screen)
-            let lines = try await TextRecognizer.recognize(in: image, size: screen.frame.size)
-            let blocks = TextBlockGrouper.group(lines)
-            guard !blocks.isEmpty else {
-                NSSound.beep()
-                return
+            let blocks = try await scan(screen)
+            if WatchSettings.isEnabled {
+                let model = OverlayModel(blocks: blocks, isWatching: true)
+                showOverlay(on: screen, model: model, closesOnUserAction: false)
+                startWatching(screen, model: model)
+            } else {
+                guard !blocks.isEmpty else {
+                    NSSound.beep()
+                    return
+                }
+                showOverlay(on: screen, model: OverlayModel(blocks: blocks), closesOnUserAction: true)
             }
-            showOverlay(on: screen, model: OverlayModel(blocks: blocks))
         } catch {
             alert("画面の読み取りに失敗しました: \(error.localizedDescription)")
         }
     }
 
+    private func scan(_ screen: NSScreen) async throws -> [TextBlock] {
+        // キャプチャからはこのアプリのウィンドウが除かれるので、訳を表示したままでも読み直せる
+        let image = try await ScreenCapture.capture(screen)
+        let lines = try await TextRecognizer.recognize(in: image, size: screen.frame.size)
+        return TextBlockGrouper.group(lines)
+    }
+
+    /// 一定間隔で画面を読み直し、文章が変わったら訳し直す
+    private func startWatching(_ screen: NSScreen, model: OverlayModel) {
+        watchTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(WatchSettings.interval))
+                guard !Task.isCancelled, let self else { return }
+                // 読み取りに一度失敗しても、次の回でやり直す
+                if let blocks = try? await scan(screen), !Task.isCancelled {
+                    model.update(blocks)
+                }
+            }
+        }
+    }
+
     // MARK: - オーバーレイ
 
-    private func showOverlay(on screen: NSScreen, model: OverlayModel) {
+    /// - Parameter closesOnUserAction: Esc やクリックで閉じるか。
+    ///   自動翻訳中はゲームを操作し続けるので、Esc も奪わず、発動キーでだけ閉じる
+    private func showOverlay(on screen: NSScreen, model: OverlayModel, closesOnUserAction: Bool) {
         let window = OverlayWindow(screen: screen, model: model)
         window.orderFrontRegardless()
         overlay = window
 
-        // 表示中だけ Esc を奪う
-        escapeHotKey = HotKey(keyCode: kVK_Escape, modifiers: 0) { [weak self] in
-            self?.hideOverlay()
-        }
-        // どこかをクリックしたら閉じる (クリック自体はゲームに届く)
-        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            self?.hideOverlay()
+        if closesOnUserAction {
+            // 表示中だけ Esc を奪う
+            escapeHotKey = HotKey(keyCode: kVK_Escape, modifiers: 0) { [weak self] in
+                self?.hideOverlay()
+            }
+            // どこかをクリックしたら閉じる (クリック自体はゲームに届く)
+            clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+                self?.hideOverlay()
+            }
         }
     }
 
     private func hideOverlay() {
+        watchTask?.cancel()
+        watchTask = nil
         overlay?.orderOut(nil)
         overlay = nil
         escapeHotKey = nil
