@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import SwiftUI
 import TranslatorCore
 import Translation
@@ -14,6 +15,24 @@ struct TranslatedBlock: Identifiable {
     var translation: String?
 }
 
+/// 一度訳した文を覚えておく。オーバーレイを閉じても残るので、
+/// 同じメニューや HUD を何度翻訳してもすぐ表示できる
+@MainActor
+final class TranslationCache {
+    static let shared = TranslationCache()
+    private static let limit = 5000
+
+    private var translations: [String: String] = [:]
+
+    subscript(source: String) -> String? {
+        get { translations[source] }
+        set {
+            if translations.count >= Self.limit { translations.removeAll() }
+            translations[source] = newValue
+        }
+    }
+}
+
 @MainActor
 final class OverlayModel: ObservableObject {
     enum Phase: Equatable {
@@ -22,6 +41,10 @@ final class OverlayModel: ObservableObject {
         case failed(String)
     }
 
+    /// 同時に翻訳するセッションの数 (macOS 26 以降)
+    private static let parallelism = 4
+    private static let logger = Logger(subsystem: "com.github.naoki-tomita.screen-translator", category: "translation")
+
     @Published var phase: Phase = .done
     @Published var blocks: [TranslatedBlock] = []
     /// これが設定 (または invalidate) されると OverlayView の translationTask が走る
@@ -29,8 +52,7 @@ final class OverlayModel: ObservableObject {
     /// 定期的に画面を読み直しているか
     let isWatching: Bool
 
-    /// 同じ文を何度も翻訳しないよう、訳を覚えておく
-    private var cache: [String: String] = [:]
+    private let cache = TranslationCache.shared
     private var nextID = 0
 
     init(blocks: [TextBlock], isWatching: Bool = false) {
@@ -58,25 +80,57 @@ final class OverlayModel: ObservableObject {
     }
 
     func translate(using session: TranslationSession) async {
-        let pending = blocks.filter { $0.translation == nil }
-        let sources = Dictionary(uniqueKeysWithValues: pending.map { ($0.id, $0.source.text) })
-        let requests = pending.map {
-            TranslationSession.Request(sourceText: $0.source.text, clientIdentifier: String($0.id))
-        }
+        let texts = TranslationPlanner.orderedTexts(blocks.filter { $0.translation == nil }.map(\.source))
+        guard !texts.isEmpty else { return }
+
+        let clock = ContinuousClock()
+        let start = clock.now
         do {
-            for try await response in session.translate(batch: requests) {
-                guard let id = response.clientIdentifier.flatMap(Int.init) else { continue }
-                if let source = sources[id] { cache[source] = response.targetText }
-                // 翻訳中に画面が読み直されていたら、同じ文のブロックに入れる
-                for index in blocks.indices where blocks[index].translation == nil {
-                    blocks[index].translation = cache[blocks[index].source.text]
-                }
-            }
+            try await translateInParallel(texts, primary: session)
             if !blocks.contains(where: { $0.translation == nil }) { phase = .done }
+            let elapsed = clock.now - start
+            Self.logger.info("\(texts.count) 件を \(String(describing: elapsed), privacy: .public) で翻訳しました")
         } catch is CancellationError {
             // 読み直しで次の翻訳が始まった
         } catch {
             phase = .failed(error.localizedDescription)
+        }
+    }
+
+    /// 文をいくつかの組に分け、組ごとに別のセッションで同時に翻訳する。
+    /// macOS 26 より前はセッションを自分で作れないので、1 つのセッションで順に訳す
+    private func translateInParallel(_ texts: [String], primary: TranslationSession) async throws {
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *), texts.count > 1 {
+            let chunks = TranslationPlanner.chunks(texts, count: Self.parallelism)
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for (index, chunk) in chunks.enumerated() {
+                    let session = index == 0
+                        ? primary
+                        : TranslationSession(installedSource: Languages.source, target: Languages.target)
+                    group.addTask { try await self.translate(chunk, with: session) }
+                }
+                try await group.waitForAll()
+            }
+            return
+        }
+        #endif
+        try await translate(texts, with: primary)
+    }
+
+    private func translate(_ texts: [String], with session: TranslationSession) async throws {
+        let requests = texts.enumerated().map {
+            TranslationSession.Request(sourceText: $0.element, clientIdentifier: String($0.offset))
+        }
+        // 訳せた文から順に表示する
+        for try await response in session.translate(batch: requests) {
+            guard let index = response.clientIdentifier.flatMap(Int.init), texts.indices.contains(index)
+            else { continue }
+            let source = texts[index]
+            cache[source] = response.targetText
+            for i in blocks.indices where blocks[i].translation == nil && blocks[i].source.text == source {
+                blocks[i].translation = response.targetText
+            }
         }
     }
 }
