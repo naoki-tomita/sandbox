@@ -12,6 +12,7 @@
 
 - macOS 15 (Sequoia) 以降
 - Xcode または Command Line Tools (`xcode-select --install`)
+- macOS 26 (Tahoe) 以降 + Xcode 26 以降でビルドすると、画面内の文を並列で翻訳するので速くなります
 
 ## ビルドと起動
 
@@ -57,7 +58,7 @@ GitHub Actions の「Screen Translator」ワークフローの成果物から、
 | 画面キャプチャ | ScreenCaptureKit `SCScreenshotManager` |
 | 文字認識 | Vision `VNRecognizeTextRequest` |
 | 段落まとめ | `TranslatorCore/TextBlockGrouper` (近い行を 1 文にまとめて翻訳精度を上げる) |
-| 翻訳 | Translation フレームワーク (`translationTask`) |
+| 翻訳 | Translation フレームワーク。macOS 26 以降は 4 つのセッションで同時に翻訳し、上の方の文から表示する。訳はアプリ終了まで覚えておく |
 | 表示 | 透明でクリックが透過する `NSPanel` + SwiftUI |
 
 ## 制限
