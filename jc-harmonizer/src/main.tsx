@@ -1,6 +1,13 @@
 // JC HARMONIZER の起動。固定モジュール (MIC / HARMONIZER / OUTPUT) を置いてつなぎ、画面を描く。
 // 画面は zheleznaya のコンポーネント (components/)、状態は state.ts、音声は audio.ts にある。
 
+// 書体はオフラインでも使えるように、Google Fonts ではなくアプリに同梱する
+import "@fontsource/barlow-condensed/latin-500.css";
+import "@fontsource/barlow-condensed/latin-600.css";
+import "@fontsource/barlow-condensed/latin-700.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
+import "@fontsource/michroma/latin-400.css";
 import { h } from "zheleznaya";
 import { refreshPresets } from "./actions";
 import { harmonizer, master, micBus } from "./audio";
@@ -73,3 +80,8 @@ harmonizer.port.onmessage = (e: MessageEvent<{ type: string; hz: number }>) => {
 bindPcKeys();
 refreshPresets();
 render(<App />);
+
+// 一度開けば、次からはネットにつながっていなくても開けるようにする
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
+}
