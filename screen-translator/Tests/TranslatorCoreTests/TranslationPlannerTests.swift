@@ -35,4 +35,27 @@ final class TranslationPlannerTests: XCTestCase {
         XCTAssertEqual(TranslationPlanner.chunks([], count: 4), [])
         XCTAssertEqual(TranslationPlanner.chunks(["a"], count: 0), [["a"]])
     }
+
+    func testBatchesByCountAndCharacters() {
+        XCTAssertEqual(
+            TranslationPlanner.batches(["a", "b", "c"], maxCount: 2, maxCharacters: 100),
+            [["a", "b"], ["c"]]
+        )
+        XCTAssertEqual(
+            TranslationPlanner.batches(["aaaa", "bbbb", "cc"], maxCount: 10, maxCharacters: 6),
+            [["aaaa"], ["bbbb", "cc"]]
+        )
+    }
+
+    func testLongTextGetsItsOwnBatch() {
+        XCTAssertEqual(
+            TranslationPlanner.batches(["a", String(repeating: "x", count: 50), "b"], maxCount: 10, maxCharacters: 10),
+            [["a"], [String(repeating: "x", count: 50)], ["b"]]
+        )
+    }
+
+    func testNumberedList() {
+        XCTAssertEqual(TranslationPlanner.numberedList(["Start Game", "Load\nGame"]), "1. Start Game\n2. Load Game")
+    }
 }
+

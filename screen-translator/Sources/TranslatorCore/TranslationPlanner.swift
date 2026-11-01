@@ -18,4 +18,30 @@ public enum TranslationPlanner {
         }
         return result.filter { !$0.isEmpty }
     }
+
+    /// 言語モデルに一度に渡す組に分ける。読む順は保ったまま、
+    /// 件数か文字数のどちらかが上限を超える手前で区切る
+    public static func batches(_ texts: [String], maxCount: Int, maxCharacters: Int) -> [[String]] {
+        var result: [[String]] = []
+        var current: [String] = []
+        var characters = 0
+        for text in texts {
+            if !current.isEmpty, current.count >= maxCount || characters + text.count > maxCharacters {
+                result.append(current)
+                current = []
+                characters = 0
+            }
+            current.append(text)
+            characters += text.count
+        }
+        if !current.isEmpty { result.append(current) }
+        return result
+    }
+
+    /// 言語モデルに渡す、番号付きの原文
+    public static func numberedList(_ texts: [String]) -> String {
+        texts.enumerated()
+            .map { "\($0.offset + 1). \($0.element.replacingOccurrences(of: "\n", with: " "))" }
+            .joined(separator: "\n")
+    }
 }
