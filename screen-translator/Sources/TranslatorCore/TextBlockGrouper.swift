@@ -109,7 +109,7 @@ public enum TextBlockGrouper {
 
         // 文の途中で改行されているのが明らかなら、行間が広め・文字の大きさが少しぶれていてもつなげる
         if isMidSentence(previous.text, next.text) {
-            return pitch < height * 2.3 && heightsMatch(previous, next, limit: 1.6)
+            return pitch < height * 2.3 && heightsMatch(previous, next, limit: 2.0)
         }
 
         guard pitch < height * 1.8, heightsMatch(previous, next, limit: 1.4) else { return false }
@@ -184,12 +184,13 @@ public enum TextBlockGrouper {
         return ratio < (hasTallGlyphs(short.text) ? limit : limit * 1.6)
     }
 
-    /// 大文字・数字や、上下に伸びる小文字 (b, d, g, p など) を含むか
+    /// 大文字・数字や、上下に大きく伸びる小文字 (b, d, g, p など) を含むか。
+    /// t や i は少ししか出っ張らず、OCR の箱はほとんど高くならないので数えない
     static func hasTallGlyphs(_ text: String) -> Bool {
         text.contains { $0.isUppercase || $0.isNumber || tallLowercase.contains($0) }
     }
 
-    private static let tallLowercase: Set<Character> = Set("bdfhijklpqtyg")
+    private static let tallLowercase: Set<Character> = Set("bdfhkljpqyg")
 }
 
 private extension String {

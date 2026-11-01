@@ -113,6 +113,20 @@ final class TextBlockGrouperTests: XCTestCase {
         ])
     }
 
+    func testMergesShortLastLineOfDialogue() {
+        // "arts..." は背の低い文字 (と少しだけ出っ張る t) だけで、箱が上の行の半分強の高さになる
+        let blocks = TextBlockGrouper.group([
+            TextLine(text: "There's quite the turnout at", rect: CGRect(x: 65, y: 40, width: 680, height: 62)),
+            TextLine(text: "this event. Any number of", rect: CGRect(x: 65, y: 125, width: 650, height: 60)),
+            TextLine(text: "people skilled in the magical", rect: CGRect(x: 65, y: 205, width: 715, height: 62)),
+            TextLine(text: "arts...", rect: CGRect(x: 65, y: 305, width: 140, height: 34)),
+        ])
+
+        XCTAssertEqual(blocks.map(\.text), [
+            "There's quite the turnout at this event. Any number of people skilled in the magical arts...",
+        ])
+    }
+
     func testMergesMultiLineAllCapsText() {
         let blocks = TextBlockGrouper.group([
             TextLine(text: "YOU HAVE BEEN WARNED. TURN BACK", rect: CGRect(x: 100, y: 100, width: 500, height: 30)),
