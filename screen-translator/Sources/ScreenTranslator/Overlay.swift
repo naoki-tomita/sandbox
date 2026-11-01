@@ -18,13 +18,13 @@ struct TranslatedBlock: Identifiable {
 }
 
 /// 一度訳した文を覚えておく。オーバーレイを閉じても残るので、
-/// 同じメニューや HUD を何度翻訳してもすぐ表示できる
+/// 同じメニューや HUD を何度翻訳してもすぐ表示できる。
+/// 上限を超えたら、しばらく出てこない文から忘れる
 @MainActor
 final class TranslationCache {
     static let shared = TranslationCache()
-    private static let limit = 5000
 
-    private var translations: [Key: String] = [:]
+    private var translations = LRUCache<Key, String>(capacity: 5000)
 
     private struct Key: Hashable {
         let engine: TranslationEngine
@@ -32,10 +32,10 @@ final class TranslationCache {
     }
 
     subscript(source: String, engine: TranslationEngine) -> String? {
-        get { translations[Key(engine: engine, source: source)] }
+        get { translations.value(for: Key(engine: engine, source: source)) }
         set {
-            if translations.count >= Self.limit { translations.removeAll() }
-            translations[Key(engine: engine, source: source)] = newValue
+            guard let newValue else { return }
+            translations.set(newValue, for: Key(engine: engine, source: source))
         }
     }
 }

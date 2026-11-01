@@ -71,7 +71,7 @@ GitHub Actions の「Screen Translator」ワークフローの成果物から、
 | 画面キャプチャ | ScreenCaptureKit `SCScreenshotManager` |
 | 文字認識 | Vision `VNRecognizeTextRequest` |
 | 段落まとめ | `TranslatorCore/TextBlockGrouper` (近い行を 1 文にまとめて翻訳精度を上げる) |
-| 翻訳 | Foundation Models (Apple Intelligence) と Translation フレームワーク。Translation は macOS 26 以降 4 つのセッションで同時に翻訳する。上の方の文から表示し、訳はアプリ終了まで覚えておく |
+| 翻訳 | Foundation Models (Apple Intelligence) と Translation フレームワーク。Translation は macOS 26 以降 4 つのセッションで同時に翻訳する。上の方の文から表示し、訳はアプリ終了まで最大 5,000 件覚えておく (超えたら長く使われていない文から忘れる) |
 | 表示 | 透明でクリックが透過する `NSPanel` + SwiftUI |
 
 ## 制限
