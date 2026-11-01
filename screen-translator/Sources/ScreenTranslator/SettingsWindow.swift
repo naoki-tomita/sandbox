@@ -15,6 +15,8 @@ struct SettingsView: View {
                 ShortcutRecorder(settings: shortcutSettings)
             }
             Divider()
+            EngineSection()
+            Divider()
             WatchSection()
             Divider()
             TranslationModelSection()
@@ -112,6 +114,38 @@ private struct ShortcutRecorder: View {
         error = settings.update(shortcut)
             ? nil
             : "\(shortcut.displayString) は他のアプリが使っているため登録できません"
+    }
+}
+
+/// 翻訳の仕組みを選ぶ
+private struct EngineSection: View {
+    @AppStorage(TranslationEngine.defaultsKey) private var engine = TranslationEngine.appleIntelligence
+
+    var body: some View {
+        let unavailableReason = LanguageModelTranslator.unavailableReason
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("翻訳エンジン")
+                .font(.headline)
+            Picker("翻訳エンジン", selection: $engine) {
+                ForEach(TranslationEngine.allCases) { engine in
+                    Text(engine.title).tag(engine)
+                }
+            }
+            .pickerStyle(.radioGroup)
+            .labelsHidden()
+
+            Text("Apple Intelligence は、画面の文をまとめてゲームのローカライズのような自然な日本語にします (無料・オンデバイス)。訳し終わるまで時間がかかるので、先に標準の訳を出しておき、届いた順に差し替えます。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let unavailableReason, engine == .appleIntelligence {
+                Text("\(unavailableReason)。それまでは標準で翻訳します。")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 

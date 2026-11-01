@@ -6,6 +6,7 @@
 - **⌃⌥T (Control + Option + T)** で、マウスカーソルがある画面を翻訳 (キーは変更できます)
 - もう一度発動キー、Esc、またはクリックで訳を消す
 - **自動翻訳**をオンにすると、数秒ごとに画面を読み直して訳を更新し続けます
+- Apple Intelligence が使える Mac では、ゲームのローカライズのような自然な日本語に訳します
 - 文字認識 (Vision) も翻訳 (Translation) も macOS 内蔵の機能で、**無料・オフライン**で動きます
 
 ## 必要なもの
@@ -41,6 +42,18 @@ GitHub Actions の「Screen Translator」ワークフローの成果物から、
 - 他のアプリが使っている組み合わせは登録できず、元のキーのままになります
 - 設定はアプリを終了しても保存されます
 
+## 翻訳エンジン
+
+「設定…」の「翻訳エンジン」で選べます。どちらも無料・オンデバイスです。
+
+| エンジン | 特徴 |
+| --- | --- |
+| Apple Intelligence (初期設定) | 端末内の言語モデル (Foundation Models) に、画面の文を 12 件ずつまとめて「ゲームのローカライズ担当」として訳させる。同じ画面の文で用語や口調がそろい、セリフも自然になる。遅いので、先に標準の訳を出しておき、届いた順に差し替える |
+| 標準 | Translation フレームワーク。速いが直訳調になりやすい |
+
+- Apple Intelligence は macOS 26 以降、Apple Intelligence に対応した Mac で、システム設定で Apple Intelligence をオンにしていると使えます。使えないときは自動で標準になります
+- Apple Intelligence で訳せなかった文 (件数が合わない、安全基準に引っかかったなど) は標準の訳のままになります
+
 ## 自動翻訳 (定期的に読み直す)
 
 「設定…」の「自動翻訳」か、メニューバーの「自動翻訳 (定期的に更新)」でオンにします。
@@ -57,8 +70,8 @@ GitHub Actions の「Screen Translator」ワークフローの成果物から、
 | 発動キー | Carbon `RegisterEventHotKey` (アクセシビリティ許可は不要)。設定は UserDefaults に保存 |
 | 画面キャプチャ | ScreenCaptureKit `SCScreenshotManager` |
 | 文字認識 | Vision `VNRecognizeTextRequest` |
-| 段落まとめ | `TranslatorCore/TextBlockGrouper` (近い行を 1 文にまとめて翻訳精度を上げる) |
-| 翻訳 | Translation フレームワーク。macOS 26 以降は 4 つのセッションで同時に翻訳し、上の方の文から表示する。訳はアプリ終了まで覚えておく |
+| 段落まとめ | `TranslatorCore/TextBlockGrouper`。OCR が横に分けた断片を 1 行に戻し、上下の行は位置・文字の大きさに加えて文の中身 (文末記号、小文字始まり、行末の the / of など) で 1 文にまとめる。メニュー項目や話者名のような短い行はまとめない |
+| 翻訳 | Foundation Models (Apple Intelligence) と Translation フレームワーク。Translation は macOS 26 以降 4 つのセッションで同時に翻訳する。上の方の文から表示し、訳はアプリ終了まで最大 5,000 件覚えておく (超えたら長く使われていない文から忘れる) |
 | 表示 | 透明でクリックが透過する `NSPanel` + SwiftUI |
 
 ## 制限
