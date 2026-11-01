@@ -97,6 +97,22 @@ final class TextBlockGrouperTests: XCTestCase {
         ])
     }
 
+    func testMergesLastLineWithoutTallLetters() {
+        // "women." には上下に伸びる文字がなく、OCR の箱が上の行の半分くらいの高さになる
+        let blocks = TextBlockGrouper.group([
+            TextLine(text: "COSTUME JEWELLERY", rect: CGRect(x: 65, y: 40, width: 480, height: 40)),
+            TextLine(text: "An array of jewellery,", rect: CGRect(x: 65, y: 105, width: 430, height: 46)),
+            TextLine(text: "the sort worn by", rect: CGRect(x: 65, y: 160, width: 330, height: 44)),
+            TextLine(text: "spiritualists and show-", rect: CGRect(x: 65, y: 210, width: 480, height: 46)),
+            TextLine(text: "women.", rect: CGRect(x: 65, y: 272, width: 130, height: 22)),
+        ])
+
+        XCTAssertEqual(blocks.map(\.text), [
+            "COSTUME JEWELLERY",
+            "An array of jewellery, the sort worn by spiritualists and showwomen.",
+        ])
+    }
+
     func testMergesMultiLineAllCapsText() {
         let blocks = TextBlockGrouper.group([
             TextLine(text: "YOU HAVE BEEN WARNED. TURN BACK", rect: CGRect(x: 100, y: 100, width: 500, height: 30)),

@@ -76,7 +76,7 @@ public enum TextBlockGrouper {
 
     static func isSameRow(_ left: TextLine, _ right: TextLine) -> Bool {
         let height = min(left.rect.height, right.rect.height)
-        guard height > 0, heightRatio(left, right) < 1.4 else { return false }
+        guard height > 0, heightsMatch(left, right, limit: 1.4) else { return false }
 
         let verticalOverlap = min(left.rect.maxY, right.rect.maxY) - max(left.rect.minY, right.rect.minY)
         guard verticalOverlap > height * 0.6 else { return false }
@@ -99,19 +99,20 @@ public enum TextBlockGrouper {
         let overlapping = overlap > min(previous.rect.width, next.rect.width) * 0.5
         guard leftAligned || overlapping else { return false }
 
-        let gap = next.rect.minY - previous.rect.maxY
-        guard gap > -height * 0.5 else { return false }
-        let ratio = heightRatio(previous, next)
+        // OCR の行の箱は文字の形で高さが変わる ("women." は上下に伸びる文字がなく低い) ので、
+        // 行間は箱の端ではなく行の中心どうしの距離で測る
+        let pitch = next.rect.midY - previous.rect.midY
+        guard pitch > height * 0.5 else { return false }
 
         // 全部大文字の見出し ("A CREST ON A NECKLACE") と、その下の普通の文は別の段落
         if isAllCaps(previous.text) != isAllCaps(next.text) { return false }
 
         // 文の途中で改行されているのが明らかなら、行間が広め・文字の大きさが少しぶれていてもつなげる
         if isMidSentence(previous.text, next.text) {
-            return gap < height * 1.3 && ratio < 1.6
+            return pitch < height * 2.3 && heightsMatch(previous, next, limit: 1.6)
         }
 
-        guard gap < height * 0.8, ratio < 1.4 else { return false }
+        guard pitch < height * 1.8, heightsMatch(previous, next, limit: 1.4) else { return false }
         // メニューや一覧の項目が縦に並んでいるだけならつなげない
         return !looksLikeListItems(previous.text, next.text)
     }
@@ -174,11 +175,21 @@ public enum TextBlockGrouper {
         return functionWords.contains(word.lowercased())
     }
 
-    private static func heightRatio(_ a: TextLine, _ b: TextLine) -> CGFloat {
-        let small = min(a.rect.height, b.rect.height)
-        guard small > 0 else { return .infinity }
-        return max(a.rect.height, b.rect.height) / small
+    /// 文字の大きさが同じくらいか。背の低い文字 (a, c, e, m, n, o など) だけの行は
+    /// 箱が低く出るので、そのぶん差を大目に見る
+    static func heightsMatch(_ a: TextLine, _ b: TextLine, limit: CGFloat) -> Bool {
+        let (short, tall) = a.rect.height < b.rect.height ? (a, b) : (b, a)
+        guard short.rect.height > 0 else { return false }
+        let ratio = tall.rect.height / short.rect.height
+        return ratio < (hasTallGlyphs(short.text) ? limit : limit * 1.6)
     }
+
+    /// 大文字・数字や、上下に伸びる小文字 (b, d, g, p など) を含むか
+    static func hasTallGlyphs(_ text: String) -> Bool {
+        text.contains { $0.isUppercase || $0.isNumber || tallLowercase.contains($0) }
+    }
+
+    private static let tallLowercase: Set<Character> = Set("bdfhijklpqtyg")
 }
 
 private extension String {
