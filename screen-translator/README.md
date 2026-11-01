@@ -70,7 +70,7 @@ GitHub Actions の「Screen Translator」ワークフローの成果物から、
 | 発動キー | Carbon `RegisterEventHotKey` (アクセシビリティ許可は不要)。設定は UserDefaults に保存 |
 | 画面キャプチャ | ScreenCaptureKit `SCScreenshotManager` |
 | 文字認識 | Vision `VNRecognizeTextRequest` |
-| 段落まとめ | `TranslatorCore/TextBlockGrouper` (近い行を 1 文にまとめて翻訳精度を上げる) |
+| 段落まとめ | `TranslatorCore/TextBlockGrouper`。OCR が横に分けた断片を 1 行に戻し、上下の行は位置・文字の大きさに加えて文の中身 (文末記号、小文字始まり、行末の the / of など) で 1 文にまとめる。メニュー項目や話者名のような短い行はまとめない |
 | 翻訳 | Foundation Models (Apple Intelligence) と Translation フレームワーク。Translation は macOS 26 以降 4 つのセッションで同時に翻訳する。上の方の文から表示し、訳はアプリ終了まで最大 5,000 件覚えておく (超えたら長く使われていない文から忘れる) |
 | 表示 | 透明でクリックが透過する `NSPanel` + SwiftUI |
 
