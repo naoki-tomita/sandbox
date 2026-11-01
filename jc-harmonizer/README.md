@@ -24,6 +24,16 @@ https で開けばスマホでも動く (プレビュー/本番の URL)。
 - iPhone (Safari) は Web MIDI 非対応なので画面の鍵盤で弾く。Android の Chrome は USB MIDI 機器も使える。
 - Bluetooth イヤホンは遅延が 100〜200ms 程度増える。
 
+### アプリとして入れる (PWA)
+
+一度ネットにつながった状態で開くと、全ファイル (書体・音声処理を含む) が端末に保存され、次からはオフラインでも開ける。
+マイクと MIDI は端末の中だけで動くので、オフラインでも全機能使える。
+
+- Chrome / Edge (PC・Android): アドレスバーのインストールボタン、またはメニューの「アプリをインストール」
+- iPhone (Safari): 共有 → 「ホーム画面に追加」
+
+ネットにつながっているときに開くと新しい版を取りに行き、次に開いたときから新しい版になる。
+
 ## ラックとケーブル
 
 画面はモジュラーシンセのラックになっていて、MIC → HARMONIZER → OUTPUT がケーブルでつながった状態で始まる。音はケーブルのとおりに流れる (`src/patchbay.ts`)。
@@ -55,10 +65,12 @@ https で開けばスマホでも動く (プレビュー/本番の URL)。
 画面は [zheleznaya](https://github.com/naoki-tomita/zheleznaya) のコンポーネント (JSX) で描く。
 
 ```
-index.html                 土台 (#app) だけ
-styles/                    配色・書体 (app.css)、ラック (rack.css)、鍵盤 (keyboard.css)
+index.html                 土台 (#app) と、アプリとして入れるための manifest・アイコンの指定
+public/                    manifest.webmanifest とアイコン (icons/icon.svg を Michroma で PNG にしたもの)
+service-worker.js          オフライン用の Service Worker。ビルド時にファイル一覧を足して dist/sw.js になる
+styles/                    配色・書体 (app.css。書体は @fontsource で同梱)、ラック (rack.css)、鍵盤 (keyboard.css)
 src/main.tsx               起動。固定モジュール (MIC / HARMONIZER / OUTPUT) を置いてつなぎ、画面を描く
-src/state.ts               アプリの状態と再描画 (update / relayout)
+src/state.ts               アプリの状態と再描画 (update)
 src/components/App.tsx     画面全体と上段のレール (名前・MIDI・電源)
 src/components/Rack.tsx    ラックとモジュールのパネル、ADD MODULE
 src/components/Knob.tsx    ノブ
@@ -77,7 +89,7 @@ worklets/harmonizer.ts     ハーモナイザーの音声処理 (下記)
 worklets/code-effect.ts    自作コードを実行する音声処理
 tsconfig.json              src/ 用 (DOM の型、JSX は zheleznaya の h)
 tsconfig.worklet.json      worklets/ 用 (AudioWorklet の型。DOM の型とぶつかるので分けている)
-vite.config.ts             ビルド設定。worklet は ?worker&url で単体のスクリプトとして出力する
+vite.config.ts             ビルド設定。worklet は ?worker&url で単体のスクリプトとして出力する。sw.js もここで書き出す
 ```
 
 ### zheleznaya (0.3.5) で避けていること

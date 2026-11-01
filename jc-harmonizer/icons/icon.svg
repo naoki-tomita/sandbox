@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1e2126"/>
+  <rect x="56" y="56" width="400" height="400" rx="36" fill="#cdccc4"/>
+  <path d="M92 56 H420 A36 36 0 0 1 456 92 V100 H56 V92 A36 36 0 0 1 92 56 Z" fill="#f26b1d"/>
+  <text x="256" y="196" text-anchor="middle" font-family="Michroma" font-size="84" fill="#17181a">JC</text>
+  <circle cx="256" cy="300" r="78" fill="#17181a"/>
+  <circle cx="256" cy="300" r="62" fill="#2c3036"/>
+  <rect x="250" y="238" width="12" height="52" rx="6" fill="#ffb347" transform="rotate(35 256 300)"/>
+  <circle cx="132" cy="408" r="18" fill="#17181a"/>
+  <circle cx="132" cy="408" r="8" fill="#55575a"/>
+  <circle cx="380" cy="408" r="18" fill="#17181a"/>
+  <circle cx="380" cy="408" r="8" fill="#55575a"/>
+  <path d="M132 408 C 196 452, 316 452, 380 408" fill="none" stroke="#1fa3c7" stroke-width="10" stroke-linecap="round"/>
+</svg>
