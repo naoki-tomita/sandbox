@@ -6,7 +6,7 @@ import { EFFECTS, type Effect } from "./effects";
 import { startMidi } from "./midi";
 import { addModule, insertBefore } from "./patchbay";
 import { loadPresets, savePreset } from "./presets";
-import { relayout, state, update, type ModuleState } from "./state";
+import { state, update, type ModuleState } from "./state";
 
 // ---- ノート ----
 export function noteOn(note: number, velocity: number) {
@@ -132,7 +132,7 @@ export function addEffect(value: string) {
     };
   }
   insertBefore(m, output);
-  relayout();
+  update();
 }
 
 export function toggleModule(m: ModuleState) {

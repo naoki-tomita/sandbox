@@ -80,16 +80,13 @@ tsconfig.worklet.json      worklets/ 用 (AudioWorklet の型。DOM の型とぶ
 vite.config.ts             ビルド設定。worklet は ?worker&url で単体のスクリプトとして出力する
 ```
 
-### zheleznaya (0.3.4) で避けていること
+### zheleznaya (0.3.5) で避けていること
 
-[issue #20](https://github.com/naoki-tomita/zheleznaya/issues/20) の不具合を、アプリ側で次のように避けている。直ったら外せる。
+[issue #20](https://github.com/naoki-tomita/zheleznaya/issues/20) のうち 0.3.5 でも残っているものを、アプリ側で次のように避けている。
 
-- 状態は普通のオブジェクト (`state`) に持ち、store には再描画のきっかけになる `version` だけを置く。store の Proxy に AudioNode を入れたり配列を入れ替えたりすると壊れるため
-- 配列は必ず親要素の唯一の子にする。後ろに兄弟要素があると更新がずれるため
-- モジュールの出し入れでは `relayout()` でラックを一度文字列に置き換え、丸ごと作り直させる。途中の要素を消すと差分の適用がずれて壊れるため
-- ケーブル (SVG) は子を持たない要素を ref で受け取り、その中に直接 DOM で描く。SVG を描けないため
+- ケーブル (SVG) は子を持たない要素を ref で受け取り、その中に直接 DOM で描く。`<svg>` の子要素が SVG の名前空間で作られないため
+- 状態は普通のオブジェクト (`state`) に持ち、store には再描画のきっかけになる `version` だけを置く。store の Set を add / delete しても再描画されないため
 - メーター・入力ピッチ・MIDI の LED も ref で直接書き換える。毎フレーム store を変えるとアプリ全体が再描画されるため
-- `{cond && <X />}` ではなく三項演算子で書く。false が「false」と表示されるため
 
 ## 仕組み
 

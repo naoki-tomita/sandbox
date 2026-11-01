@@ -1,6 +1,6 @@
 // モジュールとパッチケーブルの出し入れ。ケーブルのとおりに各モジュールの output を次の input へ connect する。
 
-import { relayout, state, update, type Cable, type ModuleState } from "./state";
+import { state, update, type Cable, type ModuleState } from "./state";
 
 const CABLE_COLORS = ["#F26B1D", "#1FA3C7", "#F5C518", "#D9417A", "#6BBF59"];
 let colorTurn = 0;
@@ -14,8 +14,7 @@ function applyGraph() {
   for (const c of state.cables) byId(c.from).output!.connect(byId(c.to).input!);
 }
 
-// before を指定するとその手前に、指定しなければ末尾に置く。
-// 画面の作り直しはしないので、描画後に呼んだときは一連の操作の最後に relayout() すること
+// before を指定するとその手前に、指定しなければ末尾に置く。再描画はしないので、呼んだ側で update() すること
 export function addModule(spec: Omit<ModuleState, "id">, before?: ModuleState): ModuleState {
   const m: ModuleState = { ...spec, id: nextId++ };
   const at = before ? state.modules.indexOf(before) : -1;
@@ -34,7 +33,7 @@ export function removeModule(m: ModuleState) {
   m.dispose?.();
   state.modules = state.modules.filter((it) => it !== m);
   applyGraph();
-  relayout();
+  update();
 }
 
 export function addCable(from: number, to: number, color = nextColor()) {

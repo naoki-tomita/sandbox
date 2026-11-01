@@ -1,7 +1,7 @@
 // アプリの状態と再描画。
 // 状態は普通のオブジェクトに持ち、変えたら update() で zheleznaya に再描画させる。
-// zheleznaya の store (Proxy) に AudioNode を入れたり配列を入れ替えたりすると壊れるので
-// (https://github.com/naoki-tomita/zheleznaya/issues/20)、store には再描画のきっかけになる version だけを置く。
+// store (Proxy) は Set の add / delete では再描画しないので (押している鍵盤を Set で持っている)、
+// store には再描画のきっかけになる version だけを置く。
 
 import { createRoot } from "zheleznaya";
 import type { Param } from "./effects";
@@ -54,8 +54,6 @@ export const state = {
   presetNames: [] as string[],
   // ADD MODULE で選んでいる値 (ラックを作り直しても選択を残すため)
   addChoice: "reverb",
-  // relayout() の途中だけ true。ラックを一度消してから描き直す
-  rackHidden: false,
 };
 
 const root = createRoot(document.getElementById("app")!);
@@ -70,30 +68,6 @@ export function update() {
   store.version++;
   // DOM を経由しない描画 (ケーブル) は、再描画のあとに描き直す
   requestAnimationFrame(() => listeners.forEach((f) => f()));
-}
-
-// モジュールの出し入れのあとに呼ぶ。
-// zheleznaya は子要素の並びが変わると差分の適用がずれて壊れるので
-// (https://github.com/naoki-tomita/zheleznaya/issues/20)、ラックを一度文字列に置き換えてから作り直させる。
-// 要素の種類が変わると差分の計算はそこで止まり、丸ごと作り直しになる。
-export function relayout() {
-  state.rackHidden = true;
-  update();
-}
-
-let unhideQueued = false;
-
-// ラックを消した状態を描画したときに、ラックのコンポーネントから呼ぶ。
-// 再描画は debounce されていて、ほかの update() で先送りされることがあるので、
-// 「消した状態が実際に描かれたあと」に戻す
-export function rackHiddenRendered() {
-  if (unhideQueued) return;
-  unhideQueued = true;
-  setTimeout(() => {
-    unhideQueued = false;
-    state.rackHidden = false;
-    update();
-  }, 0);
 }
 
 export function onUpdate(f: () => void) {

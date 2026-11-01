@@ -1,5 +1,5 @@
 // パッチケーブルの描画とドラッグ操作。
-// zheleznaya は SVG を描けないので (https://github.com/naoki-tomita/zheleznaya/issues/20)、
+// zheleznaya は <svg> の子要素を SVG として作れないので (https://github.com/naoki-tomita/zheleznaya/issues/20)、
 // 子を持たない要素を ref で受け取り、その中に SVG を直接 DOM で描く。
 
 import { state, onUpdate, type Cable } from "./state";
