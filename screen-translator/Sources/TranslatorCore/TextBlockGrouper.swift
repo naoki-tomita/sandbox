@@ -103,6 +103,9 @@ public enum TextBlockGrouper {
         guard gap > -height * 0.5 else { return false }
         let ratio = heightRatio(previous, next)
 
+        // 全部大文字の見出し ("A CREST ON A NECKLACE") と、その下の普通の文は別の段落
+        if isAllCaps(previous.text) != isAllCaps(next.text) { return false }
+
         // 文の途中で改行されているのが明らかなら、行間が広め・文字の大きさが少しぶれていてもつなげる
         if isMidSentence(previous.text, next.text) {
             return gap < height * 1.3 && ratio < 1.6
@@ -138,6 +141,12 @@ public enum TextBlockGrouper {
         // "Start Game" / "Options" のように、記号で終わらない短い行の次が大文字や数字で始まる。
         // 1 語だけの行 (セリフの上の話者名や見出し) の次も別の文とみなす
         return (wordCount(previous) <= 3 && wordCount(next) <= 3) || wordCount(previous) == 1
+    }
+
+    /// 小文字を含まず、大文字が 2 文字以上ある (見出しやタイトルによくある書き方)
+    static func isAllCaps(_ text: String) -> Bool {
+        let letters = text.filter(\.isLetter)
+        return letters.count >= 2 && !letters.contains(where: \.isLowercase)
     }
 
     // MARK: - 文字列

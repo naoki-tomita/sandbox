@@ -81,6 +81,31 @@ final class TextBlockGrouperTests: XCTestCase {
         XCTAssertEqual(blocks.map(\.text), ["You must bring the Crystal of Light to the temple."])
     }
 
+    func testKeepsAllCapsHeadingSeparateFromBody() {
+        // アイテム説明の画面: 見出しと本文が同じくらいの大きさで、すぐ下に続く
+        let blocks = TextBlockGrouper.group([
+            TextLine(text: "A CREST ON A NECKLACE", rect: CGRect(x: 60, y: 65, width: 540, height: 36)),
+            TextLine(text: "An elaborate crest,", rect: CGRect(x: 90, y: 125, width: 380, height: 40)),
+            TextLine(text: "worn with pride. I", rect: CGRect(x: 90, y: 175, width: 380, height: 40)),
+            TextLine(text: "don't recognise the", rect: CGRect(x: 90, y: 225, width: 400, height: 40)),
+            TextLine(text: "symbol itself, however.", rect: CGRect(x: 90, y: 275, width: 480, height: 40)),
+        ])
+
+        XCTAssertEqual(blocks.map(\.text), [
+            "A CREST ON A NECKLACE",
+            "An elaborate crest, worn with pride. I don't recognise the symbol itself, however.",
+        ])
+    }
+
+    func testMergesMultiLineAllCapsText() {
+        let blocks = TextBlockGrouper.group([
+            TextLine(text: "YOU HAVE BEEN WARNED. TURN BACK", rect: CGRect(x: 100, y: 100, width: 500, height: 30)),
+            TextLine(text: "BEFORE IT IS TOO LATE.", rect: CGRect(x: 100, y: 136, width: 360, height: 30)),
+        ])
+
+        XCTAssertEqual(blocks.map(\.text), ["YOU HAVE BEEN WARNED. TURN BACK BEFORE IT IS TOO LATE."])
+    }
+
     func testMergesFragmentsOfTheSameRow() {
         let blocks = TextBlockGrouper.group([
             TextLine(text: "the bridge.", rect: CGRect(x: 312, y: 501, width: 110, height: 19)),
