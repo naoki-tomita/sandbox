@@ -60,6 +60,13 @@ export function canPatch(out: number, inn: number) {
   return out !== inn && !state.cables.some((c) => c.from === out && c.to === inn) && !reaches(inn, out);
 }
 
+// 見た目の並び順だけを変える (ケーブルはそのまま)
+export function moveModule(m: ModuleState, to: number) {
+  state.modules.splice(state.modules.indexOf(m), 1);
+  state.modules.splice(to, 0, m);
+  update();
+}
+
 // target へ 1 本だけつながっているなら、そのケーブルの間に m を差し込む
 export function insertBefore(m: ModuleState, target: ModuleState) {
   const into = state.cables.filter((c) => c.to === target.id);

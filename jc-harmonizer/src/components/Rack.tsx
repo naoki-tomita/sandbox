@@ -9,6 +9,7 @@ import { selectMic, selectSpeaker } from "../devices";
 import { attachMeter, attachPitch } from "../display";
 import { noteName } from "../notes";
 import { removeModule } from "../patchbay";
+import { isMovable, onGripKey, onReorderEnd, onReorderMove, onReorderStart } from "../reorder";
 import { state, type Device, type ModuleState } from "../state";
 import { Knob } from "./Knob";
 
@@ -135,9 +136,20 @@ function moduleBody(m: ModuleState) {
   }
 }
 
-const ModulePanel = ({ m }: { m: ModuleState }) => (
-  <section class={`module module--${m.width}`} data-role={m.role} aria-label={m.name}>
+// モジュールのパネル。要素名をモジュールごとに変えて (jc-module-<id>)、並べ替えや出し入れで
+// その位置のモジュールが変わったときは、差分を取らずに丸ごと作り直させる。
+// zheleznaya は、子の数が違う兄弟要素を入れ替えると子の追加・削除を別の要素にしてしまうため
+// (https://github.com/naoki-tomita/zheleznaya/issues/20)
+const ModulePanel = ({ m }: { m: ModuleState }) =>
+  h(
+    `jc-module-${m.id}`,
+    { class: `module module--${m.width}${state.draggingId === m.id ? " is-dragging" : ""}`, role: "region", "data-role": m.role, "aria-label": m.name },
     <header class="module-head">
+      {isMovable(m) ? (
+        <button class="module-grip" type="button" data-id={m.id} aria-label={`${m.name} を並べ替える (左右の矢印キーでも動かせる)`} title="ドラッグで並べ替え" onkeydown={(e: KeyboardEvent) => onGripKey(e, m)}>
+          ⠿
+        </button>
+      ) : null}
       <h2 class="module-name">{m.name}</h2>
       <span class="module-sub">{m.sub}</span>
       {m.removable ? (
@@ -145,14 +157,13 @@ const ModulePanel = ({ m }: { m: ModuleState }) => (
           外す
         </button>
       ) : null}
-    </header>
-    <div class="module-body">{moduleBody(m)}</div>
+    </header>,
+    <div class="module-body">{moduleBody(m)}</div>,
     <div class="jacks">
       {m.input ? <Jack m={m} dir="in" /> : null}
       {m.output ? <Jack m={m} dir="out" /> : null}
-    </div>
-  </section>
-);
+    </div>,
+  );
 
 const AddPanel = () => (
   <section class="add-panel" aria-label="モジュールを追加">
@@ -171,8 +182,13 @@ const AddPanel = () => (
   </section>
 );
 
+// ラック上のポインター操作: ケーブルを引く (ジャック) か、モジュールを並べ替える (つかみ)
+const onPointerDown = (e: PointerEvent) => (onReorderStart(e), onPatchStart(e));
+const onPointerMove = (e: PointerEvent) => (onReorderMove(e), onPatchMove(e));
+const onPointerEnd = (e: PointerEvent) => (onReorderEnd(e), onPatchEnd(e));
+
 export const Rack = () => (
-  <div class="rack-wrap" ref={attachRack} onpointerdown={onPatchStart} onpointermove={onPatchMove} onpointerup={onPatchEnd} onpointercancel={onPatchEnd}>
+  <div class="rack-wrap" ref={attachRack} onpointerdown={onPointerDown} onpointermove={onPointerMove} onpointerup={onPointerEnd} onpointercancel={onPointerEnd}>
     <main class="rack">
       {state.modules.map((m) => <ModulePanel m={m} />)}
       <AddPanel />
