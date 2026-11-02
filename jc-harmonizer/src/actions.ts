@@ -1,6 +1,7 @@
 // 画面からの操作: 電源、ノートオン / オフ、エフェクトの追加、自作コードの保存。
 
-import { ctx, harmonizer, latencyMs, micLevelDb, startMic } from "./audio";
+import { ctx, harmonizer, latencyMs, micLevelDb } from "./audio";
+import { startDevices } from "./devices";
 import { blinkMidi, showLevel } from "./display";
 import { EFFECTS, type Effect } from "./effects";
 import { startMidi } from "./midi";
@@ -25,7 +26,7 @@ export function noteOff(note: number) {
 export async function powerOn() {
   if (state.power) return;
   try {
-    await startMic();
+    await startDevices();
   } catch (e) {
     state.status = `マイクを使えません: ${(e as Error).message}`;
     update();

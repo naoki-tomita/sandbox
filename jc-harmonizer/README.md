@@ -15,7 +15,8 @@ npm run build      # 型チェック + dist/ へビルド
 ```
 
 Chrome / Edge で開いて POWER を押す。マイクと MIDI の許可を求められるので許可する。
-ハウリングするのでイヤホン/ヘッドホンを使うこと。MIDI 機器が無い場合は画面の鍵盤 (マルチタッチで和音可) か、PC キーボードの `A W S E D F T G Y H U J K` で C4〜C5 が弾ける。
+ハウリングするのでイヤホン/ヘッドホンを使うこと。
+使うマイクは MIC モジュールの DEVICE で、出力先は OUTPUT モジュールの DEVICE で選べる (POWER のあと。選んだ機器は次回も使う)。出力先を選べるのは Chrome / Edge だけで、Safari と Firefox は OS の設定に従う。MIDI 機器が無い場合は画面の鍵盤 (マルチタッチで和音可) か、PC キーボードの `A W S E D F T G Y H U J K` で C4〜C5 が弾ける。
 
 ### スマホ
 
@@ -83,6 +84,7 @@ src/audio.ts               AudioContext・ハーモナイザー・マイク
 src/effects.ts             内蔵エフェクトの定義
 src/code-examples.ts       自作コードのテンプレートと例
 src/presets.ts             自作コードの保存 (localStorage)
+src/devices.ts             マイク・スピーカーの選択と記憶 (localStorage)
 src/midi.ts                Web MIDI 入力
 src/notes.ts, util.ts      音名の変換、小さな道具
 worklets/harmonizer.ts     ハーモナイザーの音声処理 (下記)

@@ -35,6 +35,11 @@ export interface ModuleState {
   dispose?(): void;
 }
 
+export interface Device {
+  id: string;
+  label: string;
+}
+
 export interface Cable {
   from: number;
   to: number;
@@ -52,6 +57,11 @@ export const state = {
   // 画面鍵盤のいちばん左の音
   lowNote: 48,
   presetNames: [] as string[],
+  // 選べるマイク・スピーカーと、選んでいるもの ("" は既定の機器)
+  inputs: [] as Device[],
+  outputs: [] as Device[],
+  micId: "",
+  speakerId: "",
   // ADD MODULE で選んでいる値 (ラックを作り直しても選択を残すため)
   addChoice: "reverb",
 };

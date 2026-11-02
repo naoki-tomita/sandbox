@@ -2,12 +2,14 @@
 
 import { h } from "zheleznaya";
 import { addEffect, moduleOptions, savePresetOf, toggleModule } from "../actions";
+import { canSelectOutput } from "../audio";
 import { attachCableLayer, attachRack, onPatchEnd, onPatchMove, onPatchStart } from "../cables";
 import { CODE_EXAMPLES } from "../code-examples";
+import { selectMic, selectSpeaker } from "../devices";
 import { attachMeter, attachPitch } from "../display";
 import { noteName } from "../notes";
 import { removeModule } from "../patchbay";
-import { state, type ModuleState } from "../state";
+import { state, type Device, type ModuleState } from "../state";
 import { Knob } from "./Knob";
 
 const Jack = ({ m, dir }: { m: ModuleState; dir: "in" | "out" }) => (
@@ -71,12 +73,34 @@ const CodeTools = ({ m }: { m: ModuleState }) => (
   </div>
 );
 
+// マイク・スピーカーの選択。一覧は POWER を押してマイクを許可したあとに出る
+const DeviceSelect = ({ label, devices, value, onselect }: { label: string; devices: Device[]; value: string; onselect: (id: string) => void }) =>
+  state.power ? (
+    <select class="panel-select device-select" aria-label={label} onchange={(e: Event) => onselect((e.target as HTMLSelectElement).value)}>
+      <option value="" selected={value === ""}>
+        既定
+      </option>
+      {devices.map((d) => (
+        <option value={d.id} selected={d.id === value}>
+          {d.label}
+        </option>
+      ))}
+    </select>
+  ) : (
+    <span class="device-note">POWER のあとで選べる</span>
+  );
+
 const notesText = () => (state.held.size ? [...state.held].sort((a, b) => a - b).map(noteName).join(" ") : "NOTE —");
 
 function moduleBody(m: ModuleState) {
   switch (m.kind) {
     case "mic":
-      return [<span class="panel-caption">LEVEL</span>, <div class="meter" aria-hidden="true" ref={attachMeter}></div>];
+      return [
+        <span class="panel-caption">LEVEL</span>,
+        <div class="meter" aria-hidden="true" ref={attachMeter}></div>,
+        <span class="panel-caption">DEVICE</span>,
+        <DeviceSelect label="使うマイク" devices={state.inputs} value={state.micId} onselect={selectMic} />,
+      ];
     case "voice":
       return [
         <div class="lcd">
@@ -92,6 +116,12 @@ function moduleBody(m: ModuleState) {
         <div class="lcd">
           <div class="lcd-row">{state.latency}</div>
         </div>,
+        <span class="panel-caption">DEVICE</span>,
+        canSelectOutput ? (
+          <DeviceSelect label="出力先" devices={state.outputs} value={state.speakerId} onselect={selectSpeaker} />
+        ) : (
+          <span class="device-note">OS の設定に従う</span>
+        ),
       ];
     case "fx":
       return [
