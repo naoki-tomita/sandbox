@@ -150,6 +150,8 @@
 }
 .key:active { transform: translateY(1px); box-shadow: 0 1px 0 #0c0d0e; }
 .panel-select { padding-right: 8px; max-width: 100%; }
+.device-select { width: 100%; padding: 5px 6px; font-size: 12px; }
+.device-note { font-size: 11px; color: var(--ink-soft); }
 
 /* ジャック */
 .jacks { margin-top: auto; display: flex; justify-content: space-around; gap: 8px; padding-top: 8px; }
