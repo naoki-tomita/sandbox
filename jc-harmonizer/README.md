@@ -96,11 +96,10 @@ tsconfig.worklet.json      worklets/ 用 (AudioWorklet の型。DOM の型とぶ
 vite.config.ts             ビルド設定。worklet は ?worker&url で単体のスクリプトとして出力する。sw.js もここで書き出す
 ```
 
-### zheleznaya (0.3.5) で避けていること
+### zheleznaya (0.3.6) で避けていること
 
-[issue #20](https://github.com/naoki-tomita/zheleznaya/issues/20) のうち 0.3.5 でも残っているものを、アプリ側で次のように避けている。
+[issue #20](https://github.com/naoki-tomita/zheleznaya/issues/20) のうち 0.3.6 でも残っているものを、アプリ側で次のように避けている。
 
-- モジュールのパネルは要素名をモジュールごとに変える (`jc-module-<id>`)。子の数が違う兄弟要素を入れ替えると、子の追加・削除が別の要素に行われて崩れるため。要素名が変わると差分を取らずに丸ごと作り直される
 - ケーブル (SVG) は子を持たない要素を ref で受け取り、その中に直接 DOM で描く。`<svg>` の子要素が SVG の名前空間で作られないため
 - 状態は普通のオブジェクト (`state`) に持ち、store には再描画のきっかけになる `version` だけを置く。store の Set を add / delete しても再描画されないため
 - メーター・入力ピッチ・MIDI の LED も ref で直接書き換える。毎フレーム store を変えるとアプリ全体が再描画されるため

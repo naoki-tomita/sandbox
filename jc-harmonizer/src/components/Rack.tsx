@@ -136,14 +136,8 @@ function moduleBody(m: ModuleState) {
   }
 }
 
-// モジュールのパネル。要素名をモジュールごとに変えて (jc-module-<id>)、並べ替えや出し入れで
-// その位置のモジュールが変わったときは、差分を取らずに丸ごと作り直させる。
-// zheleznaya は、子の数が違う兄弟要素を入れ替えると子の追加・削除を別の要素にしてしまうため
-// (https://github.com/naoki-tomita/zheleznaya/issues/20)
-const ModulePanel = ({ m }: { m: ModuleState }) =>
-  h(
-    `jc-module-${m.id}`,
-    { class: `module module--${m.width}${state.draggingId === m.id ? " is-dragging" : ""}`, role: "region", "data-role": m.role, "aria-label": m.name },
+const ModulePanel = ({ m }: { m: ModuleState }) => (
+  <section class={`module module--${m.width}${state.draggingId === m.id ? " is-dragging" : ""}`} data-role={m.role} aria-label={m.name}>
     <header class="module-head">
       {isMovable(m) ? (
         <button class="module-grip" type="button" data-id={m.id} aria-label={`${m.name} を並べ替える (左右の矢印キーでも動かせる)`} title="ドラッグで並べ替え" onkeydown={(e: KeyboardEvent) => onGripKey(e, m)}>
@@ -157,13 +151,14 @@ const ModulePanel = ({ m }: { m: ModuleState }) =>
           外す
         </button>
       ) : null}
-    </header>,
-    <div class="module-body">{moduleBody(m)}</div>,
+    </header>
+    <div class="module-body">{moduleBody(m)}</div>
     <div class="jacks">
       {m.input ? <Jack m={m} dir="in" /> : null}
       {m.output ? <Jack m={m} dir="out" /> : null}
-    </div>,
-  );
+    </div>
+  </section>
+);
 
 const AddPanel = () => (
   <section class="add-panel" aria-label="モジュールを追加">
