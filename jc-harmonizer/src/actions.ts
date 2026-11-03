@@ -8,18 +8,51 @@ import { startMidi } from "./midi";
 import { addModule, insertBefore } from "./patchbay";
 import { loadPresets, savePreset } from "./presets";
 import { state, update, type ModuleState } from "./state";
+import { clamp } from "./util";
 
 // ---- ノート ----
+// 押した鍵盤 -> 実際に鳴らしている音とベロシティ。トランスポーズを変えたときに鳴らし直すのに使う
+const sounding = new Map<number, { note: number; velocity: number }>();
+
 export function noteOn(note: number, velocity: number) {
+  if (sounding.has(note)) noteOff(note);
+  const sent = clamp(note + state.transpose, 0, 127);
+  sounding.set(note, { note: sent, velocity });
   state.held.add(note);
-  harmonizer.port.postMessage({ type: "noteOn", note, velocity });
+  harmonizer.port.postMessage({ type: "noteOn", note: sent, velocity });
   update();
 }
 
 export function noteOff(note: number) {
+  const s = sounding.get(note);
+  sounding.delete(note);
   state.held.delete(note);
-  harmonizer.port.postMessage({ type: "noteOff", note });
+  if (s) harmonizer.port.postMessage({ type: "noteOff", note: s.note });
   update();
+}
+
+// 鳴らしている音の高さ (トランスポーズ後)
+export const soundingNotes = () => [...sounding.values()].map((s) => s.note);
+
+// ---- トランスポーズ ----
+// MIDI でも画面の鍵盤でも、押した鍵盤から semitones だけずらして鳴らす。値はこのブラウザに覚えておく
+const TRANSPOSE_KEY = "jc-harmonizer.transpose";
+
+export function loadTranspose() {
+  try {
+    return Number(localStorage.getItem(TRANSPOSE_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function setTranspose(semitones: number) {
+  state.transpose = semitones;
+  try {
+    localStorage.setItem(TRANSPOSE_KEY, String(semitones));
+  } catch {}
+  // 押さえたまま変えたら、新しい高さで鳴らし直す
+  for (const [note, { velocity }] of [...sounding]) noteOn(note, velocity);
 }
 
 // ---- 電源 ----
