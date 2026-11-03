@@ -43,6 +43,7 @@ https で開けばスマホでも動く (プレビュー/本番の URL)。
 - IN ジャックからドラッグするとケーブルを引き抜ける。別の IN で離すと挿し替え、何もない所で離すと外れる
 - ループになるつなぎ方はできない
 - ADD MODULE でエフェクトを追加すると、OUTPUT の手前に差し込まれる。「外す」で抜くと前後がつながり直る
+- モジュール名の左のつかみ (⠿) をドラッグすると並べ替えられる (つかみにフォーカスして左右の矢印キーでも動く)。見た目の順番だけが変わり、ケーブルのつながりはそのまま。MIC と OUTPUT は両端に固定
 - ノブは上下ドラッグ (Shift で細かく)、矢印キーでも回せる。ダブルクリックで初期値に戻る
 
 ### エフェクト
@@ -78,6 +79,7 @@ src/components/Knob.tsx    ノブ
 src/components/Keyboard.tsx 画面鍵盤と PC キーボード
 src/actions.ts             画面からの操作 (電源・ノート・エフェクトの追加・保存)
 src/patchbay.ts            モジュールとケーブルの出し入れ。ケーブルのとおりにノードを接続する
+src/reorder.ts             モジュールの並べ替え (ドラッグと矢印キー)
 src/cables.ts              ケーブルの描画とドラッグ (SVG を直接 DOM で描く)
 src/display.ts             メーター・入力ピッチ・MIDI の LED (ref で直接書き換える)
 src/audio.ts               AudioContext・ハーモナイザー・マイク
@@ -94,9 +96,9 @@ tsconfig.worklet.json      worklets/ 用 (AudioWorklet の型。DOM の型とぶ
 vite.config.ts             ビルド設定。worklet は ?worker&url で単体のスクリプトとして出力する。sw.js もここで書き出す
 ```
 
-### zheleznaya (0.3.5) で避けていること
+### zheleznaya (0.3.6) で避けていること
 
-[issue #20](https://github.com/naoki-tomita/zheleznaya/issues/20) のうち 0.3.5 でも残っているものを、アプリ側で次のように避けている。
+[issue #20](https://github.com/naoki-tomita/zheleznaya/issues/20) のうち 0.3.6 でも残っているものを、アプリ側で次のように避けている。
 
 - ケーブル (SVG) は子を持たない要素を ref で受け取り、その中に直接 DOM で描く。`<svg>` の子要素が SVG の名前空間で作られないため
 - 状態は普通のオブジェクト (`state`) に持ち、store には再描画のきっかけになる `version` だけを置く。store の Set を add / delete しても再描画されないため

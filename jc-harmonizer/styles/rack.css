@@ -61,6 +61,13 @@
 .module[data-role="voice"] { --role: var(--role-voice); }
 .module[data-role="fx"] { --role: var(--role-fx); }
 .module[data-role="sink"] { --role: var(--role-sink); }
+.module.is-dragging { outline: 2px solid var(--focus); outline-offset: 2px; opacity: 0.85; }
+/* 並べ替えのつかみ */
+.module-grip {
+  border: 0; padding: 0 2px; background: none; cursor: grab; touch-action: none;
+  font-size: 14px; line-height: 1; color: var(--ink-soft);
+}
+.module.is-dragging .module-grip { cursor: grabbing; }
 .module-remove {
   position: absolute; top: 14px; right: 10px;
   border: 0; background: none; cursor: pointer;

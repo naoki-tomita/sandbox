@@ -64,6 +64,8 @@ export const state = {
   speakerId: "",
   // ADD MODULE で選んでいる値 (ラックを作り直しても選択を残すため)
   addChoice: "reverb",
+  // 並べ替えでドラッグしているモジュール
+  draggingId: null as number | null,
 };
 
 const root = createRoot(document.getElementById("app")!);

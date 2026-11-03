@@ -9,6 +9,7 @@ import { selectMic, selectSpeaker } from "../devices";
 import { attachMeter, attachPitch } from "../display";
 import { noteName } from "../notes";
 import { removeModule } from "../patchbay";
+import { isMovable, onGripKey, onReorderEnd, onReorderMove, onReorderStart } from "../reorder";
 import { state, type Device, type ModuleState } from "../state";
 import { Knob } from "./Knob";
 
@@ -136,8 +137,13 @@ function moduleBody(m: ModuleState) {
 }
 
 const ModulePanel = ({ m }: { m: ModuleState }) => (
-  <section class={`module module--${m.width}`} data-role={m.role} aria-label={m.name}>
+  <section class={`module module--${m.width}${state.draggingId === m.id ? " is-dragging" : ""}`} data-role={m.role} aria-label={m.name}>
     <header class="module-head">
+      {isMovable(m) ? (
+        <button class="module-grip" type="button" data-id={m.id} aria-label={`${m.name} を並べ替える (左右の矢印キーでも動かせる)`} title="ドラッグで並べ替え" onkeydown={(e: KeyboardEvent) => onGripKey(e, m)}>
+          ⠿
+        </button>
+      ) : null}
       <h2 class="module-name">{m.name}</h2>
       <span class="module-sub">{m.sub}</span>
       {m.removable ? (
@@ -171,8 +177,13 @@ const AddPanel = () => (
   </section>
 );
 
+// ラック上のポインター操作: ケーブルを引く (ジャック) か、モジュールを並べ替える (つかみ)
+const onPointerDown = (e: PointerEvent) => (onReorderStart(e), onPatchStart(e));
+const onPointerMove = (e: PointerEvent) => (onReorderMove(e), onPatchMove(e));
+const onPointerEnd = (e: PointerEvent) => (onReorderEnd(e), onPatchEnd(e));
+
 export const Rack = () => (
-  <div class="rack-wrap" ref={attachRack} onpointerdown={onPatchStart} onpointermove={onPatchMove} onpointerup={onPatchEnd} onpointercancel={onPatchEnd}>
+  <div class="rack-wrap" ref={attachRack} onpointerdown={onPointerDown} onpointermove={onPointerMove} onpointerup={onPointerEnd} onpointercancel={onPointerEnd}>
     <main class="rack">
       {state.modules.map((m) => <ModulePanel m={m} />)}
       <AddPanel />
