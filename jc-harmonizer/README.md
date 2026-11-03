@@ -16,6 +16,7 @@ npm run build      # 型チェック + dist/ へビルド
 
 Chrome / Edge で開いて POWER を押す。マイクと MIDI の許可を求められるので許可する。
 ハウリングするのでイヤホン/ヘッドホンを使うこと。
+HARMONIZER の TRANSPOSE で、押した鍵盤から半音単位で ±24 までずらして鳴らせる (MIDI・画面の鍵盤・PC キーボードのどれにも効く。ダブルクリックで 0 に戻り、値は次回も使う)。
 使うマイクは MIC モジュールの DEVICE で、出力先は OUTPUT モジュールの DEVICE で選べる (POWER のあと。選んだ機器は次回も使う)。出力先を選べるのは Chrome / Edge だけで、Safari と Firefox は OS の設定に従う。MIDI 機器が無い場合は画面の鍵盤 (マルチタッチで和音可) か、PC キーボードの `A W S E D F T G Y H U J K` で C4〜C5 が弾ける。
 
 ### スマホ

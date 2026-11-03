@@ -54,6 +54,8 @@ export const state = {
   modules: [] as ModuleState[],
   cables: [] as Cable[],
   held: new Set<number>(),
+  // 押した鍵盤からずらして鳴らす半音数
+  transpose: 0,
   // 画面鍵盤のいちばん左の音
   lowNote: 48,
   presetNames: [] as string[],

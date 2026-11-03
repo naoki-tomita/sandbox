@@ -18,7 +18,8 @@ function setValue(p: Param, v: number) {
 
 export const Knob = ({ param: p }: { param: Param }) => {
   const decimals = p.step >= 1 ? 0 : Math.ceil(-Math.log10(p.step));
-  const text = p.value.toFixed(decimals) + p.unit;
+  // 0 をはさむノブ (TRANSPOSE など) は + を付ける
+  const text = (p.min < 0 && p.value > 0 ? "+" : "") + p.value.toFixed(decimals) + p.unit;
   const turn = ((p.value - p.min) / (p.max - p.min)) * 270 - 135;
   const big = (p.max - p.min) / 10;
   const moves: Record<string, number> = { ArrowUp: p.step, ArrowRight: p.step, ArrowDown: -p.step, ArrowLeft: -p.step, PageUp: big, PageDown: -big };

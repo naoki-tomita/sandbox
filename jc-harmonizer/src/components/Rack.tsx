@@ -1,7 +1,7 @@
 // ラック: モジュールのパネルと、それをつなぐケーブル。
 
 import { h } from "zheleznaya";
-import { addEffect, moduleOptions, savePresetOf, toggleModule } from "../actions";
+import { addEffect, moduleOptions, savePresetOf, soundingNotes, toggleModule } from "../actions";
 import { canSelectOutput } from "../audio";
 import { attachCableLayer, attachRack, onPatchEnd, onPatchMove, onPatchStart } from "../cables";
 import { CODE_EXAMPLES } from "../code-examples";
@@ -90,7 +90,11 @@ const DeviceSelect = ({ label, devices, value, onselect }: { label: string; devi
     <span class="device-note">POWER のあとで選べる</span>
   );
 
-const notesText = () => (state.held.size ? [...state.held].sort((a, b) => a - b).map(noteName).join(" ") : "NOTE —");
+// 鳴らしている音 (トランスポーズ後)
+const notesText = () => {
+  const notes = soundingNotes().sort((a, b) => a - b);
+  return notes.length ? notes.map(noteName).join(" ") : "NOTE —";
+};
 
 function moduleBody(m: ModuleState) {
   switch (m.kind) {

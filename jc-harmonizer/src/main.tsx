@@ -9,7 +9,7 @@ import "@fontsource/ibm-plex-mono/latin-400.css";
 import "@fontsource/ibm-plex-mono/latin-500.css";
 import "@fontsource/michroma/latin-400.css";
 import { h } from "zheleznaya";
-import { refreshPresets } from "./actions";
+import { loadTranspose, refreshPresets, setTranspose } from "./actions";
 import { harmonizer, master, micBus } from "./audio";
 import { App } from "./components/App";
 import { bindPcKeys } from "./components/Keyboard";
@@ -37,6 +37,9 @@ const mic = addModule({
   code: null,
 });
 
+// ノブを作るときに 0 で保存されてしまうので、その前に読んでおく
+const savedTranspose = loadTranspose();
+
 const voice = addModule({
   kind: "voice",
   name: "HARMONIZER",
@@ -50,6 +53,7 @@ const voice = addModule({
   params: [
     param("dry", "DRY", 0, 1, 0.01, 0, (v) => ((dry = v), sendMix())),
     param("wet", "WET", 0, 1, 0.01, 1, (v) => ((wet = v), sendMix())),
+    param("transpose", "TRANSPOSE", -24, 24, 1, 0, setTranspose),
   ],
   code: null,
 });
@@ -67,6 +71,11 @@ const output = addModule({
   params: [param("volume", "VOLUME", 0, 1.5, 0.01, 1, (v) => (master.gain.value = v))],
   code: null,
 });
+
+// 前回のトランスポーズを戻す (ダブルクリックで戻る値は 0 のまま)
+const transpose = voice.params.find((p) => p.key === "transpose")!;
+transpose.value = savedTranspose;
+transpose.set(savedTranspose);
 
 addCable(mic.id, voice.id);
 addCable(voice.id, output.id);
