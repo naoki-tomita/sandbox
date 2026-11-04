@@ -10,7 +10,7 @@ import { attachMeter, attachPitch } from "../display";
 import { noteName } from "../notes";
 import { removeModule } from "../patchbay";
 import { isMovable, onGripKey, onReorderEnd, onReorderMove, onReorderStart } from "../reorder";
-import { state, type Device, type ModuleState } from "../state";
+import { onUpdate, state, type Device, type ModuleState } from "../state";
 import { Knob } from "./Knob";
 
 const Jack = ({ m, dir }: { m: ModuleState; dir: "in" | "out" }) => (
@@ -23,8 +23,26 @@ const Jack = ({ m, dir }: { m: ModuleState; dir: "in" | "out" }) => (
 const Knobs = ({ m }: { m: ModuleState }) => <div class="knobs">{m.params.map((p) => <Knob param={p} />)}</div>;
 
 // テキストエリアは描画のたびに中身を差し替えるとカーソルが飛ぶので、作ったときに一度だけ中身を入れ、
-// あとは入力のたびに state 側へ写す
-const editors = new Map<number, HTMLTextAreaElement>();
+// あとは入力のたびに state 側へ写す。
+// ただし zheleznaya は要素を位置で使い回すので、並べ替えるとテキストエリアが別のモジュールのものになる
+// (https://github.com/naoki-tomita/zheleznaya/issues/30)。どのモジュールのコードを出しているかを覚えておき、
+// 描画のあとに別のモジュールのものになっていたら書き直す
+const shown = new WeakMap<HTMLTextAreaElement, number>();
+
+function showCode(el: HTMLTextAreaElement, m: ModuleState) {
+  el.value = m.code!.source;
+  shown.set(el, m.id);
+}
+
+// 再描画は zheleznaya が後でまとめて行うので、それが済んでから確かめる
+onUpdate(() =>
+  setTimeout(() => {
+    for (const el of document.querySelectorAll<HTMLTextAreaElement>("textarea.code")) {
+      const m = state.modules.find((it) => it.id === Number(el.dataset.id));
+      if (m?.code && shown.get(el) !== m.id) showCode(el, m);
+    }
+  }, 0),
+);
 
 const CodeEditor = ({ m }: { m: ModuleState }) => {
   const code = m.code!;
@@ -34,10 +52,8 @@ const CodeEditor = ({ m }: { m: ModuleState }) => {
         class="code"
         spellcheck={"false" as unknown as boolean}
         aria-label={`${m.name} のコード`}
-        ref={(el: HTMLTextAreaElement) => {
-          editors.set(m.id, el);
-          el.value = code.source;
-        }}
+        data-id={m.id}
+        ref={(el: HTMLTextAreaElement) => showCode(el, m)}
         oninput={(e: Event) => (code.source = (e.target as HTMLTextAreaElement).value)}
       ></textarea>
       <div class={code.isError ? "code-result is-error" : "code-result"} role="status">
@@ -62,8 +78,8 @@ const CodeTools = ({ m }: { m: ModuleState }) => (
         const select = e.target as HTMLSelectElement;
         if (select.value) {
           m.code!.source = CODE_EXAMPLES[select.value];
-          const editor = editors.get(m.id);
-          if (editor) editor.value = m.code!.source;
+          const editor = document.querySelector<HTMLTextAreaElement>(`textarea.code[data-id="${m.id}"]`);
+          if (editor) showCode(editor, m);
         }
         select.value = "";
       }}
