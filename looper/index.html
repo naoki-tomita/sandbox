@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Looper</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0d0d1a;
+      --panel: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.12);
+      --accent: #6699ff;
+      --rec: #ff5555;
+      --text: #fff;
+      --muted: rgba(255,255,255,0.4);
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 20px;
+      user-select: none;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      text-shadow: 0 0 24px rgba(102,153,255,0.4);
+    }
+
+    .transport {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .btn {
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+      letter-spacing: 0.08em;
+    }
+    .btn:hover:not(:disabled) { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.35); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    #playBtn { min-width: 96px; }
+    #addBtn { border-color: rgba(102,153,255,0.4); color: var(--accent); }
+
+    .meter {
+      width: 140px; height: 12px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .meter .level {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #33cc66, #ffcc33 70%, var(--rec));
+      transition: width 0.05s linear;
+    }
+
+    #statusText { color: var(--muted); font-size: 0.85rem; letter-spacing: 0.1em; }
+
+    .progress {
+      height: 6px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress #playhead {
+      height: 100%; width: 0%;
+      background: var(--accent);
+      transition: width 0.05s linear;
+    }
+
+    main#tracks { display: flex; flex-direction: column; gap: 10px; }
+
+    .empty { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--border); border-radius: 8px; }
+
+    .track {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .track.armed { border-color: var(--rec); box-shadow: 0 0 18px rgba(255,85,85,0.25); }
+    .track.is-muted { opacity: 0.55; }
+
+    .track-name { flex: 1; letter-spacing: 0.1em; font-size: 1rem; }
+
+    .btn.rec.active { background: var(--rec); border-color: var(--rec); }
+    .btn.mute.active { background: rgba(255,204,51,0.18); border-color: rgba(255,204,51,0.6); color: #ffcc33; }
+    .btn.del { padding: 10px 12px; }
+
+    footer#warn { color: var(--rec); font-size: 0.85rem; min-height: 1.2em; letter-spacing: 0.05em; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>LOOPER</h1>
+    <div class="transport">
+      <button id="playBtn" class="btn">▶ Play</button>
+      <button id="addBtn" class="btn">＋ Add Track</button>
+      <div class="meter" title="入力レベル"><div id="level" class="level"></div></div>
+      <div id="statusText"></div>
+    </div>
+    <div class="progress" style="margin-top:12px"><div id="playhead"></div></div>
+  </header>
+
+  <main id="tracks"></main>
+
+  <footer id="warn"></footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

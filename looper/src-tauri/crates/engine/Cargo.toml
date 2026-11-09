@@ -1,0 +1,10 @@
+[package]
+name = "engine"
+version = "0.1.0"
+edition = "2021"
+description = "Looper のリアルタイム DSP コア（ハードウェア非依存・ユニットテスト対象）"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
