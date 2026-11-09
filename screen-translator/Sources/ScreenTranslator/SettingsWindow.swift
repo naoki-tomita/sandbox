@@ -145,6 +145,47 @@ private struct EngineSection: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if engine == .plamo {
+                PlamoServerSettings()
+            }
+        }
+    }
+}
+
+/// PLaMo 3 Translate の翻訳サーバーの設定と接続確認
+private struct PlamoServerSettings: View {
+    @AppStorage(PlamoTranslator.serverURLKey) private var serverURL = PlamoTranslator.defaultServerURL
+    @State private var checkResult: String?
+    @State private var isChecking = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("PLaMo 3 Translate (Preferred Networks) は翻訳専用のモデルです (個人利用は無料・オンデバイス)。ターミナルで screen-translator/scripts/plamo-server.sh を実行して、翻訳サーバーを起動しておいてください。起動していないときは標準で翻訳します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                TextField("サーバーの URL", text: $serverURL)
+                    .textFieldStyle(.roundedBorder)
+                Button("接続を確認") { Task { await check() } }
+                    .disabled(isChecking)
+            }
+            if let checkResult {
+                Text(checkResult)
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func check() async {
+        isChecking = true
+        defer { isChecking = false }
+        do {
+            let translation = try await PlamoTranslator.translate("Welcome to the village, traveler.")
+            checkResult = "✅ つながりました: 「\(translation)」"
+        } catch {
+            checkResult = "⚠️ つながりません: \(error.localizedDescription)"
         }
     }
 }

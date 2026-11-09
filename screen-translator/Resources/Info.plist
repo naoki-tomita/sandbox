@@ -24,5 +24,11 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<!-- 同じ Mac で動かす翻訳サーバー (PLaMo 3 Translate) に http でつなぐ -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
