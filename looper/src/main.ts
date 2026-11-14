@@ -44,7 +44,6 @@ let latencyMs: number | null = (() => {
   const v = Number(localStorage.getItem(LATENCY_KEY) ?? NaN);
   return Number.isFinite(v) ? v : null;
 })();
-let wakeLock: { release(): Promise<void> } | null = null;
 let exportUrl = "";
 let exportFile: File | null = null;
 
@@ -228,7 +227,6 @@ function applyPeaks(update: NonNullable<Status["peaks"]>): void {
 // ---------- エンジンからの状態 ----------
 
 audio.onStatus = (s) => {
-  if (s.playing !== playing) void keepAwake(s.playing);
   if (s.recording !== recording) tracks.forEach((t) => (t.dirty = true));
   pos = s.pos;
   playing = s.playing;
@@ -304,13 +302,14 @@ function frame(): void {
   requestAnimationFrame(frame);
 }
 
-async function keepAwake(on: boolean): Promise<void> {
+// 開いている間は画面が暗くならないようにする。
+// 画面を離れると OS が勝手に解除するので、戻ってきたときと、次に触ったときに取り直す
+let wakeLock: { released: boolean } | null = null;
+
+async function keepAwake(): Promise<void> {
+  if (document.visibilityState !== "visible" || (wakeLock && !wakeLock.released)) return;
   try {
-    if (on && !wakeLock) wakeLock = await (navigator as any).wakeLock?.request("screen");
-    else if (!on && wakeLock) {
-      await wakeLock.release();
-      wakeLock = null;
-    }
+    wakeLock = (await (navigator as any).wakeLock?.request("screen")) ?? null;
   } catch {
     wakeLock = null;
   }
@@ -535,10 +534,13 @@ $("start").addEventListener("click", async () => {
 // 画面に戻ってきたときや、割り込み (着信など) のあとに音を動かし直す
 document.addEventListener("pointerdown", () => {
   if (started) audio.resume();
+  void keepAwake();
 });
 document.addEventListener("visibilitychange", () => {
   if (started && document.visibilityState === "visible") audio.resume();
+  void keepAwake();
 });
+void keepAwake();
 window.addEventListener("beforeunload", (e) => {
   if (length > 0) e.preventDefault();
 });
