@@ -43,6 +43,11 @@ class LooperProcessor extends AudioWorkletProcessor {
       case "setMonitor":
         e.monitor = m.value;
         break;
+      case "setMetronome":
+        e.metronome = m.on;
+        e.countIn = m.countIn;
+        e.setTempo(m.bpm);
+        break;
       case "calibrate":
         e.calibrate();
         break;
@@ -69,6 +74,7 @@ class LooperProcessor extends AudioWorkletProcessor {
           pos: e.pos,
           playing: e.playing,
           recording: e.recordingId,
+          counting: e.isCounting,
           length: e.length,
           level: e.level,
           lens: e.trackLengths(),

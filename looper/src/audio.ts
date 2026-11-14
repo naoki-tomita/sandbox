@@ -6,6 +6,7 @@ export interface Status {
   pos: number;
   playing: boolean;
   recording: number | null;
+  counting: boolean;
   length: number;
   level: number;
   lens: [number, number][];
