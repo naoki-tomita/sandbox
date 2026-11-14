@@ -24,6 +24,7 @@
       <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="7" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
       <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l.8 11.2a1.5 1.5 0 0 0 1.5 1.3h5.4a1.5 1.5 0 0 0 1.5-1.3L17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-metro" viewBox="0 0 24 24"><path d="M9.2 3.5h5.6L18.5 20.5h-13zM7 15.5h10M12 15.5l5.5-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     </defs>
   </svg>
 
@@ -46,6 +47,13 @@
     <section class="clock inset" aria-live="off">
       <div class="clock-time"><span id="time">0:00.0</span><span id="total">/ 0:00.0</span></div>
       <div id="state" class="clock-state">停止中</div>
+    </section>
+
+    <section class="metro raised" aria-label="メトロノーム">
+      <button id="metro" class="btn round toggle" type="button" aria-label="メトロノーム" aria-pressed="false"><svg><use href="#i-metro"/></svg></button>
+      <button id="bpm-down" class="btn round small" type="button" aria-label="テンポを下げる">−</button>
+      <label class="bpm inset"><input id="bpm" type="number" inputmode="numeric" min="40" max="240" value="120" aria-label="テンポ"><span>BPM</span></label>
+      <button id="bpm-up" class="btn round small" type="button" aria-label="テンポを上げる">＋</button>
     </section>
 
     <div id="ruler" class="ruler inset" role="slider" tabindex="0" aria-label="再生位置" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
@@ -85,6 +93,13 @@
         <small>マイクの音をそのまま出力に流します。スピーカーで鳴らすとハウリングするので、イヤホンで使ってください。</small>
       </span>
       <input id="monitor" type="checkbox" class="switch">
+    </label>
+    <label class="row">
+      <span>
+        <strong>録音の前にカウントを入れる</strong>
+        <small>メトロノームを鳴らしているとき、止まった状態から録音を始めると、4 拍数えてから録り始めます。</small>
+      </span>
+      <input id="count-in" type="checkbox" class="switch" checked>
     </label>
     <div class="row col">
       <span>

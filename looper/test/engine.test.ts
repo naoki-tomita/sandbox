@@ -189,6 +189,54 @@ describe("LooperEngine", () => {
     expect(e.pos).toBe(2048);
   });
 
+  it("メトロノームは拍の頭で鳴り、書き出しには入らない", () => {
+    const e = new LooperEngine(SR);
+    e.loop = false;
+    recordFirst(e, SR * 2, 0);
+    e.metronome = true;
+    e.setTempo(120); // 1 拍 = SR / 2
+    e.play();
+    const out = run(e, SR * 2);
+    const loud = (from: number, to: number) => Math.max(...out.subarray(from, to).map(Math.abs));
+    expect(loud(0, 200)).toBeGreaterThan(0.1);
+    expect(loud(SR / 2, SR / 2 + 200)).toBeGreaterThan(0.1);
+    expect(loud(SR / 4, SR / 4 + 200)).toBe(0);
+    expect(Math.max(...e.mixdown()!.map(Math.abs))).toBe(0);
+  });
+
+  it("メトロノームが鳴っていると、4 拍のカウントのあとで録音が始まる", () => {
+    const e = new LooperEngine(SR);
+    e.loop = false;
+    e.addTrack(1);
+    e.metronome = true;
+    e.setTempo(240); // 1 拍 = SR / 4、カウントは SR ぶん
+    e.record(1, 0);
+    expect(e.recordingId).toBe(1);
+    expect(e.isCounting).toBe(true);
+    const count = run(e, SR, () => 0.5);
+    expect(Math.max(...count.subarray(0, 100).map(Math.abs))).toBeGreaterThan(0.1);
+    expect(e.isCounting).toBe(false);
+    expect(e.pos).toBe(0);
+    expect(e.length).toBe(0);
+    run(e, 1024, () => 0.5);
+    e.stop();
+    run(e, BLOCK * 2);
+    expect(e.length).toBe(1024);
+  });
+
+  it("カウントの途中で止めると、録音は始まらない", () => {
+    const e = new LooperEngine(SR);
+    e.addTrack(1);
+    e.metronome = true;
+    e.record(1, 0);
+    run(e, 1024, () => 0.5);
+    e.stop();
+    run(e, 1024, () => 0.5);
+    expect(e.recordingId).toBe(null);
+    expect(e.playing).toBe(false);
+    expect(e.length).toBe(0);
+  });
+
   it("出したクリックが入力に戻るまでの遅れを測る", () => {
     const e = new LooperEngine(SR);
     const delay = 400;

@@ -58,6 +58,10 @@ export class LooperEngine {
   playing = false;
   loop = true;
   monitor = false;
+  /** メトロノームを鳴らすか */
+  metronome = false;
+  /** メトロノームが鳴っているとき、止まった状態からの録音の前に 1 小節 (4 拍) のカウントを入れるか */
+  countIn = true;
   /** 全トラックの中で一番長いものの長さ */
   length = 0;
   /** 前回読んでからの入力のピーク。読んだ側が 0 に戻す */
@@ -66,6 +70,10 @@ export class LooperEngine {
 
   private tracks: Track[] = [];
   private rec: Rec | null = null;
+  /** 1 拍の長さ (サンプル) */
+  private beat: number;
+  /** 録音前のカウントの残り (サンプル)。0 より大きい間は位置を進めず、クリックだけ鳴らす */
+  private counting = 0;
   private calib: Calib | null = null;
   private master = 0;
   private stopping = false;
@@ -79,11 +87,21 @@ export class LooperEngine {
     this.maxLen = Math.floor(sampleRate * MAX_SECONDS);
     this.fade = Math.max(1, Math.round(sampleRate * 0.005));
     this.masterStep = 1 / Math.max(1, Math.round(sampleRate * 0.003));
+    this.beat = Math.round((sampleRate * 60) / 120);
   }
 
   /** 録音の最中のトラック (なければ null) */
   get recordingId(): number | null {
     return this.rec && this.rec.end === null ? this.rec.track.id : null;
+  }
+
+  /** 録音前のカウントの最中か */
+  get isCounting(): boolean {
+    return this.counting > 0;
+  }
+
+  setTempo(bpm: number): void {
+    this.beat = Math.max(1, Math.round((this.sampleRate * 60) / Math.max(20, Math.min(300, bpm))));
   }
 
   get calibrating(): boolean {
@@ -104,6 +122,7 @@ export class LooperEngine {
     if (i < 0) return;
     if (this.rec?.track.id === id) {
       this.rec = null;
+      this.counting = 0;
       this.stop();
     }
     this.tracks.splice(i, 1);
@@ -127,7 +146,7 @@ export class LooperEngine {
   }
 
   play(): void {
-    if (this.calib || this.length === 0) return;
+    if (this.calib || this.length === 0 || this.counting > 0) return;
     if (this.playing && !this.stopping) return;
     if (!this.playing) {
       if (this.pos >= this.length) this.pos = 0;
@@ -140,6 +159,12 @@ export class LooperEngine {
 
   /** 再生も録音も止める。位置は止めたところに残る */
   stop(): void {
+    if (this.counting > 0) {
+      // カウントの途中でやめたら、録音は始めなかったことにする
+      this.counting = 0;
+      this.rec = null;
+      return;
+    }
     if (this.rec && this.rec.end === null) this.rec.end = this.pos;
     if (this.playing && !this.stopping) {
       this.stopping = true;
@@ -172,8 +197,9 @@ export class LooperEngine {
     if (!this.playing) {
       this.master = 0;
       this.updateTargets(true);
+      if (this.metronome && this.countIn) this.counting = this.beat * 4;
     }
-    this.playing = true;
+    if (this.counting === 0) this.playing = true;
     this.rec = {
       track,
       w: this.pos - Math.max(0, Math.round(latency)),
@@ -249,6 +275,14 @@ export class LooperEngine {
       const ax = x < 0 ? -x : x;
       if (ax > this.level) this.level = ax;
 
+      if (this.counting > 0) {
+        // カウントは、そのまま本編の拍につながるように鳴らす
+        const c = this.click(this.pos - this.counting);
+        out[i] = this.monitor ? c + x : c;
+        if (--this.counting === 0) this.playing = true;
+        continue;
+      }
+
       // 録音。再生が止まったあとも、遅延補正のぶんだけ遅れて届く音を最後まで書き切る
       const rec = this.rec;
       if (rec) {
@@ -278,10 +312,21 @@ export class LooperEngine {
           this.master = Math.min(1, this.master + this.masterStep);
         }
         y *= this.master;
+        if (this.metronome) y += this.click(p);
         if (this.playing) this.advance();
       }
       out[i] = this.monitor ? y + x : y;
     }
+  }
+
+  /** 位置 pos でのメトロノームの音。拍の頭から短い音を鳴らし、小節の頭 (4 拍ごと) は高い音にする */
+  private click(pos: number): number {
+    const beat = this.beat;
+    const k = ((pos % beat) + beat) % beat;
+    if (k >= this.sampleRate * 0.03) return 0;
+    const accent = (((Math.floor(pos / beat) % 4) + 4) % 4) === 0;
+    const t = k / this.sampleRate;
+    return 0.5 * Math.exp(-t * 180) * Math.sin(2 * Math.PI * (accent ? 1760 : 1175) * t);
   }
 
   /** ミュートとソロから各トラックの音量を決める。snap なら、なめらかに寄せずにすぐ切り替える */

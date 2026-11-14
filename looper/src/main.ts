@@ -22,6 +22,7 @@ interface Track {
 const COLORS = ["#d9722f", "#2a8f9c", "#7c5fd0", "#3b9a5f", "#c44d8e", "#b8901c"];
 const LATENCY_KEY = "looper.latencyMs";
 const MIC_KEY = "looper.mic";
+const METRO_KEY = "looper.metronome";
 /** 何も録っていないときの、画面の横幅にあたる長さ (秒) */
 const MIN_VIEW_SECONDS = 4;
 
@@ -37,6 +38,13 @@ let pos = 0;
 let length = 0;
 let playing = false;
 let recording: number | null = null;
+let counting = false;
+const metro: { on: boolean; bpm: number; countIn: boolean } = { on: false, bpm: 120, countIn: true };
+try {
+  Object.assign(metro, JSON.parse(localStorage.getItem(METRO_KEY) ?? "{}"));
+} catch {
+  // 壊れた設定は捨てて初期値で始める
+}
 let level = 0;
 let viewLen = 1;
 /** 手で決めた遅延補正 (ミリ秒)。null ならブラウザの申告から見積もる */
@@ -231,6 +239,7 @@ audio.onStatus = (s) => {
   pos = s.pos;
   playing = s.playing;
   recording = s.recording;
+  counting = s.counting;
   length = s.length;
   level = Math.max(level, s.level);
   for (const [id, len] of s.lens) {
@@ -249,7 +258,7 @@ audio.onStatus = (s) => {
 function frame(): void {
   const state = recording !== null ? "recording" : playing ? "playing" : "idle";
   if (document.body.dataset.state !== state) document.body.dataset.state = state;
-  setText(el.state, state === "recording" ? "録音中" : state === "playing" ? "再生中" : "停止中");
+  setText(el.state, counting ? "カウント中" : state === "recording" ? "録音中" : state === "playing" ? "再生中" : "停止中");
   setText(el.time, formatTime(pos));
   setText(el.total, `/ ${formatTime(length)}`);
 
@@ -279,7 +288,7 @@ function frame(): void {
     if (t.playhead) t.playhead.style.left = `${(frac * 100).toFixed(2)}%`;
     if (t.sub) {
       const armed = t.id === armedId;
-      setText(t.sub, recording === t.id ? "録音中" : armed && t.len === 0 ? "録音先" : armed ? `録音先 ・ ${formatTime(t.len)}` : t.len === 0 ? "未録音" : formatTime(t.len));
+      setText(t.sub, recording === t.id ? (counting ? "カウント中" : "録音中") : armed && t.len === 0 ? "録音先" : armed ? `録音先 ・ ${formatTime(t.len)}` : t.len === 0 ? "未録音" : formatTime(t.len));
       t.sub.classList.toggle("armed", armed);
     }
   }
@@ -290,9 +299,10 @@ function frame(): void {
   el.meter.style.clipPath = `inset(0 ${(100 - pct).toFixed(1)}% 0 0)`;
   level *= 0.85;
 
-  el.play.disabled = length === 0 && !playing;
-  el.play.setAttribute("aria-label", playing ? "停止" : "再生");
-  const icon = playing ? "#i-stop" : "#i-play";
+  const running = playing || recording !== null;
+  el.play.disabled = length === 0 && !running;
+  el.play.setAttribute("aria-label", running ? "停止" : "再生");
+  const icon = running ? "#i-stop" : "#i-play";
   if (el.playIcon.getAttribute("href") !== icon) el.playIcon.setAttribute("href", icon);
   el.rec.setAttribute("aria-pressed", String(recording !== null));
   el.rec.setAttribute("aria-label", recording !== null ? "録音を止める" : "録音");
@@ -324,7 +334,7 @@ function effectiveLatencyMs(): number {
 function togglePlay(): void {
   if (!started) return;
   audio.resume();
-  audio.post({ type: playing ? "stop" : "play" });
+  audio.post({ type: playing || recording !== null ? "stop" : "play" });
 }
 
 function toggleRecord(): void {
@@ -385,6 +395,63 @@ document.addEventListener("keydown", (e) => {
     toggleRecord();
   }
 });
+
+// ---------- メトロノーム ----------
+
+const bpmInput = $<HTMLInputElement>("bpm");
+
+function updateMetronome(): void {
+  metro.bpm = Math.max(40, Math.min(240, Math.round(metro.bpm) || 120));
+  localStorage.setItem(METRO_KEY, JSON.stringify(metro));
+  $("metro").setAttribute("aria-pressed", String(metro.on));
+  $<HTMLInputElement>("count-in").checked = metro.countIn;
+  if (document.activeElement !== bpmInput) bpmInput.value = String(metro.bpm);
+  if (started) audio.post({ type: "setMetronome", ...metro });
+}
+
+$("metro").addEventListener("click", () => {
+  metro.on = !metro.on;
+  updateMetronome();
+});
+$("count-in").addEventListener("change", (e) => {
+  metro.countIn = (e.target as HTMLInputElement).checked;
+  updateMetronome();
+});
+bpmInput.addEventListener("input", () => {
+  const v = Number(bpmInput.value);
+  // 打っている途中の「1」や「12」で音が跳ねないよう、範囲に入ったときだけ反映する
+  if (v >= 40 && v <= 240) {
+    metro.bpm = v;
+    updateMetronome();
+  }
+});
+bpmInput.addEventListener("blur", updateMetronome);
+
+// ＋／− は押しっぱなしで続けて変わる
+for (const [id, step] of [["bpm-down", -1], ["bpm-up", 1]] as const) {
+  const button = $(id);
+  let timer = 0;
+  const bump = () => {
+    metro.bpm += step;
+    updateMetronome();
+  };
+  const stop = () => clearTimeout(timer);
+  button.addEventListener("pointerdown", () => {
+    bump();
+    const repeat = (delay: number) => {
+      timer = window.setTimeout(() => {
+        bump();
+        repeat(60);
+      }, delay);
+    };
+    repeat(400);
+  });
+  for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, stop);
+  // キーボードで押したとき
+  button.addEventListener("click", (e) => {
+    if (e.detail === 0) bump();
+  });
+}
 
 // ---------- マイク ----------
 
@@ -527,6 +594,7 @@ $("start").addEventListener("click", async () => {
   started = true;
   for (const t of tracks) audio.post({ type: "addTrack", id: t.id });
   audio.post({ type: "setLoop", value: loop });
+  updateMetronome();
   await openMic(localStorage.getItem(MIC_KEY) ?? undefined);
   $("welcome").hidden = true;
 });
@@ -547,6 +615,7 @@ window.addEventListener("beforeunload", (e) => {
 new ResizeObserver(() => tracks.forEach((t) => (t.dirty = true))).observe(el.tracks);
 
 addTrack();
+updateMetronome();
 requestAnimationFrame(frame);
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
