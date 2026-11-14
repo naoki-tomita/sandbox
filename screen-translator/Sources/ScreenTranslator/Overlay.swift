@@ -103,13 +103,17 @@ final class OverlayModel: ObservableObject {
             switch engine {
             case .standard:
                 try await translateInParallel(texts, primary: session, isFinal: true)
-            case .appleIntelligence:
+            case .appleIntelligence, .plamo:
                 // 言語モデルは遅いので、まず標準の訳を出しておき、自然な訳が届いたら差し替える
                 let untranslated = TranslationPlanner.orderedTexts(pending.filter { $0.translation == nil }.map(\.source))
                 if !untranslated.isEmpty {
                     try await translateInParallel(untranslated, primary: session, isFinal: false)
                 }
-                try await translateWithLanguageModel(texts, fallback: session)
+                if engine == .plamo {
+                    try await translateWithPlamo(texts, fallback: session)
+                } else {
+                    try await translateWithLanguageModel(texts, fallback: session)
+                }
             }
             if !blocks.contains(where: { !$0.isFinal }) { phase = .done }
             let elapsed = clock.now - start
@@ -167,6 +171,54 @@ final class OverlayModel: ObservableObject {
                     if let translation = cache[source, .standard] { cache[source, .appleIntelligence] = translation }
                 }
             }
+        }
+    }
+
+    /// PLaMo 3 Translate の翻訳サーバーで、画面の上の方から訳す。サーバーは同時に何件か訳せるので、
+    /// 文を組に分けて並行して頼む。同じ画面のほかの文を文脈として渡すので、用語や口調がそろう
+    private func translateWithPlamo(_ texts: [String], fallback: TranslationSession) async throws {
+        let chunks = TranslationPlanner.chunks(texts, count: PlamoTranslator.concurrency)
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for chunk in chunks {
+                group.addTask { try await self.translateWithPlamo(chunk, context: texts, fallback: fallback) }
+            }
+            try await group.waitForAll()
+        }
+    }
+
+    private func translateWithPlamo(_ texts: [String], context allTexts: [String], fallback: TranslationSession) async throws {
+        for (index, source) in texts.enumerated() {
+            try Task.checkCancellation()
+            do {
+                let context = PlamoTranslator.context(for: source, among: allTexts)
+                let translation = try await PlamoTranslator.translate(source, context: context)
+                apply(translation, to: source, engine: .plamo, isFinal: true)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch let error where PlamoTranslator.isConnectionError(error) {
+                // サーバーが起動していない。残りは待たずに標準の訳にする (起動すれば次から PLaMo で訳す)
+                Self.logger.error("PLaMo の翻訳サーバーにつながらないので標準の訳を使います: \(String(describing: error), privacy: .public)")
+                try await useStandardTranslation(for: Array(texts[index...]), fallback: fallback)
+                return
+            } catch {
+                Self.logger.error("PLaMo で訳せなかったので標準の訳を使います: \(String(describing: error), privacy: .public)")
+                try await useStandardTranslation(for: [source], fallback: fallback)
+            }
+        }
+    }
+
+    /// 仮に出しておいた標準の訳を、そのまま確定させる。まだ訳していなければ標準で訳す
+    private func useStandardTranslation(for texts: [String], fallback: TranslationSession) async throws {
+        var untranslated: [String] = []
+        for source in texts {
+            if let translation = cache[source, .standard] {
+                apply(translation, to: source, engine: .standard, isFinal: true)
+            } else {
+                untranslated.append(source)
+            }
+        }
+        if !untranslated.isEmpty {
+            try await translate(untranslated, with: fallback, isFinal: true)
         }
     }
 

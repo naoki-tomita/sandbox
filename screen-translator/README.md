@@ -50,9 +50,24 @@ GitHub Actions の「Screen Translator」ワークフローの成果物から、
 | --- | --- |
 | Apple Intelligence (初期設定) | 端末内の言語モデル (Foundation Models) に、画面の文を 12 件ずつまとめて「ゲームのローカライズ担当」として訳させる。同じ画面の文で用語や口調がそろい、セリフも自然になる。遅いので、先に標準の訳を出しておき、届いた順に差し替える |
 | 標準 | Translation フレームワーク。速いが直訳調になりやすい |
+| PLaMo 3 Translate | Preferred Networks の翻訳専用モデル。同じ画面のほかの文を文脈として渡して 1 文ずつ (4 件まで同時に) 訳す。同じ Mac で翻訳サーバーを起動しておく必要がある (下記) |
 
 - Apple Intelligence は macOS 26 以降、Apple Intelligence に対応した Mac で、システム設定で Apple Intelligence をオンにしていると使えます。使えないときは自動で標準になります
 - Apple Intelligence で訳せなかった文 (件数が合わない、安全基準に引っかかったなど) は標準の訳のままになります
+
+### PLaMo 3 Translate を使う
+
+[PLaMo 3 Translate](https://huggingface.co/collections/pfnet/plamo-3-translate) は Preferred Networks の翻訳専用モデルです。Apple Silicon 向けの MLX 版を、この Mac 上の翻訳サーバーとして動かします。ライセンスは PLaMo Community License で、個人・非商用の利用は無料です。
+
+```sh
+cd screen-translator
+./scripts/plamo-server.sh        # 2B (約 2.4 GB、おすすめ)
+./scripts/plamo-server.sh 8b     # 8B (約 6 GB、訳はより良いが遅い)
+```
+
+- 初回はモデルと Python のパッケージを `~/.plamo` にダウンロードします。Python 3.10 以上が必要です (macOS 付属の python3 は 3.9 なので、`brew install python` などで入れてください)
+- サーバーが起動したら、「設定…」の「翻訳エンジン」で PLaMo 3 Translate を選び、「接続を確認」を押します
+- サーバーが起動していないときは標準で翻訳します。起動すれば次の翻訳から PLaMo を使います
 
 ## 自動翻訳 (定期的に読み直す)
 

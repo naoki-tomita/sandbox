@@ -10,6 +10,8 @@ enum TranslationEngine: String, CaseIterable, Identifiable {
     case standard
     /// Apple Intelligence の端末内言語モデル。遅いが、ゲームの文脈を踏まえた自然な訳になる
     case appleIntelligence
+    /// PLaMo 3 Translate。翻訳専用モデルなので訳が自然。同じ Mac で翻訳サーバーを起動しておく必要がある
+    case plamo
 
     static let defaultsKey = "translation.engine"
 
@@ -19,6 +21,7 @@ enum TranslationEngine: String, CaseIterable, Identifiable {
         switch self {
         case .standard: "標準 (速い)"
         case .appleIntelligence: "Apple Intelligence (自然な訳)"
+        case .plamo: "PLaMo 3 Translate (翻訳サーバーが必要)"
         }
     }
 
