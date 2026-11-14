@@ -9,6 +9,7 @@ on:
       - 'canvas-renderer/**'
       - 'openworld/**'
       - 'jc-harmonizer/**'
+      - 'looper/**'
       - 'index.html'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
@@ -38,6 +39,7 @@ jobs:
             canvas-renderer/package-lock.json
             openworld/package-lock.json
             jc-harmonizer/package-lock.json
+            looper/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -79,6 +81,14 @@ jobs:
         run: npm run build
         working-directory: jc-harmonizer
 
+      - name: Install looper dependencies
+        run: npm ci
+        working-directory: looper
+
+      - name: Build looper
+        run: npm run build
+        working-directory: looper
+
       - name: Assemble site
         run: |
           mkdir -p _site
@@ -88,6 +98,7 @@ jobs:
           cp -r canvas-renderer/dist _site/canvas-renderer
           cp -r openworld/dist _site/openworld
           cp -r jc-harmonizer/dist _site/jc-harmonizer
+          cp -r looper/dist _site/looper
 
       - uses: actions/upload-pages-artifact@v3
         with:

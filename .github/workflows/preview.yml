@@ -37,6 +37,7 @@ jobs:
             canvas-renderer/package-lock.json
             openworld/package-lock.json
             jc-harmonizer/package-lock.json
+            looper/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -83,6 +84,15 @@ jobs:
         run: npm run build -- --base=/jc-harmonizer/
         working-directory: jc-harmonizer
 
+      - name: Install looper dependencies
+        run: npm ci
+        working-directory: looper
+
+      # 同上: /sandbox/looper/ をルート配信用の /looper/ に上書き
+      - name: Build looper
+        run: npm run build -- --base=/looper/
+        working-directory: looper
+
       - name: Assemble site
         run: |
           mkdir -p _site
@@ -92,6 +102,7 @@ jobs:
           cp -r canvas-renderer/dist _site/canvas-renderer
           cp -r openworld/dist _site/openworld
           cp -r jc-harmonizer/dist _site/jc-harmonizer
+          cp -r looper/dist _site/looper
 
       - name: Deploy to Cloudflare Pages
         id: deploy
