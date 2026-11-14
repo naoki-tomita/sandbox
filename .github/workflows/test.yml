@@ -1,4 +1,4 @@
-# balatro / canvas-renderer / openworld のユニットテスト (vitest) と atom-watch のテスト (pytest)。
+# balatro / canvas-renderer / openworld / looper のユニットテスト (vitest) と atom-watch のテスト (pytest)。
 # PR を出したときと、main に push したときに実行する。
 
 name: Test
@@ -9,6 +9,7 @@ on:
       - 'balatro/**'
       - 'canvas-renderer/**'
       - 'openworld/**'
+      - 'looper/**'
       - 'atom-watch/**'
       - '.github/workflows/test.yml'
   push:
@@ -17,6 +18,7 @@ on:
       - 'balatro/**'
       - 'canvas-renderer/**'
       - 'openworld/**'
+      - 'looper/**'
       - 'atom-watch/**'
 
 concurrency:
@@ -40,6 +42,7 @@ jobs:
             balatro/package-lock.json
             canvas-renderer/package-lock.json
             openworld/package-lock.json
+            looper/package-lock.json
 
       - name: Install Balatro dependencies
         run: npm ci
@@ -72,6 +75,14 @@ jobs:
       - name: Validate openworld world data
         run: npm run world:validate -- --strict
         working-directory: openworld
+
+      - name: Install looper dependencies
+        run: npm ci
+        working-directory: looper
+
+      - name: Run looper unit tests
+        run: npm test
+        working-directory: looper
 
   atom-watch:
     runs-on: ubuntu-latest

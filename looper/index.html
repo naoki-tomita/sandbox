@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Looper</title>
+  <meta name="description" content="マイクの音をトラックに重ねて録るルーパー">
+  <meta name="theme-color" content="#e4e7ed" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#2b2e35" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Looper">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body data-state="idle">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></symbol>
+      <symbol id="i-rewind" viewBox="0 0 24 24"><rect x="5" y="5" width="2.6" height="14" rx="1.3" fill="currentColor"/><path d="M19 6v12a.8.8 0 0 1-1.25.66l-8.5-6a.8.8 0 0 1 0-1.32l8.5-6A.8.8 0 0 1 19 6z" fill="currentColor"/></symbol>
+      <symbol id="i-loop" viewBox="0 0 24 24"><path d="M17 3l3.5 3.5L17 10M20.5 6.5H8a4.5 4.5 0 0 0-4.5 4.5v.5M7 21l-3.5-3.5L7 14M3.5 17.5H16a4.5 4.5 0 0 0 4.5-4.5v-.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3.5v11M7.5 10.5l4.5 4.5 4.5-4.5M4.5 19.5h15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="7" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l.8 11.2a1.5 1.5 0 0 0 1.5 1.3h5.4a1.5 1.5 0 0 0 1.5-1.3L17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    </defs>
+  </svg>
+
+  <main id="app">
+    <header class="top">
+      <h1>LOOPER</h1>
+      <button id="settings-open" class="btn round" type="button" aria-label="設定"><svg><use href="#i-gear"/></svg></button>
+    </header>
+
+    <section class="mic raised" aria-label="入力">
+      <svg class="mic-icon" aria-hidden="true"><use href="#i-mic"/></svg>
+      <div class="mic-main">
+        <label for="mic">入力マイク</label>
+        <div class="select inset"><select id="mic"><option>（未接続）</option></select></div>
+      </div>
+      <div class="meter inset" role="meter" aria-label="入力レベル" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="meter-fill"></div></div>
+      <p id="mic-error" class="error" hidden></p>
+    </section>
+
+    <section class="clock inset" aria-live="off">
+      <div class="clock-time"><span id="time">0:00.0</span><span id="total">/ 0:00.0</span></div>
+      <div id="state" class="clock-state">停止中</div>
+    </section>
+
+    <div id="ruler" class="ruler inset" role="slider" tabindex="0" aria-label="再生位置" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+      <div id="ruler-fill" class="ruler-fill"></div>
+      <div id="ruler-knob" class="ruler-knob"></div>
+    </div>
+
+    <ol id="tracks" class="tracks"></ol>
+
+    <button id="add-track" class="btn wide" type="button">＋ トラックを追加</button>
+  </main>
+
+  <footer class="transport">
+    <div class="transport-inner">
+      <button id="rewind" class="btn round" type="button" aria-label="先頭に戻る"><svg><use href="#i-rewind"/></svg></button>
+      <button id="loop" class="btn round toggle" type="button" aria-label="ループ" aria-pressed="true"><svg><use href="#i-loop"/></svg></button>
+      <button id="rec" class="btn round big rec" type="button" aria-label="録音" aria-pressed="false"><span class="rec-dot"></span></button>
+      <button id="play" class="btn round big" type="button" aria-label="再生"><svg><use id="play-icon" href="#i-play"/></svg></button>
+      <button id="export" class="btn round" type="button" aria-label="書き出す"><svg><use href="#i-export"/></svg></button>
+    </div>
+  </footer>
+
+  <div id="welcome" class="welcome">
+    <div class="welcome-card">
+      <h2>LOOPER</h2>
+      <p>マイクの音をトラックに重ねて録音します。<br>はじめにマイクの使用を許可してください。</p>
+      <button id="start" class="btn wide primary" type="button">マイクをつないで始める</button>
+      <p id="start-error" class="error" hidden></p>
+    </div>
+  </div>
+
+  <dialog id="settings" class="sheet">
+    <h2>設定</h2>
+    <label class="row">
+      <span>
+        <strong>入力をモニターする</strong>
+        <small>マイクの音をそのまま出力に流します。スピーカーで鳴らすとハウリングするので、イヤホンで使ってください。</small>
+      </span>
+      <input id="monitor" type="checkbox" class="switch">
+    </label>
+    <div class="row col">
+      <span>
+        <strong>録音の遅延補正</strong>
+        <small>録った音が、聞きながら演奏したタイミングより遅れて重なるときに増やします。</small>
+      </span>
+      <div class="stepper">
+        <button id="latency-down" class="btn round small" type="button" aria-label="5ミリ秒減らす">−</button>
+        <output id="latency-value">0 ms</output>
+        <button id="latency-up" class="btn round small" type="button" aria-label="5ミリ秒増やす">＋</button>
+      </div>
+      <div class="row-actions">
+        <button id="calibrate" class="btn" type="button">自動で計測する</button>
+        <button id="latency-auto" class="btn" type="button">推定値に戻す</button>
+      </div>
+      <small id="calibrate-note">計測では、スピーカーから短い音を 3 回出してマイクで拾います。イヤホンを外し、音量を上げてから試してください。</small>
+    </div>
+    <button class="btn wide" type="button" data-close>閉じる</button>
+  </dialog>
+
+  <dialog id="export-sheet" class="sheet">
+    <h2>書き出し</h2>
+    <p id="export-info"></p>
+    <small>ミュート中のトラックは含まれません。ソロにしているトラックがあれば、それだけを書き出します。</small>
+    <a id="export-download" class="btn wide primary" download>ダウンロード</a>
+    <button id="export-share" class="btn wide" type="button" hidden>共有・ファイルに保存</button>
+    <button class="btn wide" type="button" data-close>閉じる</button>
+  </dialog>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

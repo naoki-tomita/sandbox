@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <filter id="up" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="14" dy="14" stdDeviation="16" flood-color="#aab1bf"/>
+      <feDropShadow dx="-14" dy="-14" stdDeviation="16" flood-color="#ffffff"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="#e4e7ed"/>
+  <circle cx="256" cy="256" r="150" fill="#e4e7ed" filter="url(#up)"/>
+  <circle cx="256" cy="256" r="96" fill="none" stroke="#177874" stroke-width="26" stroke-linecap="round" stroke-dasharray="470 133" transform="rotate(-60 256 256)"/>
+  <circle cx="256" cy="256" r="40" fill="#d63f39"/>
+</svg>
